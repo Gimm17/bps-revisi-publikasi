@@ -20,6 +20,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/publications', [PublicationController::class, 'store'])->middleware('throttle:20,1');
     Route::get('/publications/{publication}', [PublicationController::class, 'show']);
     Route::post('/publications/{publication}/start', [PublicationController::class, 'start'])->middleware('throttle:10,1');
+    Route::post('/publications/{publication}/rebind-ai', [PublicationController::class, 'rebindAi'])->middleware('throttle:10,1');
     Route::post('/publications/{publication}/pages/{page}/retry', [PublicationController::class, 'retry']);
     Route::get('/publications/{publication}/pdf', [PublicationController::class, 'pdf']);
     Route::get('/publications/{publication}/pages/{page}/image', [PublicationController::class, 'image']);

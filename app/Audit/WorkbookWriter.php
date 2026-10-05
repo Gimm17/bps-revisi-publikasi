@@ -66,7 +66,7 @@ class WorkbookWriter
             $evidence = collect($finding->evidences)->map(fn ($e) => 'PDF hlm. '.$e['physical_page'].(! empty($e['printed_page']) ? ' (tercetak '.$e['printed_page'].')' : '').(! empty($e['quote']) ? ' — “'.$e['quote'].'”' : ''))->implode('; ');
             $text = '['.mb_strtoupper($finding->severity).' · '.$finding->rule_code.']'."\nDitemukan: ".$finding->observed."\nSeharusnya: ".$finding->expected."\nRevisi: ".$finding->recommendation."\nBukti: ".$evidence."\nStatus: ".$finding->review_status.($finding->review_note ? "\nCatatan pemeriksa: ".$finding->review_note : '');
             // Split long evidence across rows so Excel does not clip text at its 409pt limit.
-            $chunks = mb_str_split($text, 1600);
+            $chunks = $this->chunks($text);
             foreach ($chunks as $i => $chunk) {
                 $sheet->getStyle('L'.$r)->applyFromArray($labelStyle);
                 $sheet->getStyle('M'.$r)->applyFromArray($detailStyle);
@@ -117,6 +117,32 @@ class WorkbookWriter
         }
         $check->disconnectWorksheets();
 
-        return ['validated' => true, 'last_row' => $last, 'finding_count' => $findings->count(), 'checks' => ['blank_outline', 'continuous_borders', 'no_formulas', 'reopened_xlsx'], 'sha256' => hash_file('sha256',$disk->path($path))];
+        return ['validated' => true, 'last_row' => $last, 'finding_count' => $findings->count(), 'checks' => ['blank_outline', 'continuous_borders', 'no_formulas', 'reopened_xlsx'], 'sha256' => hash_file('sha256', $disk->path($path))];
+    }
+
+    /** Preserve every character while respecting both wrapping and explicit newlines. */
+    private function chunks(string $text): array
+    {
+        $chunks = [];
+        while ($text !== '') {
+            $low = 1;
+            $high = min(1600, mb_strlen($text));
+            $length = 1;
+            while ($low <= $high) {
+                $mid = intdiv($low + $high, 2);
+                $candidate = mb_substr($text, 0, $mid);
+                $lines = array_sum(array_map(fn ($line) => max(1, (int) ceil(mb_strlen($line) / 95)), explode("\n", $candidate)));
+                if ($lines <= 24) {
+                    $length = $mid;
+                    $low = $mid + 1;
+                } else {
+                    $high = $mid - 1;
+                }
+            }
+            $chunks[] = mb_substr($text, 0, $length);
+            $text = mb_substr($text, $length);
+        }
+
+        return $chunks;
     }
 }

@@ -2,7 +2,7 @@
 import { useForm, router } from "@inertiajs/vue3";
 import { ref } from "vue";
 import { Save, History, ArrowUpRight } from "lucide-vue-next";
-import type { Finding, Publication } from "../types";
+import type { Evidence, Finding, Publication } from "../types";
 const props = defineProps<{
     finding: Finding | null;
     publication: Publication;
@@ -23,6 +23,9 @@ const form = useForm({
     deleted: props.finding?.deleted ?? false,
     page: props.page,
     quote: "",
+    evidences: props.finding
+        ? (JSON.parse(JSON.stringify(props.finding.evidences)) as Evidence[])
+        : undefined,
 });
 const history = ref<
     {
@@ -154,7 +157,64 @@ defineExpose({ dirty: () => form.isDirty });
                 rows="4"
                 required
                 maxlength="5000"
-            /><template v-if="!finding"
+            />
+            <div v-if="finding && form.evidences" class="evidence-edit">
+                <span class="eyebrow">Koreksi bukti</span>
+                <div v-for="(e, i) in form.evidences" :key="i">
+                    <label :for="`evidence-page-${i}`"
+                        >Halaman bukti {{ i + 1 }}</label
+                    >
+                    <input
+                        :id="`evidence-page-${i}`"
+                        type="number"
+                        min="1"
+                        :max="publication.page_count"
+                        v-model="e.physical_page"
+                        required
+                        @change="
+                            e.bbox = null;
+                            e.printed_page = null;
+                        "
+                    />
+                    <label :for="`evidence-quote-${i}`"
+                        >Kutipan bukti {{ i + 1 }}</label
+                    >
+                    <textarea
+                        :id="`evidence-quote-${i}`"
+                        v-model="e.quote"
+                        rows="2"
+                        :required="!e.bbox"
+                        maxlength="3000"
+                    />
+                    <small v-if="e.bbox"
+                        >Area gambar asli tetap tersimpan. Mengubah halaman
+                        menghapus area lama; tambahkan kutipan pengganti.</small
+                    >
+                    <button
+                        v-if="form.evidences.length > 1"
+                        type="button"
+                        class="button text"
+                        @click="form.evidences.splice(i, 1)"
+                    >
+                        Hapus bukti {{ i + 1 }}
+                    </button>
+                </div>
+                <button
+                    type="button"
+                    class="button secondary"
+                    :disabled="form.evidences.length >= 50"
+                    @click="
+                        form.evidences.push({
+                            physical_page: page,
+                            quote: '',
+                            bbox: null,
+                        })
+                    "
+                >
+                    Tambah bukti
+                </button>
+            </div>
+            <template v-if="!finding"
                 ><label for="manual-page">Halaman PDF</label
                 ><input
                     id="manual-page"
@@ -227,6 +287,7 @@ defineExpose({ dirty: () => form.isDirty });
                             'recommendation',
                             'review_status',
                             'review_note',
+                            'evidences',
                         ]"
                         :key="key"
                     >

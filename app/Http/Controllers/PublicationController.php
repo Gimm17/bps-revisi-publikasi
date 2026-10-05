@@ -85,6 +85,15 @@ class PublicationController extends Controller
         return back()->with('success', 'Halaman '.$page.' dimasukkan ke antrean ulang.');
     }
 
+    public function rebindAi(Request $request, Publication $publication, AuditCoordinator $coordinator): RedirectResponse
+    {
+        Gate::authorize('update', $publication);
+        $request->validate(['confirm' => ['required', 'accepted']]);
+        $coordinator->rebindAi($publication);
+
+        return back()->with('success', 'Koneksi AI diganti dengan persetujuan Anda. Halaman selesai dipertahankan; halaman tersisa dilanjutkan.');
+    }
+
     public function pdf(Publication $publication): BinaryFileResponse
     {
         Gate::authorize('view', $publication);
@@ -147,8 +156,14 @@ class PublicationController extends Controller
     public function unlock(Publication $publication): RedirectResponse
     {
         Gate::authorize('review', $publication);
-        $publication->update(['status' => 'review_ready', 'locked_at' => null]);
-        AuditLogger::record('publication.unlocked', $publication);
+        DB::transaction(function () use ($publication): void {
+            $pub = Publication::whereKey($publication->id)->lockForUpdate()->firstOrFail();
+            if ($pub->status !== 'final' || ! $pub->locked_at || ! app(AuditCoordinator::class)->canComplete($pub)) {
+                throw ValidationException::withMessages(['unlock' => 'Hanya hasil final terkunci dengan seluruh halaman selesai yang dapat dibuka kembali.']);
+            }
+            $pub->update(['status' => 'review_ready', 'locked_at' => null]);
+            AuditLogger::record('publication.unlocked', $pub);
+        });
 
         return back()->with('success', 'Hasil dibuka untuk penyuntingan.');
     }

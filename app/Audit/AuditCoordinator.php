@@ -49,6 +49,26 @@ class AuditCoordinator
         RenderPage::dispatch($page->id);
     }
 
+    public function rebindAi(Publication $publication): void
+    {
+        DB::transaction(function () use ($publication): void {
+            $pub = Publication::whereKey($publication->id)->lockForUpdate()->firstOrFail();
+            if ($pub->status !== 'partial_failure' || $pub->locked_at || $pub->pages()->whereIn('status', ['rendering', 'analyzing'])->exists()) {
+                throw ValidationException::withMessages(['ai' => 'Pergantian koneksi hanya dapat dilakukan setelah proses gagal dan tidak ada halaman yang sedang dibaca.']);
+            }
+            $config = AiProviderConfig::latest('id')->first();
+            if (! $config?->vision_tested_at || $config->id === $pub->ai_config_id) {
+                throw ValidationException::withMessages(['ai' => 'Admin perlu menyimpan dan meluluskan uji koneksi AI baru terlebih dahulu.']);
+            }
+            $old = $pub->ai_config_id;
+            $pub->update(['ai_config_id' => $config->id]);
+            AuditLogger::record('audit.provider_rebound', $pub, ['previous_config_id' => $old, 'new_config_id' => $config->id, 'model' => $config->model, 'completed_pages_preserved' => $pub->pages()->where('status', 'complete')->count()]);
+        });
+        $publication->refresh()->unsetRelation('aiConfig');
+        $this->start($publication);
+        $this->afterPage($publication);
+    }
+
     public function canComplete(Publication $publication): bool
     {
         return $publication->pages()->count() === $publication->page_count && ! $publication->pages()->where(fn ($q) => $q->where('status', '!=', 'complete')->orWhereNull('result')->orWhereNull('completed_at'))->exists();

@@ -33,6 +33,8 @@ URL http://127.0.0.1:8000. Akses admin awal tersimpan **privat** di `storage/app
 8. Pegawai meninjau bukti, menyunting, menerima/menolak/menandai verifikasi, atau menambahkan temuan manual berbukti. Tiap perubahan mempunyai versi/history. Buat Excel baru setelah perubahan; versi lama ditandai belum memuat revisi terbaru.
 9. Reviewer mengunci hasil saat seluruh keputusan selesai dan Excel revisi terakhir tersedia. Admin dapat menugaskan pegawai lain; akses dokumen dibatasi pemilik/penugasan/admin.
 
+Jika API key lama dicabut saat pemeriksaan belum selesai: admin menyimpan dan menguji koneksi baru. Pada publikasi berstatus Perlu dilanjutkan, pilih **Gunakan koneksi AI terbaru** dan setujui perubahan model/penyedia/biaya. Pergantian dicatat, halaman selesai dipertahankan, dan proses tidak boleh sedang membaca halaman ketika koneksi diganti. Tombol Lanjutkan biasa tetap memakai snapshot koneksi lama.
+
 ## Batasan penting
 
 **Kode telah diuji; akurasi model nyata belum dibuktikan.** API key 9Router pengguna belum tersedia. Uji otomatis memakai respons AI terkontrol dan PDF sungguhan untuk membuktikan orkestrasi, bukan precision/recall statistik. Pilot Ampana Kota dan evaluasi 12 publikasi dengan label gold manusia wajib sebelum produksi. Lihat `docs/evaluation-results.md` dan `deploy/release-checklist.md`.

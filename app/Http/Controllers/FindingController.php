@@ -44,6 +44,20 @@ class FindingController extends Controller
         if (($data['review_status'] === 'rejected' || ($data['deleted'] ?? false)) && empty(trim($data['review_note'] ?? ''))) {
             throw ValidationException::withMessages(['review_note' => 'Tuliskan alasan penolakan atau penghapusan.']);
         }
+        // Support both the legacy page/quote edit and the full multi-page evidence editor.
+        if (isset($data['page']) && ! isset($data['evidences'])) {
+            $data['evidences'] = $finding->evidences;
+            $data['evidences'][0] = ['physical_page' => $data['page'], 'quote' => $data['quote'] ?? '', 'bbox' => null];
+        }
+        foreach ($data['evidences'] ?? [] as $i => $evidence) {
+            $box = $evidence['bbox'] ?? null;
+            if (empty(trim($evidence['quote'] ?? '')) && ! $box) {
+                throw ValidationException::withMessages(['evidences.'.$i.'.quote' => 'Bukti memerlukan kutipan atau area gambar.']);
+            }
+            if ($box && ($box[0] >= $box[2] || $box[1] >= $box[3])) {
+                throw ValidationException::withMessages(['evidences.'.$i.'.bbox' => 'Koordinat area bukti tidak valid.']);
+            }
+        }
         DB::transaction(function () use ($publication, $finding, $data, $request) {
             $pub = Publication::whereKey($publication->id)->lockForUpdate()->firstOrFail();
             abort_if($pub->locked_at, 403);

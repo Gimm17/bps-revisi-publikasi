@@ -158,6 +158,16 @@ function beforeUnload(e: BeforeUnloadEvent) {
         e.preventDefault();
     }
 }
+function rebindAi() {
+    if (
+        canLeave() &&
+        window.confirm(
+            "Gunakan koneksi AI terbaru yang sudah diuji admin? Model, penyedia, dan biaya halaman berikutnya dapat berubah. Halaman selesai tidak diperiksa ulang; pergantian dicatat dalam riwayat.",
+        )
+    ) {
+        action("/rebind-ai", { confirm: true });
+    }
+}
 let timer: ReturnType<typeof setInterval>;
 let removeNavigationGuard: (() => void) | undefined;
 onMounted(() => {
@@ -225,6 +235,13 @@ onUnmounted(() => {
                               ? "Mulai pemeriksaan"
                               : "Lanjutkan pemeriksaan"
                     }}</button
+                ><button
+                    v-if="canEdit && publication.status === 'partial_failure'"
+                    class="button secondary"
+                    :disabled="busy"
+                    @click="rebindAi"
+                >
+                    Gunakan koneksi AI terbaru</button
                 ><a
                     v-if="exports.find((e) => e.status === 'complete')"
                     :href="`${root}/exports/${exports.find((e) => e.status === 'complete')?.id}`"

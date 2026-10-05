@@ -20,7 +20,7 @@ Rencana: `../docs/superpowers/plans/2026-10-05-publication-audit-platform.md`.
 - Task 12: encrypted key, HTTPS host allowlist/DNS pin, login throttle, headers/CSP, secure production config, heartbeat, health/resume CLI dan runbook deploy/backup. Restore hosting dan stress concurrency belum dilakukan.
 - Task 13: disabled sesuai entry gate; tidak ada OAuth klien resmi/private-client atau kredensial browser ChatGPT.
 - Task 14: pemetaan 12 acuan dan scorer adjudikasi tersedia. Gold normalization/adjudikasi manusia dan live model run belum selesai; tidak ada klaim recall/precision.
-- Pengujian penuh terakhir sebelum hardening final: 37 PHPUnit test / 1627 assertions lulus; typecheck dan build lulus. Hasil final diperbarui setelah review.
+- Peninjauan independen seluruh cabang: tidak ada Critical; empat Important direproduksi dengan tes gagal lalu diperbaiki dalam satu pass. Hasil akhir dicatat di bawah.
 
 ## Rulings
 
@@ -29,3 +29,21 @@ Rencana: `../docs/superpowers/plans/2026-10-05-publication-audit-platform.md`.
 - Ruling: generator XLSX aplikasi memakai PhpSpreadsheet sesuai rencana Laravel, bukan runtime artifact desktop — aplikasi harus dapat deploy mandiri di PHP hosting — risiko: native Excel layout tetap diperiksa lewat pilot; unit test membuka ulang dan memeriksa border/isi.
 - Ruling: live model/gold/hosting release gate tidak dianggap selesai — API key dan lingkungan hosting belum tersedia — risiko: akurasi AI belum dapat dinyatakan siap produksi.
 - Bootstrap Laravel mengharuskan Boost; dependency dev/guidelines telah dipasang, tidak ada remote MCP/credential ditambahkan. Skill tambahan yang disebut guideline generated tidak tersedia pada tool session; menggunakan skill Laravel/Inertia/TDD yang tersedia dan dokumentasi resmi.
+
+## Review akhir dan pembuktian
+
+- Final: fixed unlock tidak boleh mengubah draft/partial menjadi review_ready — test_unlock_cannot_bypass_completion_and_only_reopens_a_valid_final RED→GREEN. Transaksi mensyaratkan final+locked+100% hasil halaman.
+- Final: fixed API key lama tidak dapat dipulihkan — test_explicit_provider_migration_preserves_completed_pages_and_records_the_change RED→GREEN. Rebind eksplisit, persetujuan biaya, config terbaru lulus vision, tidak boleh ada proses aktif, log id config lama/baru dan halaman selesai dipertahankan. Tidak ada pergantian provider diam-diam.
+- Final: fixed teks banyak newline terpotong dalam Excel — test_newline_heavy_excel_content_is_split_without_clipping_or_lost_text RED→GREEN. Pemecahan juga mempertimbangkan batas 24 baris tampilan; seluruh karakter dipertahankan.
+- Final: fixed koreksi evidence diabaikan — test_evidence_correction_is_saved_with_history_and_page_validation RED→GREEN. Multi-bukti dapat disunting, validasi halaman/quote/bbox, history sebelum/sesudah dan version lock tetap berlaku.
+- Final: minor (deferred): penghitung backlog pada Pengaturan masih membaca tabel jobs lokal; pada Redis dapat menampilkan nol. Pantau backlog Redis melalui supervisor/monitor Redis sampai metrik driver-aware ditambahkan; audit:health juga tidak menggantikan monitoring Redis.
+- Final: Ruling: hal yang reviewer tidak dapat menilai (AI nyata/gold, DNS/TLS produksi, Redis/MySQL concurrency, restore/restart hosting, visual Excel native) tetap gerbang rilis terbuka — tes lokal tidak membuktikan kondisi tersebut — risiko: kualitas/operasi produksi belum dijamin sampai pilot dan staging lulus.
+- Final: Ruling: repo web baru tidak memiliki base branch atau remote untuk merge/PR — pertahankan cabang implementasi dan seluruh file di folder yang diminta; tidak push/deploy — risiko: integrasi/deploy masih langkah terpisah dengan otorisasi pengguna.
+
+## Hasil verifikasi final (5 Oktober 2026)
+
+- PHPUnit: 42/42 tes lulus, 1.688 assertions. Keempat Important sudah masuk suite penuh yang hijau setelah fix pass.
+- Playwright: 7/7 lulus; login axe WCAG A/AA tanpa pelanggaran, upload manifest nyata, koreksi kutipan/riwayat/ekspor/download XLSX, viewport 1440/1024/768/390 tanpa overflow. Tangkapan desktop/mobile ditinjau ulang; data fixture hanya di database browser terpisah.
+- Typecheck, production build dan Pint lulus. Composer audit: tidak ada advisory/abandoned; npm production audit: 0 vulnerabilities.
+- Lokal: Poppler tersedia, worker+heartbeat aktif, antrean dan gagal 0. Vision belum dikonfigurasi/lulus; tidak ada pemeriksaan AI nyata atau hasil produksi yang dibuat.
+- Source disimpan pada cabang implementation/publication-audit; environment, credential, database, test output dan desain pengguna tidak dimasukkan ke Git. Tidak ada push/PR/deploy.

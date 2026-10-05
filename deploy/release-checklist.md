@@ -6,7 +6,7 @@
 - [ ] Cakupan 12 publikasi acuan 100%, tidak ada halaman failed/uncertain.
 - [ ] Label gold dari workbook atasan telah diadjudikasi manusia (bukan menyalin temuan lama sebagai fakta otomatis).
 - [ ] Recall temuan wajib ≥95%, false-positive temuan wajib ≤10%, evidence completeness 100%, seluruh XLSX valid.
-- [ ] Uji browser desktop/mobile dan peninjauan reviewer lulus.
+- [x] Uji browser lokal desktop/mobile dan peninjauan kode independen lulus (42 PHP + 7 browser tests; bukan pilot model nyata/hosting).
 - [ ] Pengujian restart worker, backup/restore dan alert pada hosting selesai.
 - [ ] Pilot pegawai, kuota/biaya, kebijakan retensi dan batas concurrency disetujui.
 - [ ] Tidak ada password/key/database lokal ikut dalam deploy.

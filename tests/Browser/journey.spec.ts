@@ -9,7 +9,9 @@ test("login is accessible with keyboard-labelled controls", async ({
     const context = await browser.newContext();
     const page = await context.newPage();
     await page.goto("http://127.0.0.1:8010/login");
-    await expect(page.getByRole('heading', {name:'Masuk ke ruang kerja'})).toBeVisible();
+    await expect(
+        page.getByRole("heading", { name: "Masuk ke ruang kerja" }),
+    ).toBeVisible();
     const results = await new AxeBuilder({ page })
         .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
         .analyze();
@@ -63,10 +65,16 @@ test("edit evidence-backed finding, see revision, regenerate and download actual
         .getByLabel("Saran revisi")
         .fill(`Catatan revisi melalui browser ${Date.now()}`);
     await page.getByLabel("Keputusan pemeriksa").selectOption("accepted");
+    await page
+        .getByLabel("Kutipan bukti 1", { exact: true })
+        .fill("PUBLIKASI TEST HALAMAN 1 — bukti dikoreksi pemeriksa");
     await page.getByRole("button", { name: "Simpan temuan" }).click();
     await expect(
         page.getByRole("status").filter({ hasText: "Perubahan tersimpan" }),
     ).toBeVisible();
+    await expect(
+        page.getByLabel("Kutipan bukti 1", { exact: true }),
+    ).toHaveValue("PUBLIKASI TEST HALAMAN 1 — bukti dikoreksi pemeriksa");
     await page.getByRole("button", { name: "Lihat riwayat perubahan" }).click();
     await expect(
         page.getByRole("heading", { name: "Riwayat perubahan" }),
