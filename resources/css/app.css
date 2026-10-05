@@ -1,0 +1,10 @@
+@import "tailwindcss";
+@import "./design.css";
+@source '../js/**/*.vue';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@theme {
+    --font-sans: "Geist Sans", sans-serif;
+}

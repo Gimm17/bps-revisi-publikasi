@@ -1,0 +1,15 @@
+[program:publication-audit]
+command=/usr/bin/php /home/ACCOUNT/publication-audit/artisan queue:work redis --sleep=3 --tries=3 --timeout=230 --max-time=3600
+directory=/home/ACCOUNT/publication-audit
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+user=ACCOUNT
+numprocs=2
+process_name=%(program_name)s_%(process_num)02d
+redirect_stderr=true
+stdout_logfile=/home/ACCOUNT/logs/publication-audit-worker.log
+stdout_logfile_maxbytes=10MB
+stdout_logfile_backups=5
+stopwaitsecs=300

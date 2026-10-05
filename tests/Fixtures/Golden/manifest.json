@@ -1,0 +1,22 @@
+{
+  "status": "awaiting_human_adjudication_and_live_provider_run",
+  "root": "../../../..",
+  "source_pdf_folder": "DOCS-PUBLIKASI",
+  "review_workbook_folder": "outputs/01a0e6b4-6493-78e1-8086-eb87efa11ba8",
+  "supervisor_reference": "HASIL-KOREKSI-ATASAN/AMPANA KOTA - Hasil Pemeriksaan 2026 - REVISI.xlsx",
+  "publications": [
+    {"region":"Ampana Kota","pdf":"kecamatan-ampana-kota-dalam-angka-2026.pdf","workbook":"AMPANA KOTA - Hasil Pemeriksaan 2026.xlsx"},
+    {"region":"Ampana Tete","pdf":"kecamatan-ampana-tete-dalam-angka-2026.pdf","workbook":"Ampana Tete - Hasil Pemeriksaan 2026.xlsx"},
+    {"region":"Batudaka","pdf":"kecamatan-batudaka-dalam-angka-2026.pdf","workbook":"Batudaka - Hasil Pemeriksaan 2026.xlsx"},
+    {"region":"Ratolindo","pdf":"kecamatan-ratolindo-dalam-angka-2026.pdf","workbook":"Ratolindo - Hasil Pemeriksaan 2026.xlsx"},
+    {"region":"Talatako","pdf":"kecamatan-talatako-dalam-angka-2026.pdf","workbook":"Talatako - Hasil Pemeriksaan 2026.xlsx"},
+    {"region":"Togean","pdf":"kecamatan-togean-dalam-angka-2026.pdf","workbook":"Togean - Hasil Pemeriksaan 2026.xlsx"},
+    {"region":"Tojo Barat","pdf":"kecamatan-tojo-barat-dalam-angka-2026.pdf","workbook":"Tojo Barat - Hasil Pemeriksaan 2026.xlsx"},
+    {"region":"Tojo","pdf":"kecamatan-tojo-dalam-angka-2026.pdf","workbook":"Tojo - Hasil Pemeriksaan 2026.xlsx"},
+    {"region":"Ulubongka","pdf":"kecamatan-ulubongka-dalam-angka-2026.pdf","workbook":"Ulubongka - Hasil Pemeriksaan 2026.xlsx"},
+    {"region":"Una-Una","pdf":"kecamatan-una-una-dalam-angka-2026.pdf","workbook":"Una-Una - Hasil Pemeriksaan 2026.xlsx"},
+    {"region":"Walea Besar","pdf":"kecamatan-walea-besar-dalam-angka-2026.pdf","workbook":"Walea Besar - Hasil Pemeriksaan 2026.xlsx"},
+    {"region":"Walea Kepulauan","pdf":"kecamatan-walea-kepulauan-dalam-angka-2026.pdf","workbook":"Walea Kepulauan - Hasil Pemeriksaan 2026.xlsx"}
+  ],
+  "gold_findings": []
+}
