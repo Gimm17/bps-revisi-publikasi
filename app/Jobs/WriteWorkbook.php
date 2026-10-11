@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Audit\AuditCoordinator;
 use App\Audit\WorkbookWriter;
 use App\Models\Export;
 use App\Models\Publication;
@@ -38,15 +39,21 @@ class WriteWorkbook implements ShouldBeUnique, ShouldQueue
                 return;
             }
             $pub = Publication::whereKey($export->publication_id)->lockForUpdate()->firstOrFail();
+            $partial = ($export->validation['mode'] ?? 'full') === 'partial';
+            $coverage = app(AuditCoordinator::class)->coverage($pub);
+            if (! $partial && (! app(AuditCoordinator::class)->canComplete($pub) || ! in_array($pub->status, ['exporting', 'review_ready', 'final'], true))) {
+                throw new \RuntimeException('Pemeriksaan belum lengkap untuk ekspor penuh.');
+            }
+            $coverage += ['mode' => $partial ? 'partial' : 'full', 'cross_checks_complete' => ! $partial, 'snapshot_at' => now()->toISOString()];
             // A job captures the current revision under the same lock as finding edits.
             $export->update(['status' => 'processing', 'publication_revision' => $pub->revision]);
             $path = 'publications/'.$pub->id.'/exports/v'.$export->version.'.xlsx';
-            $validation = $writer->write($pub, $path);
+            $validation = $writer->write($pub, $path, $coverage);
             $export->update(['status' => 'complete', 'path' => $path, 'checksum' => $validation['sha256'], 'finding_count' => $validation['finding_count'], 'validation' => $validation, 'error' => null]);
-            if ($pub->status === 'exporting') {
+            if (! $partial && $pub->status === 'exporting') {
                 $pub->update(['status' => 'review_ready']);
             }
-            AuditLogger::record('export.completed', $pub, ['version' => $export->version]);
+            AuditLogger::record('export.completed', $pub, ['version' => $export->version, 'mode' => $coverage['mode'], 'checked_pages' => $coverage['checked_pages']]);
         });
     }
 

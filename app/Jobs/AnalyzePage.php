@@ -18,6 +18,7 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class AnalyzePage implements ShouldBeUnique, ShouldQueue
 {
@@ -89,7 +90,7 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
             });
             $coordinator->afterPage($publication);
         } catch (\Throwable $e) {
-            $page->update(['error' => 'Pembacaan belum valid atau layanan AI gagal. Proses akan mencoba ulang.']);
+            $page->update(['error' => $this->failureReason($e).' Proses akan mencoba ulang.']);
             throw $e;
         }
     }
@@ -100,7 +101,31 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
         if (! $page || $page->status === 'complete') {
             return;
         }
-        $page->update(['status' => 'failed', 'error' => 'Pembacaan halaman belum valid setelah beberapa percobaan. Periksa koneksi atau jalankan ulang.']);
+        $page->update(['status' => 'failed', 'error' => $this->failureReason($exception).' Gagal setelah beberapa percobaan; coba ulang halaman ini atau buat Excel sementara.']);
         $page->publication->update(['status' => 'partial_failure']);
+    }
+
+    private function failureReason(?\Throwable $exception): string
+    {
+        if ($exception instanceof ValidationException) {
+            $fields = array_map(fn ($field) => preg_replace('/[^a-zA-Z0-9_.]/', '', (string) $field), array_keys($exception->errors()));
+
+            return 'Format respons AI belum valid pada kolom: '.mb_substr(implode(', ', array_slice($fields, 0, 5)), 0, 250).'.';
+        }
+        $message = $exception?->getMessage() ?? '';
+        $safeMessages = [
+            'Koneksi penyedia AI gagal atau melewati batas waktu.',
+            'Host penyedia AI tidak dapat dihubungi.',
+            'Alamat host penyedia AI tidak diizinkan.',
+            'Respons AI terpotong atau dibatasi. Halaman belum dianggap selesai.',
+            'Model/rute tidak mengembalikan pembacaan gambar yang valid.',
+            'Respons AI bukan JSON lengkap. Jalankan ulang halaman ini.',
+            'Struktur respons AI tidak valid.',
+        ];
+        if (in_array($message, $safeMessages, true) || preg_match('/^Penyedia AI mengembalikan status HTTP \d{3}\. Periksa koneksi, model, atau kuota\.$/', $message)) {
+            return $message;
+        }
+
+        return 'Pembacaan belum valid atau layanan AI gagal.';
     }
 }

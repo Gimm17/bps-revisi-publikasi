@@ -159,3 +159,74 @@ test("saving LimitRouter unlocks image test and unsaved changes lock it again", 
     await expect(testButton).toBeEnabled();
     // No paid vision request: this test checks the real save flow only.
 });
+
+test("partial export confirms, downloads immediately, and keeps progress unchanged", async ({
+    page,
+}) => {
+    await page
+        .getByRole("link")
+        .filter({ hasText: "Publikasi Pemeriksaan Belum Lengkap" })
+        .click();
+    await expect(
+        page.getByText("2 dari 3 halaman selesai diperiksa"),
+    ).toBeVisible();
+    page.once("dialog", (dialog) => dialog.dismiss());
+    await page
+        .getByRole("button", { name: "Buat Excel sementara", exact: true })
+        .click();
+    await expect(
+        page.getByText("2 dari 3 halaman selesai diperiksa"),
+    ).toBeVisible();
+    page.once("dialog", (dialog) => dialog.accept());
+    await page
+        .getByRole("button", { name: "Buat Excel sementara", exact: true })
+        .click();
+    await expect(
+        page
+            .getByRole("status")
+            .filter({ hasText: "Excel sementara siap diunduh" }),
+    ).toBeVisible();
+    await expect(
+        page.getByText("2 dari 3 halaman selesai diperiksa"),
+    ).toBeVisible();
+    await expect(
+        page.getByRole("button", { name: "Buat Excel versi baru" }),
+    ).toBeDisabled();
+    await expect(page.locator(".export-item").first()).toContainText(
+        "BELUM LENGKAP",
+    );
+    const downloadPromise = page.waitForEvent("download");
+    await page
+        .locator(".export-item")
+        .first()
+        .getByRole("link", { name: "Unduh", exact: true })
+        .click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toContain("SEMENTARA BELUM LENGKAP");
+    expect(await download.failure()).toBeNull();
+    const path = await download.path();
+    const report = execFileSync(
+        "php",
+        [
+            "-r",
+            'require "vendor/autoload.php"; $book=PhpOffice\\PhpSpreadsheet\\IOFactory::load($argv[1]); echo json_encode($book->getActiveSheet()->toArray(), JSON_UNESCAPED_UNICODE);',
+            path!,
+        ],
+        { encoding: "utf8" },
+    );
+    expect(report).toContain("BELUM LENGKAP");
+    expect(report).toContain("2 dari 3");
+    expect(report).toContain("PDF hlm. 3");
+    expect(report).toContain("Temuan parsial tetap tersimpan");
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(
+        page
+            .getByRole("button", { name: "Buat Excel sementara", exact: true })
+            .first(),
+    ).toBeVisible();
+    expect(
+        await page.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+    ).toBeTruthy();
+});

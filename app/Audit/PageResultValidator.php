@@ -37,7 +37,8 @@ class PageResultValidator
             'inventory.issn_barcode_present' => ['sometimes', 'nullable', 'boolean'],
             'identity' => ['present', 'array'], 'contents' => ['present', 'array'],
             'contents.*' => ['array'], 'contents.*.title' => ['required', 'string', 'max:3000'],
-            'contents.*.target_page' => ['required', 'string', 'max:30'],
+            'contents.*.type' => ['sometimes', 'string', 'max:50'],
+            'contents.*.target_page' => ['present', 'nullable', 'string', 'max:30'],
             'findings' => ['present', 'array', 'max:100'],
             'findings.*.rule_code' => ['required', Rule::in(array_keys(app(RuleRegistry::class)->all()))],
             'findings.*.severity' => ['required', Rule::in(['wajib', 'saran', 'verifikasi'])],
@@ -49,6 +50,11 @@ class PageResultValidator
         ])->validate();
         if ($data['readability'] === 'readable' && $data['page_type'] !== 'blank' && trim($data['text']) === '') {
             $this->reject('Halaman berisi konten tidak boleh dinyatakan terbaca tanpa transkripsi.');
+        }
+        foreach ($data['contents'] as $entry) {
+            if ($data['readability'] === 'readable' && ($entry['type'] ?? '') !== 'heading' && trim($entry['target_page'] ?? '') === '') {
+                $this->reject('Nomor halaman tujuan entri daftar belum terbaca. Gunakan uncertain, jangan menebak nomor halaman.');
+            }
         }
         foreach ($data['identity'] as $value) {
             if (! is_scalar($value) && $value !== null) {

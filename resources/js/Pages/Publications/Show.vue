@@ -64,6 +64,12 @@ const blocked = computed(() =>
         ["failed", "needs_verification"].includes(p.status),
     ),
 );
+const incomplete = computed(() =>
+    props.pages.filter((p) => p.status !== "complete"),
+);
+const latestExport = computed(() =>
+    props.exports.find((e) => e.status === "complete"),
+);
 const selected = computed(
     () => props.findings.find((f) => f.id === selectedId.value) ?? null,
 );
@@ -168,6 +174,17 @@ function rebindAi() {
         action("/rebind-ai", { confirm: true });
     }
 }
+function exportPartial() {
+    if (busy.value || !canLeave()) return;
+    if (
+        window.confirm(
+            `Buat Excel sementara dari ${checked.value} dari ${props.publication.page_count} halaman yang sudah selesai? Hasil tersimpan tidak dihapus dan halaman lain tidak dianggap selesai. Excel diberi label BELUM LENGKAP; pemeriksaan silang belum dinyatakan lengkap. Anda tetap bisa melanjutkan pemeriksaan nanti.`,
+        )
+    ) {
+        section.value = "exports";
+        action("/exports/partial", { confirm: true });
+    }
+}
 let timer: ReturnType<typeof setInterval>;
 let removeNavigationGuard: (() => void) | undefined;
 onMounted(() => {
@@ -243,10 +260,14 @@ onUnmounted(() => {
                 >
                     Gunakan koneksi AI terbaru</button
                 ><a
-                    v-if="exports.find((e) => e.status === 'complete')"
-                    :href="`${root}/exports/${exports.find((e) => e.status === 'complete')?.id}`"
+                    v-if="latestExport"
+                    :href="`${root}/exports/${latestExport.id}`"
                     class="button primary"
-                    ><Download :size="17" />Unduh Excel</a
+                    ><Download :size="17" />{{
+                        latestExport.validation?.mode === "partial"
+                            ? "Unduh Excel sementara"
+                            : "Unduh Excel"
+                    }}</a
                 >
             </div>
         </div>
@@ -268,14 +289,44 @@ onUnmounted(() => {
                 }}%</span
             >
         </div>
-        <div v-if="publication.error || blocked.length" class="notice warning">
-            <strong>Pemeriksaan belum lengkap.</strong> {{ publication.error }}
-            {{
-                blocked.length
-                    ? `${blocked.length} halaman perlu dicoba ulang atau diverifikasi.`
-                    : ""
-            }}
-            Excel final belum boleh dibuat sebelum seluruh halaman selesai.
+        <div
+            v-if="publication.error || incomplete.length"
+            class="notice warning"
+            role="status"
+        >
+            <p>
+                <strong>Pemeriksaan belum lengkap.</strong>
+                {{ publication.error }} {{ incomplete.length }} halaman belum
+                selesai; {{ blocked.length }} gagal atau perlu verifikasi. Hasil
+                yang sudah tersimpan tetap dipertahankan. Excel lengkap menunggu
+                seluruh halaman dan pemeriksaan silang selesai.
+            </p>
+            <details v-if="incomplete.length">
+                <summary>Lihat halaman yang belum selesai</summary>
+                <ul>
+                    <li v-for="p in incomplete" :key="p.physical_page">
+                        <button
+                            class="button secondary"
+                            @click="pageTo(p.physical_page)"
+                        >
+                            PDF {{ p.physical_page }}
+                        </button>
+                        {{ label(p.status)
+                        }}{{ p.error ? ` — ${p.error}` : "" }}
+                    </li>
+                </ul>
+            </details>
+            <button
+                v-if="canEdit && checked > 0 && !ready"
+                class="button secondary"
+                :disabled="busy"
+                :aria-busy="busy"
+                @click="exportPartial"
+            >
+                <FileSpreadsheet :size="18" />{{
+                    busy ? "Memproses..." : "Buat Excel sementara"
+                }}
+            </button>
         </div>
         <nav class="section-tabs" aria-label="Bagian pemeriksaan">
             <button
@@ -525,6 +576,13 @@ onUnmounted(() => {
                             Coba ulang halaman
                         </button>
                     </div>
+                    <p
+                        v-if="currentPage.error"
+                        class="notice warning"
+                        role="status"
+                    >
+                        {{ currentPage.error }}
+                    </p>
                     <details
                         v-if="currentPage.result?.text"
                         class="extracted-text"
@@ -647,8 +705,9 @@ onUnmounted(() => {
                 <div>
                     <h2>Lembar revisi yang siap dibagikan</h2>
                     <p>
-                        Excel dibuat otomatis setelah semua halaman dan
-                        pemeriksaan silang selesai.
+                        Excel lengkap dibuat otomatis setelah semua halaman dan
+                        pemeriksaan silang selesai. Excel sementara dapat dibuat
+                        dari hasil tersimpan tanpa menunggu AI.
                     </p>
                 </div>
                 <button
@@ -658,6 +717,17 @@ onUnmounted(() => {
                 >
                     <FileSpreadsheet :size="18" />Buat Excel versi baru
                 </button>
+                <button
+                    v-if="canEdit && !ready && checked > 0"
+                    class="button secondary"
+                    :disabled="busy"
+                    :aria-busy="busy"
+                    @click="exportPartial"
+                >
+                    <FileSpreadsheet :size="18" />{{
+                        busy ? "Memproses..." : "Buat Excel sementara"
+                    }}
+                </button>
             </div>
             <div v-if="!exports.length" class="empty-state">
                 <FileSpreadsheet :size="44" />
@@ -665,7 +735,7 @@ onUnmounted(() => {
                 <p>
                     {{
                         checked < publication.page_count
-                            ? "Selesaikan seluruh halaman terlebih dahulu."
+                            ? "Lanjutkan pemeriksaan, atau buat Excel sementara dari halaman yang sudah selesai."
                             : "Pemeriksaan silang dan pembuatan Excel akan berjalan otomatis."
                     }}
                 </p>
@@ -673,7 +743,25 @@ onUnmounted(() => {
             <article v-for="e in exports" :key="e.id" class="export-item">
                 <span class="file-icon"><FileSpreadsheet /></span>
                 <div>
-                    <h3>Hasil pemeriksaan · Versi {{ e.version }}</h3>
+                    <h3>
+                        {{
+                            e.validation?.mode === "partial"
+                                ? "Excel sementara — BELUM LENGKAP"
+                                : "Hasil pemeriksaan"
+                        }}
+                        · Versi {{ e.version }}
+                    </h3>
+                    <p v-if="e.validation?.mode === 'partial'">
+                        {{ e.validation.checked_pages }} dari
+                        {{ e.validation.total_pages }} halaman diperiksa saat
+                        file dibuat. Belum selesai: PDF
+                        {{
+                            e.validation.unchecked_pages
+                                ?.map((p) => p.physical_page)
+                                .join(", ") ||
+                            "tidak ada; pemeriksaan silang belum dinyatakan lengkap"
+                        }}.
+                    </p>
                     <p>
                         Revisi {{ e.publication_revision }} ·
                         {{ e.finding_count ?? 0 }} temuan ·

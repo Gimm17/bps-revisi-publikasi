@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Audit\AuditCoordinator;
 use App\Audit\RuleRegistry;
+use App\Http\Requests\PartialExportRequest;
 use App\Http\Requests\PublicationRequest;
 use App\Models\AiProviderConfig;
 use App\Models\Export;
@@ -123,9 +124,17 @@ class PublicationController extends Controller
     {
         Gate::authorize('view', $publication);
         abort_unless($export->publication_id === $publication->id && $export->status === 'complete', 404);
-        $filename = preg_replace('/[^\pL\pN\- ]/u', '', $publication->title).' - Pemeriksaan v'.$export->version.'.xlsx';
+        $label = ($export->validation['mode'] ?? 'full') === 'partial' ? 'SEMENTARA BELUM LENGKAP' : 'Pemeriksaan';
+        $filename = preg_replace('/[^\pL\pN\- ]/u', '', $publication->title).' - '.$label.' v'.$export->version.'.xlsx';
 
         return response()->download(Storage::disk('local')->path($export->path), $filename, ['Cache-Control' => 'private, no-store']);
+    }
+
+    public function exportPartial(PartialExportRequest $request, Publication $publication, AuditCoordinator $coordinator): RedirectResponse
+    {
+        $coordinator->exportPartial($publication, $request->user()->id);
+
+        return back()->with('success', 'Excel sementara siap diunduh. Hasil yang sudah tersimpan dipertahankan; pemeriksaan belum lengkap.');
     }
 
     public function assign(Request $request, Publication $publication): RedirectResponse
@@ -143,7 +152,7 @@ class PublicationController extends Controller
         Gate::authorize('review', $publication);
         DB::transaction(function () use ($publication): void {
             $publication = Publication::whereKey($publication->id)->lockForUpdate()->firstOrFail();
-            if (! in_array($publication->status, ['review_ready', 'final']) || $publication->findings()->where('deleted', false)->whereIn('review_status', ['unreviewed', 'needs_verification'])->exists() || ! $publication->exports()->where('status', 'complete')->where('publication_revision', $publication->revision)->exists()) {
+            if (! app(AuditCoordinator::class)->canComplete($publication) || ! in_array($publication->status, ['review_ready', 'final']) || $publication->findings()->where('deleted', false)->whereIn('review_status', ['unreviewed', 'needs_verification'])->exists() || ! $publication->exports()->where('status', 'complete')->where('publication_revision', $publication->revision)->where(fn ($q) => $q->whereNull('validation->mode')->orWhere('validation->mode', '!=', 'partial'))->exists()) {
                 throw ValidationException::withMessages(['lock' => 'Tinjau semua temuan dan buat Excel untuk revisi terbaru sebelum mengunci hasil.']);
             }
             $publication->update(['status' => 'final', 'locked_at' => now()]);

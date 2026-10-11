@@ -104,6 +104,31 @@ class PipelineTest extends TestCase
         $pub = $this->setupPub();
         Http::fake(['*' => Http::response(['choices' => [['finish_reason' => 'length', 'message' => ['content' => '{}']]]])]);
         $this->expectException(\RuntimeException::class);
-        app(NineRouterClient::class)->request($pub->aiConfig,[]);
+        app(NineRouterClient::class)->request($pub->aiConfig, []);
+    }
+
+    public function test_page_failure_shows_validation_fields_instead_of_only_generic_retry_message(): void
+    {
+        $pub = $this->setupPub();
+        $page = $pub->pages()->first();
+        app()->call([new RenderPage($page->id), 'handle']);
+        $data = $this->pageResult(1, ['contents' => [['title' => 'Tabel tanpa nomor']]]);
+        Http::fake(['*' => Http::response(['choices' => [['message' => ['content' => json_encode($data)]]]])]);
+        try {
+            app()->call([new AnalyzePage($page->id), 'handle']);
+            $this->fail('Incomplete contents accepted');
+        } catch (ValidationException $exception) {
+            (new AnalyzePage($page->id))->failed($exception);
+        }
+        $this->assertSame('failed', $page->fresh()->status);
+        $this->assertStringContainsString('contents.0.target_page', $page->fresh()->error);
+    }
+
+    public function test_unexpected_exception_details_are_not_exposed_on_page(): void
+    {
+        $pub = $this->setupPub();
+        $page = $pub->pages()->first();
+        (new AnalyzePage($page->id))->failed(new \RuntimeException('secret-key-database-credentials'));
+        $this->assertStringNotContainsString('secret-key', $page->fresh()->error);
     }
 }

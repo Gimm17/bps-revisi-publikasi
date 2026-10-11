@@ -25,6 +25,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/publications/{publication}/pdf', [PublicationController::class, 'pdf']);
     Route::get('/publications/{publication}/pages/{page}/image', [PublicationController::class, 'image']);
     Route::post('/publications/{publication}/exports', [PublicationController::class, 'export']);
+    Route::post('/publications/{publication}/exports/partial', [PublicationController::class, 'exportPartial'])->middleware('throttle:5,1');
     Route::get('/publications/{publication}/exports/{export}', [PublicationController::class, 'download']);
     Route::post('/publications/{publication}/assign', [PublicationController::class, 'assign']);
     Route::post('/publications/{publication}/lock', [PublicationController::class, 'lock']);

@@ -70,6 +70,16 @@ export interface ExportRecord {
     error: string | null;
     created_at: string;
     checksum: string | null;
+    validation: {
+        mode?: "partial" | "full";
+        checked_pages?: number;
+        total_pages?: number;
+        unchecked_pages?: {
+            physical_page: number;
+            status: string;
+            error: string | null;
+        }[];
+    } | null;
 }
 export interface Paginated<T> {
     data: T[];

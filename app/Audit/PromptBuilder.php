@@ -18,6 +18,7 @@ class PromptBuilder
         $disk = Storage::disk('local');
         $system .= "\nPEDOMAN LENGKAP BERVERSI:\n".$disk->get('publications/'.$pub->id.'/rules.md');
         $schema = $disk->get('publications/'.$pub->id.'/prompt.md');
+        $schema .= "\nPenegasan kontrak daftar: judul kelompok yang memang tidak memiliki nomor halaman menggunakan type heading dan target_page null. Entri tabel/gambar/bab harus memiliki target_page string yang terbaca; bila nomor tidak terbaca, gunakan target_page null dan readability uncertain. Field target_page tetap wajib hadir. Jangan menyebut judul kelompok sebagai entri tabel.\n";
 
         return [['role' => 'system', 'content' => $system], ['role' => 'user', 'content' => [
             ['type' => 'text', 'text' => 'Publikasi: '.$pub->title.'. Wilayah: '.$pub->region.'. Tahun: '.$pub->year.'. HALAMAN FISIK PDF '.$page->physical_page.' DARI '.$pub->page_count.". physical_page wajib tepat {$page->physical_page}.\n".$schema],

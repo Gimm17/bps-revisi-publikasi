@@ -95,4 +95,43 @@ class AuditCoordinator
 
         return $export;
     }
+
+    public function coverage(Publication $publication): array
+    {
+        $pages = $publication->pages()->get()->keyBy('physical_page');
+        $unchecked = [];
+        for ($number = 1; $number <= $publication->page_count; $number++) {
+            $page = $pages->get($number);
+            if (! $page || $page->status !== 'complete' || $page->result === null || $page->completed_at === null) {
+                $unchecked[] = ['physical_page' => $number, 'status' => $page?->status ?? 'missing', 'error' => $page?->error];
+            }
+        }
+
+        return ['checked_pages' => $publication->page_count - count($unchecked), 'total_pages' => $publication->page_count, 'unchecked_pages' => $unchecked];
+    }
+
+    public function exportPartial(Publication $publication, int $userId): Export
+    {
+        $export = DB::transaction(function () use ($publication, $userId): Export {
+            $pub = Publication::whereKey($publication->id)->lockForUpdate()->firstOrFail();
+            if ($pub->locked_at || $this->coverage($pub)['checked_pages'] === 0) {
+                throw ValidationException::withMessages(['export' => 'Excel sementara memerlukan hasil halaman yang sudah selesai dan publikasi yang belum dikunci.']);
+            }
+
+            return $pub->exports()->create([
+                'version' => ($pub->exports()->max('version') ?? 0) + 1,
+                'publication_revision' => $pub->revision, 'created_by' => $userId,
+                'validation' => ['mode' => 'partial'],
+            ]);
+        });
+        try {
+            WriteWorkbook::dispatchSync($export->id);
+        } catch (\Throwable $exception) {
+            $export->update(['status' => 'failed', 'error' => 'Excel sementara gagal dibuat. Hasil pemeriksaan tetap tersimpan; coba lagi.']);
+            report($exception);
+            throw ValidationException::withMessages(['export' => 'Excel sementara gagal dibuat. Hasil pemeriksaan tetap tersimpan; coba lagi.']);
+        }
+
+        return $export->refresh();
+    }
 }

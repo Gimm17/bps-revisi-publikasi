@@ -14,8 +14,10 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 
 class WorkbookWriter
 {
-    public function write(Publication $pub, string $path): array
+    public function write(Publication $pub, string $path, ?array $coverage = null): array
     {
+        $coverage ??= app(AuditCoordinator::class)->coverage($pub) + ['mode' => 'full'];
+        $partial = $coverage['mode'] === 'partial';
         $disk = Storage::disk('local');
         $book = IOFactory::load($disk->path($pub->template_path));
         $sheet = $book->getActiveSheet();
@@ -51,6 +53,27 @@ class WorkbookWriter
         }
         $findings = $pub->findings()->where('deleted', false)->where('review_status', '!=', 'rejected')->orderBy('section')->orderBy('id')->get();
         $r = 7;
+        if ($partial) {
+            $sheet->mergeCells('L'.$r.':M'.$r);
+            $sheet->setCellValueExplicit('L'.$r, 'EXCEL SEMENTARA — PEMERIKSAAN BELUM LENGKAP', DataType::TYPE_STRING);
+            $sheet->getStyle('L'.$r.':M'.$r)->getFill()->setFillType('solid')->getStartColor()->setARGB('FFFFBDBD');
+            $sheet->getStyle('L'.$r)->getFont()->setBold(true);
+            $sheet->getRowDimension($r++)->setRowHeight(32);
+            $notes = ['Cakupan '.$coverage['checked_pages'].' dari '.$coverage['total_pages'].' halaman selesai diperiksa. Pemeriksaan silang belum dinyatakan lengkap. Tidak boleh digunakan sebagai hasil final. Hasil tersimpan tidak dihapus; lanjutkan halaman yang belum selesai lalu buat versi lengkap.'];
+            foreach ($coverage['unchecked_pages'] as $page) {
+                $notes[] = 'PDF hlm. '.$page['physical_page'].' belum selesai. Status: '.$page['status'].'. '.($page['error'] ?? 'Belum ada hasil pembacaan tervalidasi.');
+            }
+            foreach ($notes as $note) {
+                foreach ($this->chunks($note) as $chunk) {
+                    $sheet->getStyle('L'.$r)->applyFromArray($labelStyle);
+                    $sheet->getStyle('M'.$r)->applyFromArray($detailStyle);
+                    $sheet->setCellValueExplicit('L'.$r, 'Cakupan pemeriksaan', DataType::TYPE_STRING);
+                    $sheet->setCellValueExplicit('M'.$r, $chunk, DataType::TYPE_STRING);
+                    $sheet->getRowDimension($r)->setRowHeight(min(409, max(48, (int) ceil(mb_strlen($chunk) / 95) * 14 + 12)));
+                    $sheet->getRowDimension($r++)->setOutlineLevel(1);
+                }
+            }
+        }
         $lastSection = null;
         foreach ($findings as $finding) {
             $section = $finding->section ?: 'Pemeriksaan';
@@ -82,10 +105,9 @@ class WorkbookWriter
             }
         }
         if ($findings->isEmpty()) {
-            $sheet->mergeCells('L7:M7');
-            $sheet->setCellValueExplicit('L7', 'Tidak ada temuan tervalidasi yang aktif. Semua halaman selesai diperiksa; keputusan akhir tetap melalui peninjauan.', DataType::TYPE_STRING);
-            $sheet->getRowDimension(7)->setRowHeight(48);
-            $r = 8;
+            $sheet->mergeCells('L'.$r.':M'.$r);
+            $sheet->setCellValueExplicit('L'.$r, $partial ? 'Belum ada temuan aktif yang tersimpan pada hasil sementara. Ini bukan pernyataan bahwa publikasi bebas kesalahan.' : 'Tidak ada temuan tervalidasi yang aktif. Semua halaman selesai diperiksa; keputusan akhir tetap melalui peninjauan.', DataType::TYPE_STRING);
+            $sheet->getRowDimension($r++)->setRowHeight(48);
         }
         $last = $r - 1;
         $sheet->getStyle('B7:M'.$last)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setARGB('FF444444');
@@ -94,7 +116,7 @@ class WorkbookWriter
         $sheet->getColumnDimension('L')->setWidth(22);
         $sheet->getPageSetup()->setPrintArea('B3:M'.$last)->setFitToWidth(1)->setFitToHeight(0);
         $sheet->getPageSetup()->setRowsToRepeatAtTopByStartAndEnd(3, 4);
-        $book->getProperties()->setTitle($pub->title)->setDescription('Aturan '.$pub->rule_version.'; revisi '.$pub->revision.'; seluruh '.$pub->page_count.' halaman diperiksa.');
+        $book->getProperties()->setTitle($pub->title)->setDescription(($partial ? 'SEMENTARA BELUM LENGKAP; ' : '').'Aturan '.$pub->rule_version.'; revisi '.$pub->revision.'; cakupan '.$coverage['checked_pages'].' dari '.$coverage['total_pages'].' halaman.');
         $disk->makeDirectory(dirname($path));
         IOFactory::createWriter($book, 'Xlsx')->save($disk->path($path));
         $book->disconnectWorksheets();
@@ -117,7 +139,7 @@ class WorkbookWriter
         }
         $check->disconnectWorksheets();
 
-        return ['validated' => true, 'last_row' => $last, 'finding_count' => $findings->count(), 'checks' => ['blank_outline', 'continuous_borders', 'no_formulas', 'reopened_xlsx'], 'sha256' => hash_file('sha256', $disk->path($path))];
+        return $coverage + ['validated' => true, 'last_row' => $last, 'finding_count' => $findings->count(), 'checks' => ['blank_outline', 'continuous_borders', 'no_formulas', 'reopened_xlsx'], 'sha256' => hash_file('sha256', $disk->path($path))];
     }
 
     /** Preserve every character while respecting both wrapping and explicit newlines. */

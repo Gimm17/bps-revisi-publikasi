@@ -60,4 +60,14 @@ foreach ($pub->pages as $page) {
         $page->update(['completed_at' => now(), 'result' => ['physical_page' => $page->physical_page, 'text' => 'PUBLIKASI TEST HALAMAN '.$page->physical_page]]);
     }
 }
+$partial = Publication::where('title', 'Publikasi Pemeriksaan Belum Lengkap')->first();
+if (! $partial) {
+    $partial = app(CreatePublication::class)->execute($user, $fixture->file(), null, ['title' => 'Publikasi Pemeriksaan Belum Lengkap', 'region' => 'Daerah Parsial', 'year' => 2026, 'kind' => 'kcda']);
+    foreach ($partial->pages as $page) {
+        app()->call([new RenderPage($page->id), 'handle']);
+        $page->update($page->physical_page < 3 ? ['status' => 'complete', 'completed_at' => now(), 'result' => ['physical_page' => $page->physical_page, 'text' => 'PUBLIKASI TEST', 'page_type' => 'narrative', 'inventory' => [], 'identity' => [], 'contents' => []]] : ['status' => 'failed', 'error' => 'Respons AI belum valid pada kolom contents.0.target_page.']);
+    }
+    $partial->update(['status' => 'partial_failure']);
+    $partial->findings()->create(['fingerprint' => 'partial-browser-finding', 'rule_code' => 'MANUAL.REVIEW', 'section' => 'Pengujian', 'severity' => 'verifikasi', 'source' => 'manual', 'confidence' => 1, 'observed' => 'Temuan parsial tetap tersimpan', 'expected' => 'Hasil tidak hilang', 'recommendation' => 'Pertahankan hasil', 'evidences' => [['physical_page' => 1, 'quote' => 'PUBLIKASI TEST']]]);
+}
 echo "Browser fixtures ready; isolated SQLite testing database.\n";
