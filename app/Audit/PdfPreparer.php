@@ -18,12 +18,13 @@ class PdfPreparer
         $process->setTimeout(30);
         $process->run();
         if (! $process->isSuccessful()) {
+            if (preg_match('/incorrect password/i', $process->getErrorOutput())) {
+                throw new RuntimeException('PDF memerlukan password untuk dibuka. Unggah PDF yang dapat dibuka tanpa password.');
+            }
             throw new RuntimeException('PDF rusak atau tidak dapat dibaca.');
         }
         $output = $process->getOutput();
-        if (preg_match('/Encrypted:\s+yes/i', $output)) {
-            throw new RuntimeException('PDF terenkripsi. Unggah PDF tanpa password.');
-        }
+        $encrypted = (bool) preg_match('/Encrypted:\s+yes/i', $output);
         preg_match('/Pages:\s+(\d+)/', $output, $match);
         $count = (int) ($match[1] ?? 0);
         if ($count < 1 || $count > config('audit.max_pages')) {
@@ -31,7 +32,7 @@ class PdfPreparer
         }
         preg_match('/Page size:\s+([\d.]+) x ([\d.]+)/', $output, $size);
 
-        return ['page_count' => $count, 'width_pt' => (float) ($size[1] ?? 0), 'height_pt' => (float) ($size[2] ?? 0), 'encrypted' => false, 'sha256' => hash_file('sha256', $path)];
+        return ['page_count' => $count, 'width_pt' => (float) ($size[1] ?? 0), 'height_pt' => (float) ($size[2] ?? 0), 'encrypted' => $encrypted, 'sha256' => hash_file('sha256', $path)];
     }
 
     public function render(string $pdfPath, int $page, string $outputPath, int $dpi): void
