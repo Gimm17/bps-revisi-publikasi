@@ -17,7 +17,7 @@ class NineRouterClient
         $parts = parse_url($url);
         $host = strtolower($parts['host'] ?? '');
         if (($parts['scheme'] ?? '') !== 'https' || isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment']) || ! in_array($host, config('audit.allowed_ai_hosts'), true) || filter_var($host, FILTER_VALIDATE_IP)) {
-            throw ValidationException::withMessages(['base_url' => 'Gunakan alamat HTTPS pada host 9Router yang disetujui pengembang.']);
+            throw ValidationException::withMessages(['base_url' => 'Gunakan alamat HTTPS pada host penyedia AI yang disetujui pengembang (9Router atau LimitRouter).']);
         }
 
         return rtrim($url, '/');
@@ -31,11 +31,11 @@ class NineRouterClient
             $host = parse_url($url, PHP_URL_HOST);
             $ips = gethostbynamel($host) ?: [];
             if (! $ips) {
-                throw new RuntimeException('Host 9Router tidak dapat dihubungi.');
+                throw new RuntimeException('Host penyedia AI tidak dapat dihubungi.');
             }
             foreach ($ips as $ip) {
                 if (! filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-                    throw new RuntimeException('Alamat host 9Router tidak diizinkan.');
+                    throw new RuntimeException('Alamat host penyedia AI tidak diizinkan.');
                 }
             }
             $port = parse_url($url, PHP_URL_PORT) ?: 443;
@@ -45,10 +45,10 @@ class NineRouterClient
             $response = Http::withToken($config->api_key)->acceptJson()->withOptions($options)
                 ->connectTimeout(15)->timeout(config('audit.ai_timeout'))->post($url.'/chat/completions', ['model' => $config->model, 'messages' => $messages]);
         } catch (\Throwable $e) {
-            throw new RuntimeException('Koneksi 9Router gagal atau melewati batas waktu.');
+            throw new RuntimeException('Koneksi penyedia AI gagal atau melewati batas waktu.');
         }
         if (! $response->successful()) {
-            throw new RuntimeException('9Router mengembalikan status HTTP '.$response->status().'. Periksa koneksi, model, atau kuota.');
+            throw new RuntimeException('Penyedia AI mengembalikan status HTTP '.$response->status().'. Periksa koneksi, model, atau kuota.');
         }
         if (in_array($response->json('choices.0.finish_reason'), ['length', 'content_filter'], true)) {
             throw new RuntimeException('Respons AI terpotong atau dibatasi. Halaman belum dianggap selesai.');

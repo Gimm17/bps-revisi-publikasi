@@ -72,7 +72,14 @@ function saveUser() {
 function saveAi() {
     ai.post("/settings/ai", {
         preserveScroll: true,
-        onSuccess: () => ai.reset("api_key"),
+        onSuccess: () => {
+            ai.defaults({
+                base_url: props.ai?.base_url ?? ai.base_url,
+                model: props.ai?.model ?? ai.model,
+                api_key: "",
+            });
+            ai.reset();
+        },
     });
 }
 function testAi() {
@@ -220,10 +227,10 @@ function testAi() {
         <section v-if="tab === 'ai'" class="settings-panel ai-settings">
             <div>
                 <span class="aside-sticker"><ShieldCheck :size="31" /></span>
-                <h2>Koneksi 9Router</h2>
+                <h2>Koneksi AI</h2>
                 <p>
-                    Model harus benar-benar dapat membaca gambar, termasuk teks
-                    kecil dan tabel.
+                    Mendukung 9Router dan LimitRouter. Model harus benar-benar
+                    dapat membaca gambar, termasuk teks kecil dan tabel.
                 </p>
                 <span
                     :class="[
@@ -268,7 +275,7 @@ function testAi() {
                     id="model"
                     v-model="ai.model"
                     required
-                    placeholder="Nama model persis sesuai 9Router"
+                    placeholder="ID model persis dari katalog penyedia"
                 /><label for="api-key"
                     >API key
                     {{
@@ -286,20 +293,30 @@ function testAi() {
                         type="button"
                         class="button secondary"
                         @click="testAi"
-                        :disabled="!props.ai || testing || ai.isDirty"
+                        :disabled="
+                            !props.ai || testing || ai.processing || ai.isDirty
+                        "
                     >
                         <FlaskConical :size="17" />{{
                             testing
                                 ? "Menguji gambar..."
                                 : "Uji pembacaan gambar"
                         }}</button
-                    ><button class="button primary" :disabled="ai.processing">
+                    ><button
+                        class="button primary"
+                        :disabled="ai.processing || testing"
+                    >
                         <Save :size="17" />Simpan koneksi
                     </button>
                 </div>
                 <small
-                    >Setelah perubahan disimpan, uji ulang koneksi. Uji dapat
-                    memakai kuota API.</small
+                    >{{
+                        !props.ai || ai.isDirty
+                            ? "Simpan koneksi terlebih dahulu untuk mengaktifkan uji gambar."
+                            : "Koneksi tersimpan. Uji pembacaan gambar sebelum memulai pemeriksaan."
+                    }}
+                    Uji dapat memakai kuota API. Saat mengganti penyedia, isi
+                    API key penyedia yang baru.</small
                 >
             </form>
         </section>

@@ -134,3 +134,28 @@ for (const width of [1440, 1024, 768, 390])
             fullPage: true,
         });
     });
+
+test("saving LimitRouter unlocks image test and unsaved changes lock it again", async ({
+    page,
+}) => {
+    await page.goto("/settings?tab=ai");
+    const testButton = page.getByRole("button", {
+        name: "Uji pembacaan gambar",
+    });
+    await page.getByLabel("Base URL").fill("https://limitrouter.com/v1/");
+    await page.getByLabel("Model vision").fill("vision-test");
+    await page.locator("#api-key").fill("browser-test-secret-not-real");
+    await expect(testButton).toBeDisabled();
+    await page.getByRole("button", { name: "Simpan koneksi" }).click();
+    await expect(page.getByRole("status")).toContainText("Koneksi disimpan");
+    await expect(testButton).toBeEnabled();
+    await expect(page.getByLabel("Base URL")).toHaveValue(
+        "https://limitrouter.com/v1",
+    );
+    await expect(page.locator("#api-key")).toHaveValue("");
+    await page.getByLabel("Model vision").fill("another-vision-test");
+    await expect(testButton).toBeDisabled();
+    await page.getByRole("button", { name: "Simpan koneksi" }).click();
+    await expect(testButton).toBeEnabled();
+    // No paid vision request: this test checks the real save flow only.
+});

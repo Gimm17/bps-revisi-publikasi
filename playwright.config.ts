@@ -21,6 +21,7 @@ export default defineConfig({
             SESSION_DRIVER: "file",
             QUEUE_CONNECTION: "database",
             HASH_DRIVER: "bcrypt",
+            AI_ALLOWED_HOSTS: "9router.com,limitrouter.com",
         },
         timeout: 30000,
     },

@@ -60,9 +60,13 @@ class SettingsController extends Controller
     {
         $data = $request->validated();
         $data['base_url'] = $client->validateUrl($data['base_url']);
-        $data['api_key'] = $data['api_key'] ?? AiProviderConfig::latest('id')->first()?->api_key;
+        $previous = AiProviderConfig::latest('id')->first();
+        if (empty($data['api_key']) && $previous && parse_url($data['base_url'], PHP_URL_HOST) !== parse_url($previous->base_url, PHP_URL_HOST)) {
+            throw ValidationException::withMessages(['api_key' => 'Isi API key penyedia yang baru saat mengganti host koneksi.']);
+        }
+        $data['api_key'] = $data['api_key'] ?? $previous?->api_key;
         if (! $data['api_key']) {
-            throw ValidationException::withMessages(['api_key' => 'API key 9Router wajib diisi pada koneksi pertama.']);
+            throw ValidationException::withMessages(['api_key' => 'API key penyedia AI wajib diisi pada koneksi pertama.']);
         }
         AiProviderConfig::create([...$data, 'created_by' => $request->user()->id]);
         AuditLogger::record('ai.configuration_updated', null, ['base_url' => $data['base_url'], 'model' => $data['model']]);
@@ -82,7 +86,7 @@ class SettingsController extends Controller
             $config->update(['tested_at' => now(), 'vision_tested_at' => now()]);
             AuditLogger::record('ai.vision_test_passed', null, ['config_id' => $config->id]);
         } catch (\Throwable $e) {
-            throw ValidationException::withMessages(['ai' => 'Uji gagal. Periksa alamat, API key, model vision, dan kuota 9Router.']);
+            throw ValidationException::withMessages(['ai' => 'Uji gagal. Periksa alamat, API key, model vision, dan kuota penyedia AI.']);
         }
 
         return back()->with('success', 'Koneksi dan pembacaan gambar berhasil diuji.');
