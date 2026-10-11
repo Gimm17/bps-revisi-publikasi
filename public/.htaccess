@@ -23,3 +23,18 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# Publication uploads: apply per directory for CloudLinux LSAPI/LiteSpeed.
+# PHP may ignore php.ini/.user.ini when its handler does not load them.
+<IfModule lsapi_module>
+    php_value upload_max_filesize 150M
+    php_value post_max_size 170M
+    php_value memory_limit 512M
+    php_value max_input_time 120
+</IfModule>
+<IfModule LiteSpeed>
+    php_value upload_max_filesize 150M
+    php_value post_max_size 170M
+    php_value memory_limit 512M
+    php_value max_input_time 120
+</IfModule>
