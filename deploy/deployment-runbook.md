@@ -61,7 +61,7 @@ Backup dahulu. Aktifkan maintenance bila migration memerlukan. Deploy release ba
 
 ## Pemulihan
 
-- Kuota/model/HTTP gagal: benahi koneksi atau kuota; pada publikasi klik Lanjutkan / Coba ulang halaman. Hasil halaman selesai tetap dipertahankan. Snapshot koneksi lama tidak berpindah provider otomatis; jika kunci snapshot tidak lagi berlaku, admin perlu migrasi koneksi dengan kebijakan eksplisit oleh pengembang.
+- Kuota/model/HTTP gagal: benahi koneksi atau kuota; pada publikasi klik Lanjutkan / Coba ulang halaman. Hasil halaman selesai tetap dipertahankan. Jika kunci snapshot lama dicabut, admin menyimpan serta menguji koneksi baru; pemeriksa memilih **Gunakan koneksi AI terbaru** dan menyetujui pergantian model/biaya. Pergantian dicatat, hanya boleh saat partial_failure dan tidak ada halaman sedang dibaca.
 - Worker restart: job reserved dilepas setelah retry_after; unique/overlap locks mencegah duplikasi. Tunggu expiry lock (hingga 15 menit), lalu `php artisan audit:resume UUID` untuk publikasi tertentu. Jangan flush Redis bersama layanan lain.
 - Ekspor gagal: baca status pada tab Excel, cek disk dan template, lalu buat versi baru. Versi lama tidak ditimpa.
 - Peninjauan belum selesai: jangan bypass final lock. Reviewer menyelesaikan keputusan, membuat Excel revisi terakhir, kemudian mengunci.
@@ -72,3 +72,14 @@ Backup dahulu. Aktifkan maintenance bila migration memerlukan. Deploy release ba
 Pantau heartbeat >3 menit, failed jobs >0, lama antrean, error provider, token tercatat, disk <2 GB, durasi halaman dan ekspor. Jumlah token bukan tagihan; biaya bergantung pada penyedia. Tidak ada fallback berbayar otomatis atau login ChatGPT tidak resmi.
 
 File scanning: integrasikan ClamAV pada boundary upload bila tersedia. Saat ini aplikasi memvalidasi signature PDF, Poppler parse, encryption/page limit, MIME, arsip XLSX, ukuran terkompresi/uncompressed dan macro. Tidak mengklaim pemeriksaan antivirus. Update Poppler/dependencies secara berkala; jalankan worker dengan privilege minimum.
+
+## Instalasi cPanel aktif — 11 Oktober 2026
+
+- Domain: `bps-cek-publikasi.pinnhost.my.id`; SSH server `195.88.211.25:6699`, akun `pinnhost`. Password tidak disimpan di source atau runbook.
+- Aplikasi: `/home/pinnhost/apps/bps-publication-audit`; document root: direktori `public` di dalam aplikasi. Folder subdomain awal dan konfigurasi sebelum deploy dipertahankan.
+- PHP CLI/web: alt-php84; aplikasi production/debug=false, cookie secure/encrypted dan HTTPS redirect. Database/user terpisah: `pinnhost_bpscek`; password dibuat acak di server.
+- Redis/Supervisor tidak tersedia. Database queue/cache/session dan satu worker cron dipakai. `flock` mencegah worker ganda. Worker memakai timeout230 < retry_after300; max-time300 diperiksa antarkerja, bukan batas keras yang memotong job berjalan. Cron proyek lain dipertahankan.
+- Alat PDF privat di `/home/pinnhost/apps/bps-publication-tools`. Poppler-utils dan libpoppler paket AlmaLinux EL9 `21.01.0-24.el9_8.1` diunduh dari repository resmi; checksum diverifikasi terhadap metadata repo. Wrapper memakai library privat, tidak mengganti library/server global.
+- PHP dependency install memakai lockfile/no-dev; aset dibangun lokal. Environment dan akses admin awal mode0600. `.env` dan dokumen privat tidak dapat diunduh melalui domain.
+- Upgrade: backup database/storage/APP_KEY terlebih dahulu; deploy aset, pertahankan `.env`, PHP handler dan pengalihan HTTPS pada public/.htaccess. Jangan mengunggah kredensial lokal atau menimpa folder tools/backup.
+- Masih perlu API vision nyata, evaluasi gold, pilot publikasi dan uji beban. Jangan menyamakan deployment berhasil dengan recall/precision model yang sudah terjamin.

@@ -47,3 +47,15 @@ Rencana: `../docs/superpowers/plans/2026-10-05-publication-audit-platform.md`.
 - Typecheck, production build dan Pint lulus. Composer audit: tidak ada advisory/abandoned; npm production audit: 0 vulnerabilities.
 - Lokal: Poppler tersedia, worker+heartbeat aktif, antrean dan gagal 0. Vision belum dikonfigurasi/lulus; tidak ada pemeriksaan AI nyata atau hasil produksi yang dibuat.
 - Source disimpan pada cabang implementation/publication-audit; environment, credential, database, test output dan desain pengguna tidak dimasukkan ke Git. Tidak ada push/PR/deploy.
+
+## Deploy cPanel — 11 Oktober 2026
+
+- Pengguna mengizinkan push ke Gimm17/bps-revisi-publikasi dan deploy ke bps-cek-publikasi.pinnhost.my.id. Dua commit aplikasi dipush ke main; checkout lokal mengikuti origin/main.
+- SSH akun pinnhost pada server195.88.211.25 port6699 berhasil. Koneksi lama gimora berada di server lain; tidak ada proyek lain diubah.
+- Source commit3a12687, frontend build, no-dev dependencies dan migrasi dipasang; database dan admin awal dibuat khusus aplikasi, tanpa password hardcoded. Konfigurasi asli dan cron lama dipertahankan; folder public saja diekspos melalui subdomain.
+- PHP8.4, HTTPS200, HTTP301, private env403 serta vendor/private credentials404 terverifikasi. Poppler berhasil membaca PDF108 halaman dan merender halaman37 ke JPEG933x1323. Worker heartbeat diproses lewat antrean database; scheduler/worker terjadwal aktif, gagal0.
+- Koneksi vision belum diisi/lulus. Tidak ada pemanggilan layanan AI berbayar, pemeriksaan publikasi produksi, atau klaim akurasi model.
+- Ruling deploy: pakai database queue/cache/session + cron/flock satu worker, bukan Redis/Supervisor — layanan tersebut tidak tersedia di hosting nyata; jalur database sudah didukung aplikasi dan tidak mengubah proyek lain — risiko: throughput dan concurrency terbatas sampai pengukuran pilot/staging.
+- Browser hosting: login admin, dashboard, Pengaturan, logout dan viewport390px tanpa overflow lulus; tangkapan layar desktop/mobile ditinjau. Salinan kredensial sementara untuk pengujian dihapus; file akses privat utama tetap tersedia.
+- Proses PHP CLI235 detik selesai tanpa dipotong hosting. Ini membuktikan proses CLI panjang dasar, bukan stress/concurrency atau panggilan AI nyata. Cron heartbeat berulang berjalan otomatis dan failed_jobs tetap0.
+- Skill website-security memandu pemisahan public/private, konfigurasi HTTPS/debug/cookie, izin0600 dan pengecekan endpoint privat. Skill dev-browser dipakai untuk smoke test pada domain hosting; verification-before-completion memastikan klaim berdasarkan hasil nyata.

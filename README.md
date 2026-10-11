@@ -57,6 +57,10 @@ Browser tests menggunakan Chrome dan SQLite terpisah di `storage/framework/testi
 
 ## Deploy dan pemeliharaan
 
+Hosting aktif: **https://bps-cek-publikasi.pinnhost.my.id**. Instalasi memakai PHP 8.4, MariaDB khusus aplikasi, database queue/cache/session, dan cron dengan `flock` untuk satu worker. Redis/Supervisor tidak aktif pada hosting ini; jangan menerapkan contoh Redis tanpa pemeriksaan ulang. Document root hanya `apps/bps-publication-audit/public`; kode, API key dan dokumen tersimpan di luar area publik.
+
+Akses admin awal hosting disimpan privat pada `storage/app/private/AKSES-HOSTING.md` (bukan akun/password lokal dan tidak masuk Git). Ganti password awal melalui Pengaturan > Pegawai. Koneksi AI tetap harus dikonfigurasi dan lulus uji vision; deploy tidak membuktikan akurasi model.
+
 - `deploy/deployment-runbook.md`: shared hosting, HTTPS, MySQL/Redis, Supervisor, host API, limits.
 - `deploy/supervisor-audit.conf.example`: timeout 230 < retry_after 300.
 - `deploy/backup-runbook.md`: backup APP_KEY/database/bukti dan rehearsal restore.
