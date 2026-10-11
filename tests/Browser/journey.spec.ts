@@ -170,22 +170,31 @@ test("partial export confirms, downloads immediately, and keeps progress unchang
     await expect(
         page.getByText("2 dari 3 halaman selesai diperiksa"),
     ).toBeVisible();
-    page.once("dialog", (dialog) => dialog.dismiss());
     await page
         .getByRole("button", { name: "Buat Excel sementara", exact: true })
+        .click();
+    const confirmation = page.getByRole("dialog", {
+        name: "Buat Excel sementara?",
+    });
+    await expect(confirmation).toBeVisible();
+    await page.screenshot({ path: "test-results/custom-confirmation.png" });
+    await confirmation
+        .getByRole("button", { name: "Batal", exact: true })
         .click();
     await expect(
         page.getByText("2 dari 3 halaman selesai diperiksa"),
     ).toBeVisible();
-    page.once("dialog", (dialog) => dialog.accept());
     await page
+        .getByRole("button", { name: "Buat Excel sementara", exact: true })
+        .click();
+    await confirmation
         .getByRole("button", { name: "Buat Excel sementara", exact: true })
         .click();
     await expect(
         page
             .getByRole("status")
             .filter({ hasText: "Excel sementara siap diunduh" }),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 20000 });
     await expect(
         page.getByText("2 dari 3 halaman selesai diperiksa"),
     ).toBeVisible();

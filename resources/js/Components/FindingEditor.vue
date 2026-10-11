@@ -3,6 +3,7 @@ import { useForm, router } from "@inertiajs/vue3";
 import { ref } from "vue";
 import { Save, History, ArrowUpRight } from "lucide-vue-next";
 import type { Evidence, Finding, Publication } from "../types";
+import { askConfirmation } from "./confirmation";
 const props = defineProps<{
     finding: Finding | null;
     publication: Publication;
@@ -46,11 +47,17 @@ function save() {
         ? form.patch(`${url}/${props.finding.id}`, options)
         : form.post(url, options);
 }
-function reloadConflict() {
+async function reloadConflict() {
     if (
-        window.confirm(
-            "Muat versi terbaru? Salin dahulu perubahan Anda yang belum disimpan.",
-        )
+        await askConfirmation({
+            title: "Muat temuan versi terbaru?",
+            message:
+                "Versi terbaru akan dimuat dari hasil yang tersimpan di server.",
+            detail: "Salin dahulu perubahan Anda yang belum disimpan agar tidak hilang.",
+            confirmLabel: "Muat versi terbaru",
+            cancelLabel: "Kembali menyunting",
+            tone: "refresh",
+        })
     )
         router.reload({ only: ["findings", "publication"] });
 }

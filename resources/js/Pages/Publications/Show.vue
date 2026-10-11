@@ -19,6 +19,7 @@ import {
 import AppLayout from "../../Layouts/AppLayout.vue";
 import StatusBadge from "../../Components/StatusBadge.vue";
 import FindingEditor from "../../Components/FindingEditor.vue";
+import { askConfirmation, confirmation } from "../../Components/confirmation";
 import {
     label,
     type Publication,
@@ -109,17 +110,26 @@ const remainingReview = computed(
             ["unreviewed", "needs_verification"].includes(f.review_status),
         ).length,
 );
-function canLeave() {
+async function canLeave() {
     return (
         !editor.value?.dirty() ||
-        window.confirm("Perubahan temuan belum disimpan. Tinggalkan perubahan?")
+        (await askConfirmation({
+            title: "Tinggalkan perubahan?",
+            message:
+                "Perubahan temuan Anda belum disimpan. Jika dilanjutkan, perubahan ini akan ditinggalkan.",
+            note: "Hasil pemeriksaan yang sudah tersimpan tetap aman.",
+            confirmLabel: "Tinggalkan perubahan",
+            cancelLabel: "Kembali menyunting",
+            tone: "warning",
+        }))
     );
 }
-function switchSection(next: string) {
-    if (canLeave()) section.value = next;
+async function switchSection(next: string) {
+    if (await canLeave()) section.value = next;
 }
-function pageTo(n: number) {
-    if (n < 1 || n > props.publication.page_count || !canLeave()) return;
+async function pageTo(n: number) {
+    if (n < 1 || n > props.publication.page_count || !(await canLeave()))
+        return;
     router.get(
         root.value,
         { page: n },
@@ -137,14 +147,14 @@ function pageTo(n: number) {
         },
     );
 }
-function choose(f: Finding) {
-    if (!canLeave()) return;
+async function choose(f: Finding) {
+    if (!(await canLeave())) return;
     selectedId.value = f.id;
     adding.value = false;
     mobileTab.value = "findings";
 }
-function add() {
-    if (!canLeave()) return;
+async function add() {
+    if (!(await canLeave())) return;
     selectedId.value = null;
     adding.value = true;
     mobileTab.value = "findings";
@@ -164,37 +174,76 @@ function beforeUnload(e: BeforeUnloadEvent) {
         e.preventDefault();
     }
 }
-function rebindAi() {
+async function rebindAi() {
     if (
-        canLeave() &&
-        window.confirm(
-            "Gunakan koneksi AI terbaru yang sudah diuji admin? Model, penyedia, dan biaya halaman berikutnya dapat berubah. Halaman selesai tidak diperiksa ulang; pergantian dicatat dalam riwayat.",
-        )
+        !busy.value &&
+        (await canLeave()) &&
+        (await askConfirmation({
+            title: "Gunakan koneksi AI terbaru?",
+            message:
+                "Halaman berikutnya akan memakai koneksi yang sudah diuji admin. Model, penyedia, dan biaya dapat berubah.",
+            note: "Halaman selesai tidak diperiksa ulang. Pergantian koneksi dicatat dalam riwayat.",
+            confirmLabel: "Gunakan koneksi terbaru",
+            tone: "refresh",
+        }))
     ) {
         action("/rebind-ai", { confirm: true });
     }
 }
-function exportPartial() {
-    if (busy.value || !canLeave()) return;
+async function exportPartial() {
+    if (busy.value || !(await canLeave())) return;
     if (
-        window.confirm(
-            `Buat Excel sementara dari ${checked.value} dari ${props.publication.page_count} halaman yang sudah selesai? Hasil tersimpan tidak dihapus dan halaman lain tidak dianggap selesai. Excel diberi label BELUM LENGKAP; pemeriksaan silang belum dinyatakan lengkap. Anda tetap bisa melanjutkan pemeriksaan nanti.`,
-        )
+        await askConfirmation({
+            title: "Buat Excel sementara?",
+            message: `${checked.value} dari ${props.publication.page_count} halaman sudah selesai dan akan dimasukkan ke Excel.`,
+            detail: "File diberi label BELUM LENGKAP. Halaman lainnya dan pemeriksaan silang tidak dianggap selesai.",
+            note: "Hasil tersimpan tidak dihapus. Anda tetap bisa melanjutkan pemeriksaan nanti.",
+            confirmLabel: "Buat Excel sementara",
+            tone: "export",
+        })
     ) {
         section.value = "exports";
         action("/exports/partial", { confirm: true });
     }
 }
+async function confirmFinal(lock: boolean) {
+    if (busy.value || !(await canLeave())) return;
+    if (
+        await askConfirmation({
+            title: lock ? "Kunci hasil final?" : "Buka kembali penyuntingan?",
+            message: lock
+                ? "Hasil pemeriksaan akan dikunci. Temuan tidak dapat disunting sampai hasil dibuka kembali oleh pemeriksa yang berwenang."
+                : "Temuan dapat disunting kembali. Perubahan berikutnya perlu ditinjau sebelum hasil dikunci lagi.",
+            note: "Hasil pemeriksaan dan riwayat perubahan tetap tersimpan.",
+            confirmLabel: lock ? "Kunci hasil final" : "Buka penyuntingan",
+            tone: "lock",
+        })
+    )
+        action(lock ? "/lock" : "/unlock");
+}
 let timer: ReturnType<typeof setInterval>;
 let removeNavigationGuard: (() => void) | undefined;
+let navigationApproved = false;
 onMounted(() => {
     removeNavigationGuard = router.on("before", (event) => {
         if (
             event.detail.visit.method === "get" &&
             event.detail.visit.url.pathname !== root.value &&
-            !canLeave()
-        )
+            editor.value?.dirty()
+        ) {
+            if (navigationApproved) {
+                navigationApproved = false;
+                return;
+            }
+            const visit = event.detail.visit;
+            void canLeave().then((accepted) => {
+                if (accepted) {
+                    navigationApproved = true;
+                    router.visit(visit.url, visit);
+                }
+            });
             return false;
+        }
     });
     timer = setInterval(() => {
         if (
@@ -203,7 +252,8 @@ onMounted(() => {
                     ["pending", "processing"].includes(e.status),
                 )) &&
             !editor.value?.dirty() &&
-            !busy.value
+            !busy.value &&
+            !confirmation.value
         )
             router.reload({
                 only: [
@@ -818,14 +868,14 @@ onUnmounted(() => {
                     v-if="!publication.locked_at"
                     class="button primary"
                     :disabled="!ready || remainingReview > 0 || busy"
-                    @click="action('/lock')"
+                    @click="confirmFinal(true)"
                 >
                     <Lock :size="17" />Kunci hasil final</button
                 ><button
                     v-else
                     class="button secondary"
                     :disabled="busy"
-                    @click="action('/unlock')"
+                    @click="confirmFinal(false)"
                 >
                     <Unlock :size="17" />Buka untuk penyuntingan
                 </button>
