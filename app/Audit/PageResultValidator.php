@@ -51,9 +51,9 @@ class PageResultValidator
         if ($data['readability'] === 'readable' && $data['page_type'] !== 'blank' && trim($data['text']) === '') {
             $this->reject('Halaman berisi konten tidak boleh dinyatakan terbaca tanpa transkripsi.');
         }
-        foreach ($data['contents'] as $entry) {
+        foreach ($data['contents'] as $index => $entry) {
             if ($data['readability'] === 'readable' && ($entry['type'] ?? '') !== 'heading' && trim($entry['target_page'] ?? '') === '') {
-                $this->reject('Nomor halaman tujuan entri daftar belum terbaca. Gunakan uncertain, jangan menebak nomor halaman.');
+                throw ValidationException::withMessages(['contents.'.$index.'.target_page' => 'Nomor halaman tujuan entri daftar belum terbaca. Gunakan uncertain, jangan menebak nomor halaman.']);
             }
         }
         foreach ($data['identity'] as $value) {

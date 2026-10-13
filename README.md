@@ -17,7 +17,7 @@ php artisan audit:local-access
 php artisan serve --host=127.0.0.1 --port=8000
 ```
 
-Terminal kedua: `php artisan queue:work --sleep=3 --tries=3 --timeout=230`. Terminal ketiga untuk heartbeat: `php artisan schedule:work`. Development frontend opsional: `npm run dev`.
+Terminal kedua: `php artisan queue:work --queue=ai,default --sleep=1 --tries=3 --timeout=230`. Untuk pembacaan paralel lokal, jalankan pekerja kedua dengan perintah yang sama; cache harus dibagi antarproses (database). Terminal berikutnya untuk heartbeat: `php artisan schedule:work`. Development frontend opsional: `npm run dev`.
 
 URL http://127.0.0.1:8000. Akses admin awal tersimpan **privat** di `storage/app/private/AKSES-LOKAL.md`; password acak, tidak ditanam dalam source. Perintah tidak mengubah akun yang sudah ada. Ganti password lewat Pengaturan > Pegawai. Jangan mengunggah akun/database/credential lokal ke hosting.
 
@@ -57,7 +57,7 @@ Browser tests menggunakan Chrome dan SQLite terpisah di `storage/framework/testi
 
 ## Deploy dan pemeliharaan
 
-Hosting aktif: **https://bps-cek-publikasi.pinnhost.my.id**. Instalasi memakai PHP 8.4, MariaDB khusus aplikasi, database queue/cache/session, dan cron dengan `flock` untuk satu worker. Redis/Supervisor tidak aktif pada hosting ini; jangan menerapkan contoh Redis tanpa pemeriksaan ulang. Document root hanya `apps/bps-publication-audit/public`; kode, API key dan dokumen tersimpan di luar area publik.
+Hosting aktif: **https://bps-cek-publikasi.pinnhost.my.id**. Instalasi memakai PHP 8.4, MariaDB khusus aplikasi, database queue/cache/session, dan cron dengan `flock` terpisah: satu worker `default` untuk persiapan gambar/ekspor, dua worker `ai` untuk membaca halaman. Batas global `AUDIT_AI_CONCURRENCY` default 2 mencakup semua publikasi dan uji vision, bukan per pengguna. Redis/Supervisor tidak aktif pada hosting ini; jangan menerapkan contoh Redis tanpa pemeriksaan ulang. Document root hanya `apps/bps-publication-audit/public`; kode, API key dan dokumen tersimpan di luar area publik.
 
 Akses admin awal hosting disimpan privat pada `storage/app/private/AKSES-HOSTING.md` (bukan akun/password lokal dan tidak masuk Git). Ganti password awal melalui Pengaturan > Pegawai. Koneksi AI tetap harus dikonfigurasi dan lulus uji vision; deploy tidak membuktikan akurasi model.
 
@@ -68,5 +68,6 @@ Akses admin awal hosting disimpan privat pada `storage/app/private/AKSES-HOSTING
 - `audit:health`: Poppler, disk, antrean, heartbeat dan status vision.
 - `audit:resume UUID`: lanjutkan publikasi tanpa mengulang halaman selesai.
 - `audit:create-admin`: admin produksi, password diminta tersembunyi.
+- `audit:prepare-parallel`: sebelum mengaktifkan worker paralel, sesuaikan metadata tugas halaman versi lama yang belum berjalan; tidak mereset halaman atau temuan. Jalankan ketika worker berhenti. Tugas yang sedang reserved sengaja tidak diubah.
 
 Aturan berada di `audit-rules/pedoman.md` dan `app/Audit/RuleRegistry.php`; kontrak pembacaan pada `resources/prompts/page-audit-v1.md`. Naikkan versi aturan ketika pedoman berubah. `resources/templates/vision-sample.pdf` hanya rujukan uji koneksi, bukan sumber temuan publikasi yang diunggah.

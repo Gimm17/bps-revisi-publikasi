@@ -16,17 +16,24 @@ class RenderPage implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 3;
+    public int $tries = 0;
+
+    public int $maxExceptions = 3;
 
     public int $timeout = 120;
 
-    public int $uniqueFor = 600;
+    public int $uniqueFor = 15000;
 
     public function __construct(public int $pageId) {}
 
     public function uniqueId(): string
     {
         return 'render-'.$this->pageId;
+    }
+
+    public function retryUntil(): \DateTimeInterface
+    {
+        return now()->addHours(4);
     }
 
     public function backoff(): array
@@ -36,7 +43,7 @@ class RenderPage implements ShouldBeUnique, ShouldQueue
 
     public function middleware(): array
     {
-        return [(new WithoutOverlapping('render-'.$this->pageId))->releaseAfter(10)->expireAfter(150)];
+        return [(new WithoutOverlapping('audit-page-'.$this->pageId))->shared()->releaseAfter(10)->expireAfter(250)];
     }
 
     public function handle(PdfPreparer $pdf): void
@@ -57,7 +64,7 @@ class RenderPage implements ShouldBeUnique, ShouldQueue
             $pdf->render($disk->path($pub->pdf_path), $page->physical_page, $disk->path($thumb), 60);
         }
         $page->update(['image_path' => $path, 'thumbnail_path' => $thumb, 'image_checksum' => hash_file('sha256', $disk->path($path)), 'status' => 'ready']);
-        AnalyzePage::dispatch($page->id, $page->dpi);
+        AnalyzePage::dispatch($page->id, $page->dpi)->onQueue('ai');
     }
 
     public function failed(?\Throwable $exception): void

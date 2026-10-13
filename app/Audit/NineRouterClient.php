@@ -23,48 +23,67 @@ class NineRouterClient
         return rtrim($url, '/');
     }
 
-    public function request(AiProviderConfig $config, array $messages): array
+    public function request(AiProviderConfig $config, array $messages, ?\Closure $onRequest = null): array
     {
         $url = $this->validateUrl($config->base_url);
+        $lock = app(AiCapacity::class)->acquire((string) parse_url($url, PHP_URL_HOST));
+        try {
+            return $this->send($config, $messages, $url, $onRequest);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function send(AiProviderConfig $config, array $messages, string $url, ?\Closure $onRequest): array
+    {
         $options = ['allow_redirects' => false];
         if (app()->environment('production')) {
             $host = parse_url($url, PHP_URL_HOST);
             $ips = gethostbynamel($host) ?: [];
             if (! $ips) {
-                throw new RuntimeException('Host penyedia AI tidak dapat dihubungi.');
+                throw new AiRequestException('Host penyedia AI tidak dapat dihubungi.', 'configuration');
             }
             foreach ($ips as $ip) {
                 if (! filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-                    throw new RuntimeException('Alamat host penyedia AI tidak diizinkan.');
+                    throw new AiRequestException('Alamat host penyedia AI tidak diizinkan.', 'configuration');
                 }
             }
             $port = parse_url($url, PHP_URL_PORT) ?: 443;
             $options['curl'] = [CURLOPT_RESOLVE => ["$host:$port:{$ips[0]}"]];
         }
+        $onRequest?->__invoke();
         try {
             $response = Http::withToken($config->api_key)->acceptJson()->withOptions($options)
                 ->connectTimeout(15)->timeout(config('audit.ai_timeout'))->post($url.'/chat/completions', ['model' => $config->model, 'messages' => $messages]);
         } catch (\Throwable $e) {
-            throw new RuntimeException('Koneksi penyedia AI gagal atau melewati batas waktu.');
+            throw new AiRequestException('Koneksi penyedia AI gagal atau melewati batas waktu.', 'network', true);
         }
         if (! $response->successful()) {
-            throw new RuntimeException('Penyedia AI mengembalikan status HTTP '.$response->status().'. Periksa koneksi, model, atau kuota.');
+            $status = $response->status();
+            $delay = 30;
+            if ($status === 429 || $status === 503) {
+                $header = $response->header('Retry-After');
+                $seconds = ctype_digit((string) $header) ? (int) $header : (strtotime((string) $header) ?: now()->timestamp) - now()->timestamp;
+                $delay = max(30, min(600, $seconds));
+                app(AiCapacity::class)->coolDown((string) parse_url($url, PHP_URL_HOST), $delay);
+            }
+            throw new AiRequestException('Penyedia AI mengembalikan status HTTP '.$status.'. Periksa koneksi, model, atau kuota.', 'http_'.$status, in_array($status, [408, 425, 429], true) || $status >= 500, $delay);
         }
         if (in_array($response->json('choices.0.finish_reason'), ['length', 'content_filter'], true)) {
-            throw new RuntimeException('Respons AI terpotong atau dibatasi. Halaman belum dianggap selesai.');
+            throw new AiRequestException('Respons AI terpotong atau dibatasi. Halaman belum dianggap selesai.', 'truncated');
         }
         $content = $response->json('choices.0.message.content');
         if (! is_string($content) || str_contains($content, '[image omitted')) {
-            throw new RuntimeException('Model/rute tidak mengembalikan pembacaan gambar yang valid.');
+            throw new AiRequestException('Model/rute tidak mengembalikan pembacaan gambar yang valid.', 'image');
         }
         $json = preg_replace('/^```(?:json)?\s*|\s*```$/', '', trim($content));
         try {
             $result = json_decode($json, true, 64, JSON_THROW_ON_ERROR);
         } catch (\Throwable $e) {
-            throw new RuntimeException('Respons AI bukan JSON lengkap. Jalankan ulang halaman ini.');
+            throw new AiRequestException('Respons AI bukan JSON lengkap. Jalankan ulang halaman ini.', 'format', true, 5);
         }
         if (! is_array($result)) {
-            throw new RuntimeException('Struktur respons AI tidak valid.');
+            throw new AiRequestException('Struktur respons AI tidak valid.', 'format', true, 5);
         }
 
         return ['result' => $result, 'request_id' => $response->json('id'), 'model' => $response->json('model') ?? $config->model, 'usage' => $response->json('usage') ?? []];

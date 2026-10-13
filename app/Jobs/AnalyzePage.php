@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Audit\AiRequestException;
 use App\Audit\AuditCoordinator;
 use App\Audit\FindingWriter;
 use App\Audit\NineRouterClient;
@@ -11,6 +12,7 @@ use App\Audit\PageResultValidator;
 use App\Audit\PromptBuilder;
 use App\Audit\RuleEvaluator;
 use App\Models\AiUsageRecord;
+use App\Models\Publication;
 use App\Models\PublicationPage;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -24,13 +26,28 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 3;
+    public int $tries = 0;
+
+    public int $maxExceptions = 3;
+
+    public ?int $attemptBaseline = null;
+
+    public ?int $usageBaseline = null;
 
     public int $timeout = 220;
 
-    public int $uniqueFor = 900;
+    public int $uniqueFor = 15000;
 
-    public function __construct(public int $pageId, public int $dpi = 160) {}
+    public function __construct(public int $pageId, public int $dpi = 160)
+    {
+        $this->attemptBaseline = (int) PublicationPage::whereKey($pageId)->value('attempts');
+        $this->usageBaseline = (int) AiUsageRecord::where('page_id', $pageId)->max('id');
+    }
+
+    public function retryUntil(): \DateTimeInterface
+    {
+        return now()->addHours(4);
+    }
 
     public function uniqueId(): string
     {
@@ -44,7 +61,7 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
 
     public function middleware(): array
     {
-        return [(new WithoutOverlapping('analysis-'.$this->pageId))->releaseAfter(15)->expireAfter(250)];
+        return [(new WithoutOverlapping('audit-page-'.$this->pageId))->shared()->releaseAfter(15)->expireAfter(250)];
     }
 
     public function handle(NineRouterClient $client, PromptBuilder $prompt, PageResultValidator $validator, FindingWriter $writer, AuditCoordinator $coordinator): void
@@ -54,13 +71,28 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
         if ($page->status === 'complete' || $page->dpi !== $this->dpi) {
             return;
         }
-        $page->increment('attempts');
-        $page->update(['status' => 'analyzing', 'error' => null]);
+        $baseline = $this->attemptBaseline ?? max(0, $page->attempts - $this->attempts() + 1);
+        if ($page->attempts - $baseline >= 3) {
+            $exception = new AiRequestException('Batas percobaan pembacaan halaman tercapai.', 'attempt_limit');
+            $this->failed($exception);
+            $this->fail($exception);
+
+            return;
+        }
+        $response = null;
+        $requestStarted = false;
+        $usageRecorded = false;
         $started = microtime(true);
         try {
-            $response = $client->request($publication->aiConfig, $prompt->messages($page, Storage::disk('local')->path($page->image_path)));
+            $response = $client->request($publication->aiConfig, $prompt->messages($page, Storage::disk('local')->path($page->image_path)), function () use ($page, &$requestStarted, &$started): void {
+                $requestStarted = true;
+                $started = microtime(true);
+                $page->increment('attempts');
+                $page->update(['status' => 'analyzing', 'error' => null]);
+            });
             $result = $validator->validate($response['result'], $page->physical_page);
             AiUsageRecord::create(['publication_id' => $publication->id, 'page_id' => $page->id, 'model' => $response['model'], 'request_id' => $response['request_id'], 'usage' => $response['usage'], 'duration_ms' => (int) ((microtime(true) - $started) * 1000), 'status' => $result['readability']]);
+            $usageRecorded = true;
             if ($result['readability'] !== 'readable') {
                 $page->update(['result' => $result, 'status' => 'needs_verification', 'error' => 'AI belum dapat membaca semua area dengan yakin.']);
                 if ($page->dpi < config('audit.high_dpi')) {
@@ -73,6 +105,8 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
                 return;
             }
             DB::transaction(function () use ($page, $result, $writer, $publication): void {
+                // Match export/editor lock order; concurrent AI waits only while saving.
+                Publication::whereKey($publication->id)->lockForUpdate()->firstOrFail();
                 $current = PublicationPage::whereKey($page->id)->lockForUpdate()->firstOrFail();
                 if ($current->status === 'complete') {
                     return;
@@ -87,10 +121,36 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
                     $writer->store($publication, $candidate);
                 }
                 $current->update(['result' => $result, 'page_type' => $result['page_type'], 'printed_page' => $result['printed_page'], 'status' => 'complete', 'completed_at' => now(), 'error' => null]);
-            });
+            }, 3);
             $coordinator->afterPage($publication);
         } catch (\Throwable $e) {
-            $page->update(['error' => $this->failureReason($e).' Proses akan mencoba ulang.']);
+            if ($e instanceof AiRequestException && $e->category === 'capacity') {
+                $this->release($e->retryAfter);
+
+                return;
+            }
+            if ($requestStarted && ! $usageRecorded) {
+                $category = $e instanceof ValidationException ? 'validation' : ($e instanceof AiRequestException ? $e->category : 'internal');
+                AiUsageRecord::create(['publication_id' => $publication->id, 'page_id' => $page->id, 'model' => $response['model'] ?? $publication->aiConfig->model, 'request_id' => $response['request_id'] ?? null, 'usage' => $response['usage'] ?? null, 'duration_ms' => (int) ((microtime(true) - $started) * 1000), 'status' => 'failed_'.$category]);
+            }
+            $formatError = $e instanceof ValidationException || ($e instanceof AiRequestException && $e->category === 'format');
+            $formatFailures = $formatError ? AiUsageRecord::where('page_id', $page->id)->where('id', '>', $this->usageBaseline ?? 0)->whereIn('status', ['failed_validation', 'failed_format'])->count() : 0;
+            $terminal = ($e instanceof AiRequestException && ! $e->retryable) || $formatFailures >= 2 || $page->attempts - $baseline >= 3;
+            if ($terminal) {
+                $this->failed($e);
+                $this->fail($e);
+                if (! $this->job) {
+                    throw $e;
+                }
+
+                return;
+            }
+            $page->update(['status' => 'ready', 'error' => $this->failureReason($e).' Proses akan mencoba ulang.']);
+            if ($this->job && ($formatError || $e instanceof AiRequestException)) {
+                $this->release($formatError ? 5 : ($e instanceof AiRequestException ? $e->retryAfter : 30));
+
+                return;
+            }
             throw $e;
         }
     }
@@ -101,7 +161,7 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
         if (! $page || $page->status === 'complete') {
             return;
         }
-        $page->update(['status' => 'failed', 'error' => $this->failureReason($exception).' Gagal setelah beberapa percobaan; coba ulang halaman ini atau buat Excel sementara.']);
+        $page->update(['status' => 'failed', 'error' => $this->failureReason($exception).' Pembacaan dihentikan agar tidak terus mengulang. Periksa penyebabnya, coba ulang halaman ini, atau buat Excel sementara.']);
         $page->publication->update(['status' => 'partial_failure']);
     }
 
