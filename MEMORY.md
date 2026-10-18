@@ -258,8 +258,16 @@ Dipicu otomatis hanya ketika **100% halaman** selesai (`canComplete() === true`)
 
 ## 8. Ringkasan Status & Kesiapan Sistem
 
-- **Kode & Unit Test**: 100% lulus (42/42 PHPUnit tests, 1.688 assertions).
+- **Kode & Unit/Feature Test**: 100% lulus (100/100 PHPUnit tests, 2.309 assertions).
+- **TypeScript & Lint**: `vue-tsc --noEmit` 0 errors; Laravel Pint bersih.
 - **E2E & UI**: Lulus seluruh skenario pengujian Playwright (responsif 1440px s.d. 390px, tanpa overflow, WCAG A/AA).
 - **Keamanan**: Privatisasi berkas PDF/Excel, rate limiting, SSRF protection dengan DNS pinning, sanitasi output Excel dari formula injection.
-- **Hosting Aktif**: `https://bps-cek-publikasi.pinnhost.my.id` (PHP 8.4, MariaDB, Database Queue).
-- **Catatan Operasional**: Pemeriksaan AI sesungguhnya memerlukan kredensial 9Router aktif yang telah lulus `testVision`.
+- **Hosting Aktif (cPanel Shared Hosting)**:
+  - URL: `https://bps-cek-publikasi.pinnhost.my.id/`
+  - Stack: PHP 8.4 (`alt-php84`), MariaDB, Database Queue, Poppler CLI EL9 di `bps-publication-tools`.
+  - Status Terakhir: **Rules V2 (`bps-2026.10.18-v2`) telah berhasil dideploy penuh pada 18 Oktober 2026**.
+  - Migrasi diterapkan: `2026_10_18_000001_create_supplemental_check_run_tables`.
+  - Cron Workers Aktif: `general`, `ai-1`, `ai-2`, dan `references`.
+  - Aset Produksi: Vite bundle versi terbaru aktif dilayani.
+- **Catatan Operasional**: Pemeriksaan AI sesungguhnya memerlukan kredensial 9Router/LimitRouter aktif yang telah lulus `testVision`. Rujukan eksternal dapat diintegrasikan dengan Brave Search / Browserless via Pengaturan > Referensi Eksternal.
+
