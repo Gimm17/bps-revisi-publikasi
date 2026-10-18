@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Audit\BraveSearchClient;
+use App\Audit\BrowserlessPublicationClient;
+use App\Audit\PublicationBrowserClient;
+use App\Audit\PublicationSearchClient;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -17,7 +21,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(PublicationSearchClient::class, BraveSearchClient::class);
+        $this->app->singleton(PublicationBrowserClient::class, BrowserlessPublicationClient::class);
     }
 
     /**
