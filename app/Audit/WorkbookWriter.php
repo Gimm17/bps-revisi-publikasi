@@ -142,7 +142,7 @@ class WorkbookWriter
                     $lines += max(1, (int) ceil(mb_strlen($line) / 95));
                 }
                 $sheet->getRowDimension($r)->setRowHeight(min(409, max(40, $lines * 14 + 12)));
-                $sheet->getRowDimension($r++)->setOutlineLevel(1);
+                $sheet->getRowDimension($r)->setOutlineLevel(1);
                 $r++;
             }
         }

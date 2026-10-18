@@ -7,7 +7,8 @@ task_slot="${1:-}"
 case "$task_slot" in
     general) task_queue="default"; task_lock="worker.lock" ;;
     ai-1|ai-2) task_queue="ai"; task_lock="worker-${task_slot}.lock" ;;
-    *) printf 'Usage: audit-worker.sh general|ai-1|ai-2\n' >&2; exit 2 ;;
+    references) task_queue="references"; task_lock="worker-references.lock" ;;
+    *) printf 'Usage: audit-worker.sh general|ai-1|ai-2|references\n' >&2; exit 2 ;;
 esac
 
 cd -- "$task_app_dir"
