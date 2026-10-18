@@ -26,6 +26,6 @@ class ResumeAudits extends Command
             $this->info($pub->id.' dilanjutkan.');
         }
 
-return self::SUCCESS;
+        return self::SUCCESS;
     }
 }
