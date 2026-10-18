@@ -99,31 +99,33 @@ class PageAnatomyIndexer
             $pages[] = $pageEntry;
 
             // Track anchors
-            if ($numSystem === 'roman') {
-                if ($anchors['first_roman_physical'] === null) {
-                    $anchors['first_roman_physical'] = $physicalPage;
+            if ($isCounted) {
+                if ($numSystem === 'roman') {
+                    if ($anchors['first_roman_physical'] === null) {
+                        $anchors['first_roman_physical'] = $physicalPage;
+                    }
+                    $anchors['last_roman_physical'] = $physicalPage;
+                    $anchors['last_roman_printed'] = strtolower((string) $printedRaw);
+                } elseif ($numSystem === 'arabic') {
+                    if ($anchors['first_arabic_physical'] === null) {
+                        $anchors['first_arabic_physical'] = $physicalPage;
+                    }
+                    $anchors['last_arabic_physical'] = $physicalPage;
+                    $anchors['last_arabic_printed'] = (int) $printedRaw;
                 }
-                $anchors['last_roman_physical'] = $physicalPage;
-                $anchors['last_roman_printed'] = strtolower((string) $printedRaw);
-            } elseif ($numSystem === 'arabic') {
-                if ($anchors['first_arabic_physical'] === null) {
-                    $anchors['first_arabic_physical'] = $physicalPage;
-                }
-                $anchors['last_arabic_physical'] = $physicalPage;
-                $anchors['last_arabic_printed'] = (int) $printedRaw;
             }
 
-            if ($isCounted && $hasContent === true) {
+            if ($isCounted && $hasContent === true && $pageType !== 'blank') {
                 $anchors['content_end_physical'] = $physicalPage;
             }
         }
 
-        // Identify trailing white pages after last content before back cover
-        $lastContent = $anchors['content_end_physical'] ?? 0;
+        // Identify trailing white pages after last arabic content before back cover
+        $lastArabicPhysical = $anchors['last_arabic_physical'] ?? ($anchors['content_end_physical'] ?? 0);
         $totalPhysical = count($pages);
         for ($i = 0; $i < $totalPhysical; $i++) {
             $p = $pages[$i];
-            if ($p['physical_page'] > $lastContent && $p['page_type'] !== 'back_cover' && $p['blank_kind'] === 'pure_white') {
+            if ($p['physical_page'] > $lastArabicPhysical && $p['page_type'] !== 'back_cover' && $p['blank_kind'] === 'pure_white') {
                 $anchors['trailing_blank_physicals'][] = $p['physical_page'];
             }
         }
