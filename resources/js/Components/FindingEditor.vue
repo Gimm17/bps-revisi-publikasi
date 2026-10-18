@@ -102,10 +102,10 @@ defineExpose({ dirty: () => form.isDirty });
                 :key="i"
                 type="button"
                 class="evidence"
-                @click="emit('evidence', e.physical_page)"
+                @click="e.physical_page && emit('evidence', e.physical_page)"
             >
                 <strong
-                    >PDF hlm. {{ e.physical_page }}
+                    >{{ e.physical_page ? `PDF hlm. ${e.physical_page}` : (e.source_url ? 'Rujukan Resmi' : 'Bukti Rujukan') }}
                     <span v-if="e.printed_page"
                         >· tercetak {{ e.printed_page }}</span
                     ><ArrowUpRight :size="15" /></strong

@@ -10,22 +10,29 @@ use Illuminate\Support\Facades\DB;
 
 class FindingWriter
 {
+    public function __construct(private ?EvidenceValidator $validator = null)
+    {
+        $this->validator ??= new EvidenceValidator;
+    }
+
     public function store(Publication $publication, array $candidate): Finding
     {
         $candidate['evidences'] = array_map(function (array $evidence): array {
-            $evidence['physical_page'] = $evidence['physical_page'] ?? $evidence['page'];
-            unset($evidence['page']);
-
-            return $evidence;
-        }, $candidate['evidences']);
+            return $this->validator->normalize($evidence);
+        }, $candidate['evidences'] ?? []);
         $fingerprint = hash('sha256', $candidate['rule_code'].'|'.mb_strtolower(trim($candidate['observed'])).'|'.trim($candidate['expected']).'|'.($candidate['source'] ?? 'ai_visual'));
 
         return DB::transaction(function () use ($publication, $candidate, $fingerprint): Finding {
             $finding = Finding::firstOrCreate(['publication_id' => $publication->id, 'fingerprint' => $fingerprint], [
-                'rule_code' => $candidate['rule_code'], 'section' => $candidate['section'] ?? 'Pemeriksaan isi dan layout',
-                'severity' => $candidate['confidence'] < .80 ? 'verifikasi' : $candidate['severity'],
-                'source' => $candidate['source'] ?? 'ai_visual', 'confidence' => $candidate['confidence'],
-                'observed' => $candidate['observed'], 'expected' => $candidate['expected'], 'recommendation' => $candidate['recommendation'],
+                'check_run_id' => $candidate['check_run_id'] ?? null,
+                'rule_code' => $candidate['rule_code'],
+                'section' => $candidate['section'] ?? 'Pemeriksaan isi dan layout',
+                'severity' => ($candidate['confidence'] ?? 1.0) < .80 ? 'verifikasi' : $candidate['severity'],
+                'source' => $candidate['source'] ?? 'ai_visual',
+                'confidence' => $candidate['confidence'] ?? 1.0,
+                'observed' => $candidate['observed'],
+                'expected' => $candidate['expected'],
+                'recommendation' => $candidate['recommendation'],
                 'evidences' => $candidate['evidences'],
             ]);
             $locked = Finding::whereKey($finding->id)->lockForUpdate()->firstOrFail();

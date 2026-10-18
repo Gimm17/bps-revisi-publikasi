@@ -30,10 +30,61 @@ export interface Publication {
     template_name: string;
 }
 export interface Evidence {
-    physical_page: number;
+    kind?: 'publication_page' | 'reference_artifact';
+    physical_page?: number;
     printed_page?: string | null;
     quote?: string;
-    bbox?: number[] | null;
+    bbox?: [number, number, number, number] | number[] | null;
+    reference_id?: string;
+    artifact_id?: string;
+    artifact_page?: number | null;
+    source_url?: string | null;
+    provenance?: 'official_browser' | 'user_upload';
+}
+
+export interface PublicationEvidence extends Evidence {
+    kind?: 'publication_page';
+    physical_page: number;
+}
+
+export interface ReferenceEvidence extends Evidence {
+    kind: 'reference_artifact';
+    reference_id: string;
+    artifact_id: string;
+    source_url: string | null;
+    provenance: 'official_browser' | 'user_upload';
+}
+
+export type AuditEvidence = PublicationEvidence | ReferenceEvidence;
+
+export interface CheckRunRecord {
+    id: string;
+    publication_id: string;
+    requested_by: number;
+    mode: 'new' | 'supplemental';
+    baseline_rule_version: string;
+    target_rule_version: string;
+    prompt_version: string;
+    status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+    scope: string[];
+    summary: Record<string, unknown> | null;
+    error: Record<string, unknown> | null;
+    started_at: string | null;
+    completed_at: string | null;
+    created_at: string;
+}
+
+export interface CheckItemRecord {
+    id: number;
+    check_run_id: string;
+    check_type: string;
+    execution_status: 'pending' | 'running' | 'completed' | 'retry_wait' | 'failed' | 'cancelled';
+    decision: 'conform' | 'nonconform' | 'needs_verification' | 'not_applicable' | null;
+    result: Record<string, unknown> | null;
+    evidences: Evidence[] | null;
+    attempts: number;
+    error_code: string | null;
+    error_message: string | null;
 }
 export interface Finding {
     id: number;
