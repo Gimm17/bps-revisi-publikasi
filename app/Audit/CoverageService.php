@@ -31,7 +31,7 @@ class CoverageService
             'complete' => $pagesComplete,
         ];
 
-        $crossCheckComplete = in_array($publication->status, ['review_ready', 'final'], true);
+        $crossCheckComplete = in_array($publication->status, ['exporting', 'review_ready', 'final'], true);
         $baseCrosscheck = [
             'complete' => $crossCheckComplete,
             'status' => $crossCheckComplete ? 'completed' : ($publication->status === 'cross_checking' ? 'running' : 'pending'),
@@ -67,7 +67,7 @@ class CoverageService
         }
 
         // Determine report mode
-        if (! $pagesComplete || ! $allAdditionalComplete || in_array($publication->status, ['processing', 'cross_checking', 'exporting', 'partial_failure'], true)) {
+        if (! $pagesComplete || ! $allAdditionalComplete || in_array($publication->status, ['processing', 'cross_checking', 'partial_failure'], true)) {
             $reportMode = 'partial';
         } elseif ($hasLimitations || ! empty($limitations)) {
             $reportMode = 'complete_with_limitations';

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Audit\AuditCoordinator;
+use App\Audit\CoverageService;
 use App\Audit\WorkbookWriter;
 use App\Models\Export;
 use App\Models\Publication;
@@ -40,11 +41,21 @@ class WriteWorkbook implements ShouldBeUnique, ShouldQueue
             }
             $pub = Publication::whereKey($export->publication_id)->lockForUpdate()->firstOrFail();
             $partial = ($export->validation['mode'] ?? 'full') === 'partial';
-            $coverage = app(AuditCoordinator::class)->coverage($pub);
-            if (! $partial && (! app(AuditCoordinator::class)->canComplete($pub) || ! in_array($pub->status, ['exporting', 'review_ready', 'final'], true))) {
+            $summary = app(CoverageService::class)->summarize($pub);
+            $reportMode = $partial ? 'partial' : $summary['report_mode'];
+            if (! $partial && ($reportMode === 'partial' || ! in_array($pub->status, ['exporting', 'review_ready', 'final'], true))) {
                 throw new \RuntimeException('Pemeriksaan belum lengkap untuk ekspor penuh.');
             }
-            $coverage += ['mode' => $partial ? 'partial' : 'full', 'cross_checks_complete' => ! $partial, 'snapshot_at' => now()->toISOString()];
+            $baseCoverage = app(AuditCoordinator::class)->coverage($pub);
+            $mode = $partial ? 'partial' : ($reportMode === 'complete' ? 'full' : $reportMode);
+            $coverage = array_merge($baseCoverage, [
+                'mode' => $mode,
+                'report_mode' => $reportMode,
+                'cross_checks_complete' => ! $partial,
+                'limitations' => $summary['limitations'],
+                'additional_checks' => $summary['additional_checks'],
+                'snapshot_at' => now()->toISOString(),
+            ]);
             // A job captures the current revision under the same lock as finding edits.
             $export->update(['status' => 'processing', 'publication_revision' => $pub->revision]);
             $path = 'publications/'.$pub->id.'/exports/v'.$export->version.'.xlsx';

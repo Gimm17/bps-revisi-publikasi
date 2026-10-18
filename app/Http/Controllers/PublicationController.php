@@ -123,8 +123,12 @@ class PublicationController extends Controller
     public function download(Publication $publication, Export $export): BinaryFileResponse
     {
         Gate::authorize('view', $publication);
-        abort_unless($export->publication_id === $publication->id && $export->status === 'complete', 404);
-        $label = ($export->validation['mode'] ?? 'full') === 'partial' ? 'SEMENTARA BELUM LENGKAP' : 'Pemeriksaan';
+        $mode = $export->validation['mode'] ?? ($export->validation['report_mode'] ?? 'full');
+        $label = match ($mode) {
+            'partial' => 'SEMENTARA BELUM LENGKAP',
+            'complete_with_limitations' => 'DENGAN KETERBATASAN',
+            default => 'Pemeriksaan',
+        };
         $filename = preg_replace('/[^\pL\pN\- ]/u', '', $publication->title).' - '.$label.' v'.$export->version.'.xlsx';
 
         return response()->download(Storage::disk('local')->path($export->path), $filename, ['Cache-Control' => 'private, no-store']);

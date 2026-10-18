@@ -16,8 +16,23 @@ class WorkbookWriter
 {
     public function write(Publication $pub, string $path, ?array $coverage = null): array
     {
-        $coverage ??= app(AuditCoordinator::class)->coverage($pub) + ['mode' => 'full'];
-        $partial = $coverage['mode'] === 'partial';
+        if ($coverage === null) {
+            $baseCoverage = app(AuditCoordinator::class)->coverage($pub);
+            $summary = app(CoverageService::class)->summarize($pub);
+            $coverage = array_merge($baseCoverage, [
+                'mode' => 'full',
+                'limitations' => $summary['limitations'],
+                'additional_checks' => $summary['additional_checks'],
+            ]);
+        }
+
+        $reportMode = $coverage['report_mode'] ?? ($coverage['mode'] ?? 'full');
+        $partial = $reportMode === 'partial' || ($coverage['mode'] ?? '') === 'partial';
+        $withLimitations = $reportMode === 'complete_with_limitations' || ($coverage['mode'] ?? '') === 'complete_with_limitations';
+        $limitations = $coverage['limitations'] ?? [];
+        $checkedPages = $coverage['checked_pages'] ?? ($coverage['page_coverage']['checked_pages'] ?? $pub->pages()->where('status', 'complete')->count());
+        $totalPages = $coverage['total_pages'] ?? ($coverage['page_coverage']['total_pages'] ?? $pub->page_count);
+
         $disk = Storage::disk('local');
         $book = IOFactory::load($disk->path($pub->template_path));
         $sheet = $book->getActiveSheet();
@@ -59,8 +74,8 @@ class WorkbookWriter
             $sheet->getStyle('L'.$r.':M'.$r)->getFill()->setFillType('solid')->getStartColor()->setARGB('FFFFBDBD');
             $sheet->getStyle('L'.$r)->getFont()->setBold(true);
             $sheet->getRowDimension($r++)->setRowHeight(32);
-            $notes = ['Cakupan '.$coverage['checked_pages'].' dari '.$coverage['total_pages'].' halaman selesai diperiksa. Pemeriksaan silang belum dinyatakan lengkap. Tidak boleh digunakan sebagai hasil final. Hasil tersimpan tidak dihapus; lanjutkan halaman yang belum selesai lalu buat versi lengkap.'];
-            foreach ($coverage['unchecked_pages'] as $page) {
+            $notes = ['Cakupan '.$checkedPages.' dari '.$totalPages.' halaman selesai diperiksa. Pemeriksaan silang belum dinyatakan lengkap. Tidak boleh digunakan sebagai hasil final. Hasil tersimpan tidak dihapus; lanjutkan halaman yang belum selesai lalu buat versi lengkap.'];
+            foreach ($coverage['unchecked_pages'] ?? [] as $page) {
                 $notes[] = 'PDF hlm. '.$page['physical_page'].' belum selesai. Status: '.$page['status'].'. '.($page['error'] ?? 'Belum ada hasil pembacaan tervalidasi.');
             }
             foreach ($notes as $note) {
@@ -68,6 +83,26 @@ class WorkbookWriter
                     $sheet->getStyle('L'.$r)->applyFromArray($labelStyle);
                     $sheet->getStyle('M'.$r)->applyFromArray($detailStyle);
                     $sheet->setCellValueExplicit('L'.$r, 'Cakupan pemeriksaan', DataType::TYPE_STRING);
+                    $sheet->setCellValueExplicit('M'.$r, $chunk, DataType::TYPE_STRING);
+                    $sheet->getRowDimension($r)->setRowHeight(min(409, max(48, (int) ceil(mb_strlen($chunk) / 95) * 14 + 12)));
+                    $sheet->getRowDimension($r++)->setOutlineLevel(1);
+                }
+            }
+        } elseif ($withLimitations || ! empty($limitations)) {
+            $sheet->mergeCells('L'.$r.':M'.$r);
+            $sheet->setCellValueExplicit('L'.$r, 'EXCEL PEMERIKSAAN — DENGAN KETERBATASAN (PERLU VERIFIKASI MANUAL)', DataType::TYPE_STRING);
+            $sheet->getStyle('L'.$r.':M'.$r)->getFill()->setFillType('solid')->getStartColor()->setARGB('FFFFF2CC');
+            $sheet->getStyle('L'.$r)->getFont()->setBold(true);
+            $sheet->getRowDimension($r++)->setRowHeight(32);
+            $notes = ['Cakupan: Seluruh '.$checkedPages.' halaman selesai diperiksa. Namun, beberapa butir pemeriksaan aturan tambahan belum dapat diverifikasi secara otomatis dan memerlukan verifikasi manual.'];
+            foreach ($limitations as $limitation) {
+                $notes[] = (str_starts_with($limitation, 'Perlu verifikasi') ? $limitation : 'Perlu verifikasi: '.$limitation);
+            }
+            foreach ($notes as $note) {
+                foreach ($this->chunks($note) as $chunk) {
+                    $sheet->getStyle('L'.$r)->applyFromArray($labelStyle);
+                    $sheet->getStyle('M'.$r)->applyFromArray($detailStyle);
+                    $sheet->setCellValueExplicit('L'.$r, 'Keterbatasan pemeriksaan', DataType::TYPE_STRING);
                     $sheet->setCellValueExplicit('M'.$r, $chunk, DataType::TYPE_STRING);
                     $sheet->getRowDimension($r)->setRowHeight(min(409, max(48, (int) ceil(mb_strlen($chunk) / 95) * 14 + 12)));
                     $sheet->getRowDimension($r++)->setOutlineLevel(1);
@@ -86,8 +121,15 @@ class WorkbookWriter
                 $r++;
                 $lastSection = $section;
             }
-            $evidence = collect($finding->evidences)->map(fn ($e) => 'PDF hlm. '.$e['physical_page'].(! empty($e['printed_page']) ? ' (tercetak '.$e['printed_page'].')' : '').(! empty($e['quote']) ? ' — “'.$e['quote'].'”' : ''))->implode('; ');
-            $text = '['.mb_strtoupper($finding->severity).' · '.$finding->rule_code.']'."\nDitemukan: ".$finding->observed."\nSeharusnya: ".$finding->expected."\nRevisi: ".$finding->recommendation."\nBukti: ".$evidence."\nStatus: ".$finding->review_status.($finding->review_note ? "\nCatatan pemeriksa: ".$finding->review_note : '');
+            $evidence = $this->formatEvidences($finding->evidences ?? []);
+
+            $assessmentNote = '';
+            $unreviewedAssessment = $finding->assessments()->whereNull('reviewed_at')->latest()->first();
+            if ($unreviewedAssessment && in_array($unreviewedAssessment->proposed_decision, ['dismiss', 'cancel'], true)) {
+                $assessmentNote = "\nUsulan pembatalan oleh sistem: ".$unreviewedAssessment->reason.' (menunggu keputusan peninjau)';
+            }
+
+            $text = '['.mb_strtoupper($finding->severity).' · '.$finding->rule_code.']'."\nDitemukan: ".$finding->observed."\nSeharusnya: ".$finding->expected."\nRevisi: ".$finding->recommendation."\nBukti: ".$evidence."\nStatus: ".$finding->review_status.($finding->review_note ? "\nCatatan pemeriksa: ".$finding->review_note : '').$assessmentNote;
             // Split long evidence across rows so Excel does not clip text at its 409pt limit.
             $chunks = $this->chunks($text);
             foreach ($chunks as $i => $chunk) {
@@ -100,7 +142,7 @@ class WorkbookWriter
                     $lines += max(1, (int) ceil(mb_strlen($line) / 95));
                 }
                 $sheet->getRowDimension($r)->setRowHeight(min(409, max(40, $lines * 14 + 12)));
-                $sheet->getRowDimension($r)->setOutlineLevel(1);
+                $sheet->getRowDimension($r++)->setOutlineLevel(1);
                 $r++;
             }
         }
@@ -116,7 +158,14 @@ class WorkbookWriter
         $sheet->getColumnDimension('L')->setWidth(22);
         $sheet->getPageSetup()->setPrintArea('B3:M'.$last)->setFitToWidth(1)->setFitToHeight(0);
         $sheet->getPageSetup()->setRowsToRepeatAtTopByStartAndEnd(3, 4);
-        $book->getProperties()->setTitle($pub->title)->setDescription(($partial ? 'SEMENTARA BELUM LENGKAP; ' : '').'Aturan '.$pub->rule_version.'; revisi '.$pub->revision.'; cakupan '.$coverage['checked_pages'].' dari '.$coverage['total_pages'].' halaman.');
+
+        $descPrefix = match ($reportMode) {
+            'partial' => 'SEMENTARA BELUM LENGKAP; ',
+            'complete_with_limitations' => 'DENGAN KETERBATASAN (Perlu verifikasi); ',
+            default => '',
+        };
+        $limitationsStr = ! empty($limitations) ? ' Keterbatasan: '.implode('; ', $limitations) : '';
+        $book->getProperties()->setTitle($pub->title)->setDescription($descPrefix.'Aturan '.$pub->rule_version.'; revisi '.$pub->revision.'; cakupan '.$checkedPages.' dari '.$totalPages.' halaman.'.$limitationsStr);
         $disk->makeDirectory(dirname($path));
         IOFactory::createWriter($book, 'Xlsx')->save($disk->path($path));
         $book->disconnectWorksheets();
@@ -140,6 +189,43 @@ class WorkbookWriter
         $check->disconnectWorksheets();
 
         return $coverage + ['validated' => true, 'last_row' => $last, 'finding_count' => $findings->count(), 'checks' => ['blank_outline', 'continuous_borders', 'no_formulas', 'reopened_xlsx'], 'sha256' => hash_file('sha256', $disk->path($path))];
+    }
+
+    private function formatEvidences(array $evidences): string
+    {
+        $formatted = [];
+        foreach ($evidences as $e) {
+            $type = $e['type'] ?? (isset($e['reference_id']) || isset($e['artifact_type']) ? 'reference_artifact' : 'publication_page');
+            if ($type === 'reference_artifact') {
+                $provenanceLabel = match ($e['provenance'] ?? '') {
+                    'official_browser' => 'Unduhan resmi BPS',
+                    'user_upload' => 'Unggahan pengguna',
+                    default => 'Dokumen rujukan',
+                };
+                $title = $e['target_title'] ?? 'Publikasi pembanding';
+                $year = ! empty($e['target_year']) ? ' ('.$e['target_year'].')' : '';
+                $header = "Rujukan: {$title}{$year} [{$provenanceLabel}]";
+                if (! empty($e['url'])) {
+                    $header .= " — URL: {$e['url']}";
+                }
+                if (! empty($e['artifact_type']) && $e['artifact_type'] === 'cover_image') {
+                    $header .= ' (Kover rujukan)';
+                } elseif (! empty($e['artifact_page'])) {
+                    $header .= " (hlm. {$e['artifact_page']})";
+                }
+                if (! empty($e['quote'])) {
+                    $header .= " — “{$e['quote']}”";
+                }
+                $formatted[] = $header;
+            } else {
+                $page = $e['physical_page'] ?? null;
+                $printed = ! empty($e['printed_page']) ? " (tercetak {$e['printed_page']})" : '';
+                $quote = ! empty($e['quote']) ? " — “{$e['quote']}”" : '';
+                $formatted[] = ($page !== null ? "PDF hlm. {$page}" : 'Halaman').$printed.$quote;
+            }
+        }
+
+        return implode('; ', $formatted);
     }
 
     /** Preserve every character while respecting both wrapping and explicit newlines. */
