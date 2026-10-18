@@ -1,0 +1,377 @@
+{
+  "version": "bps-2026.10.18-v2",
+  "generated_at": "2026-10-18T21:30:00Z",
+  "source_document": "PEDOMAN-REVISI-DAN-PEMERIKSAAN-PUBLIKASI.md",
+  "sections": {
+    "1": [
+      {
+        "spec_ref": "§1.1",
+        "rule_code": "IDENTITY.CONSISTENCY",
+        "title": "Konsistensi identitas publikasi lintas bagian",
+        "implementation_mode": "deterministic",
+        "verification_test": "Tests\\Feature\\AuditEngineTest",
+        "status": "covered"
+      },
+      {
+        "spec_ref": "§1.2",
+        "rule_code": "LANGUAGE.BILINGUAL",
+        "title": "Konsistensi dwibahasa Indonesia dan Inggris",
+        "implementation_mode": "ai_page",
+        "verification_test": "Tests\\Feature\\PipelineTest",
+        "status": "covered"
+      },
+      {
+        "spec_ref": "§1.5",
+        "rule_code": "PRINT.TRAILING_BLANKS",
+        "title": "Halaman kosong tanpa nomor dan running title",
+        "implementation_mode": "deterministic",
+        "verification_test": "Tests\\Feature\\PrintLayoutTest",
+        "status": "planned"
+      }
+    ],
+    "2": [
+      {
+        "spec_ref": "§2.1",
+        "rule_code": "COVER.LOGO.NO_EFFECT",
+        "title": "Logo resmi tanpa efek bayangan atau distorsi",
+        "implementation_mode": "ai_page",
+        "verification_test": "Tests\\Feature\\PipelineTest",
+        "status": "covered"
+      },
+      {
+        "spec_ref": "§2.2",
+        "rule_code": "COVER.COMPONENTS",
+        "title": "Kelengkapan elemen kover depan",
+        "implementation_mode": "ai_page",
+        "verification_test": "Tests\\Feature\\PipelineTest",
+        "status": "covered"
+      },
+      {
+        "spec_ref": "§2.5",
+        "rule_code": "COVER.ILLUSTRATION",
+        "title": "Sumber ilustrasi kover dan kontras",
+        "implementation_mode": "ai_page",
+        "verification_test": "Tests\\Feature\\PipelineTest",
+        "status": "covered"
+      },
+      {
+        "spec_ref": "§2.6",
+        "rule_code": "VOLUME.HISTORY",
+        "title": "Kesesuaian volume kover terhadap edisi sebelumnya",
+        "implementation_mode": "external_evidence",
+        "verification_test": "Tests\\Feature\\VolumeHistoryTest",
+        "status": "planned"
+      }
+    ],
+    "3": [
+      {
+        "spec_ref": "§3.1",
+        "rule_code": "TITLE.COVER_LAYOUT",
+        "title": "Kesamaan layout halaman judul dengan kover depan",
+        "implementation_mode": "ai_pair",
+        "verification_test": "Tests\\Feature\\CoverTitleComparisonTest",
+        "status": "planned"
+      },
+      {
+        "spec_ref": "§3.2",
+        "rule_code": "TITLE.WHITE_BACKGROUND",
+        "title": "Halaman judul berlatar putih tanpa foto kover",
+        "implementation_mode": "ai_pair",
+        "verification_test": "Tests\\Feature\\CoverTitleComparisonTest",
+        "status": "planned"
+      }
+    ],
+    "4": [
+      {
+        "spec_ref": "§4.1",
+        "rule_code": "ISSN.COLON",
+        "title": "Format titik dua ISSN pada katalog",
+        "implementation_mode": "deterministic",
+        "verification_test": "Tests\\Feature\\AuditEngineTest",
+        "status": "covered"
+      },
+      {
+        "spec_ref": "§4.2",
+        "rule_code": "ISSN.CHECKSUM",
+        "title": "Validasi digit kontrol modulo 11 ISSN",
+        "implementation_mode": "deterministic",
+        "verification_test": "Tests\\Feature\\AuditEngineTest",
+        "status": "covered"
+      },
+      {
+        "spec_ref": "§4.3",
+        "rule_code": "CATALOGUE.PAGE_COUNT",
+        "title": "Jumlah halaman tercetak pada katalog",
+        "implementation_mode": "deterministic",
+        "verification_test": "Tests\\Feature\\PrintLayoutTest",
+        "status": "planned"
+      },
+      {
+        "spec_ref": "§4.4",
+        "rule_code": "CATALOGUE.LABELS",
+        "title": "Label katalog dwibahasa",
+        "implementation_mode": "ai_page",
+        "verification_test": "Tests\\Feature\\PipelineTest",
+        "status": "covered"
+      }
+    ],
+    "5": [
+      {
+        "spec_ref": "§5.1",
+        "rule_code": "TEAM.FORMAT",
+        "title": "Susunan tim penyusun dan penata letak",
+        "implementation_mode": "ai_page",
+        "verification_test": "Tests\\Feature\\PipelineTest",
+        "status": "covered"
+      },
+      {
+        "spec_ref": "§5.5",
+        "rule_code": "IDENTITY.CONSISTENCY",
+        "title": "Kesesuaian volume pada tim penyusun",
+        "implementation_mode": "deterministic",
+        "verification_test": "Tests\\Feature\\VolumeHistoryTest",
+        "status": "planned"
+      }
+    ],
+    "6": [
+      {
+        "spec_ref": "§6.1",
+        "rule_code": "PREFACE.FORMAT",
+        "title": "Format kata pengantar, tanggal, dan tanda tangan",
+        "implementation_mode": "ai_page",
+        "verification_test": "Tests\\Feature\\PipelineTest",
+        "status": "covered"
+      }
+    ],
+    "7": [
+      {
+        "spec_ref": "§7.1",
+        "rule_code": "CONTENTS.MATCH",
+        "title": "Kesesuaian daftar isi dengan isi publikasi",
+        "implementation_mode": "deterministic",
+        "verification_test": "Tests\\Feature\\AuditEngineTest",
+        "status": "covered"
+      }
+    ],
+    "8": [
+      {
+        "spec_ref": "§8.1",
+        "rule_code": "CHAPTER.START",
+        "title": "Awal bab pada halaman ganjil dan pembatas bab",
+        "implementation_mode": "deterministic",
+        "verification_test": "Tests\\Feature\\PrintLayoutTest",
+        "status": "planned"
+      }
+    ],
+    "9": [
+      {
+        "spec_ref": "§9.1",
+        "rule_code": "RUNNING.TITLE",
+        "title": "Running title ganjil judul bab dan genap judul publikasi",
+        "implementation_mode": "deterministic",
+        "verification_test": "Tests\\Feature\\AuditEngineTest",
+        "status": "covered"
+      },
+      {
+        "spec_ref": "§9.2",
+        "rule_code": "PAGINATION.ORDER",
+        "title": "Urutan penomoran halaman romawi dan arab",
+        "implementation_mode": "deterministic",
+        "verification_test": "Tests\\Feature\\PrintLayoutTest",
+        "status": "planned"
+      }
+    ],
+    "10": [
+      {
+        "spec_ref": "§10.1",
+        "rule_code": "TABLE.NUMBER",
+        "title": "Penomoran tabel dan urutan tabel",
+        "implementation_mode": "deterministic",
+        "verification_test": "Tests\\Feature\\AuditEngineTest",
+        "status": "covered"
+      },
+      {
+        "spec_ref": "§10.2",
+        "rule_code": "TABLE.TITLE",
+        "title": "Judul, satuan unit, dan periode waktu tabel",
+        "implementation_mode": "ai_page",
+        "verification_test": "Tests\\Feature\\PipelineTest",
+        "status": "covered"
+      },
+      {
+        "spec_ref": "§10.3",
+        "rule_code": "TABLE.TOTAL",
+        "title": "Konsistensi matematis baris total dan komponen",
+        "implementation_mode": "deterministic",
+        "verification_test": "Tests\\Feature\\AuditEngineTest",
+        "status": "covered"
+      },
+      {
+        "spec_ref": "§10.4",
+        "rule_code": "TABLE.FORMAT",
+        "title": "Format tabel terbuka dan garis pembatas",
+        "implementation_mode": "ai_page",
+        "verification_test": "Tests\\Feature\\PipelineTest",
+        "status": "covered"
+      }
+    ],
+    "11": [
+      {
+        "spec_ref": "§11.1",
+        "rule_code": "FIGURE.FORMAT",
+        "title": "Nomor, judul, sumber, dan grafik gambar",
+        "implementation_mode": "ai_page",
+        "verification_test": "Tests\\Feature\\PipelineTest",
+        "status": "covered"
+      },
+      {
+        "spec_ref": "§11.2",
+        "rule_code": "FIGURE.DATA",
+        "title": "Kesesuaian grafik dengan data tabel",
+        "implementation_mode": "manual",
+        "verification_test": "Tests\\Feature\\PipelineTest",
+        "status": "covered"
+      }
+    ],
+    "12": [
+      {
+        "spec_ref": "§12.1",
+        "rule_code": "TABLE.FORMAT",
+        "title": "Format lampiran tabel dan penomoran lampiran",
+        "implementation_mode": "ai_page",
+        "verification_test": "Tests\\Feature\\PipelineTest",
+        "status": "covered"
+      }
+    ],
+    "13": [
+      {
+        "spec_ref": "§13.1",
+        "rule_code": "BPS.FULL_NAME",
+        "title": "Penulisan nama lengkap Badan Pusat Statistik",
+        "implementation_mode": "deterministic",
+        "verification_test": "Tests\\Feature\\PipelineTest",
+        "status": "covered"
+      },
+      {
+        "spec_ref": "§13.2",
+        "rule_code": "LANGUAGE.EJAAN",
+        "title": "Ejaan bahasa Indonesia baku dan istilah teknis",
+        "implementation_mode": "ai_page",
+        "verification_test": "Tests\\Feature\\PipelineTest",
+        "status": "covered"
+      }
+    ],
+    "14": [
+      {
+        "spec_ref": "§14.1",
+        "rule_code": "BACK.BARCODE",
+        "title": "Barcode ISSN resmi pada kover belakang",
+        "implementation_mode": "deterministic",
+        "verification_test": "Tests\\Feature\\AuditEngineTest",
+        "status": "covered"
+      }
+    ],
+    "15": [
+      {
+        "spec_ref": "§15.1",
+        "rule_code": "PRINT.ROMAN_END",
+        "title": "Pendahuluan romawi berakhir pada halaman genap",
+        "implementation_mode": "deterministic",
+        "verification_test": "Tests\\Feature\\PrintLayoutTest",
+        "status": "planned"
+      },
+      {
+        "spec_ref": "§15.2",
+        "rule_code": "PRINT.TRAILING_BLANKS",
+        "title": "Halaman putih akhir sebelum kover belakang",
+        "implementation_mode": "deterministic",
+        "verification_test": "Tests\\Feature\\PrintLayoutTest",
+        "status": "planned"
+      }
+    ],
+    "16": [
+      {
+        "spec_ref": "§16.1",
+        "rule_code": "TABLE.SYMBOL",
+        "title": "Penggunaan simbol statistik dan desimal koma",
+        "implementation_mode": "ai_page",
+        "verification_test": "Tests\\Feature\\PipelineTest",
+        "status": "covered"
+      }
+    ],
+    "17": [
+      {
+        "spec_ref": "§17.1",
+        "rule_code": "VISUAL.TYPOGRAPHY",
+        "title": "Konsistensi tipografi dan hierarki teks",
+        "implementation_mode": "ai_page",
+        "verification_test": "Tests\\Feature\\PipelineTest",
+        "status": "covered"
+      },
+      {
+        "spec_ref": "§17.2",
+        "rule_code": "VISUAL.LAYOUT",
+        "title": "Kerapian margin dan tata letak visual",
+        "implementation_mode": "ai_page",
+        "verification_test": "Tests\\Feature\\PipelineTest",
+        "status": "covered"
+      }
+    ],
+    "18": [
+      {
+        "spec_ref": "§18.1",
+        "rule_code": "IDENTITY.CONSISTENCY",
+        "title": "Checklist cepat identitas dan konsistensi publikasi",
+        "implementation_mode": "deterministic",
+        "verification_test": "Tests\\Feature\\AuditEngineTest",
+        "status": "covered"
+      }
+    ],
+    "19": [
+      {
+        "spec_ref": "§19.1",
+        "rule_code": "TABLE.NUMBER",
+        "title": "Pola kesalahan berulang penomoran tabel evaluasi 2025",
+        "implementation_mode": "deterministic",
+        "verification_test": "Tests\\Feature\\AuditEngineTest",
+        "status": "covered"
+      },
+      {
+        "spec_ref": "§19.2",
+        "rule_code": "ISSN.COLON",
+        "title": "Pola kesalahan penulisan titik dua ISSN evaluasi 2025",
+        "implementation_mode": "deterministic",
+        "verification_test": "Tests\\Feature\\AuditEngineTest",
+        "status": "covered"
+      }
+    ],
+    "20": [
+      {
+        "spec_ref": "§20.1",
+        "rule_code": "VOLUME.HISTORY",
+        "title": "Kalibrasi atasan 2026: Verifikasi volume terhadap publikasi sebelumnya",
+        "implementation_mode": "external_evidence",
+        "verification_test": "Tests\\Feature\\VolumeHistoryTest",
+        "status": "planned"
+      },
+      {
+        "spec_ref": "§20.2",
+        "rule_code": "TITLE.COVER_LAYOUT",
+        "title": "Kalibrasi atasan 2026: Keselarasan tata letak halaman judul dan kover",
+        "implementation_mode": "ai_pair",
+        "verification_test": "Tests\\Feature\\CoverTitleComparisonTest",
+        "status": "planned"
+      }
+    ],
+    "21": [
+      {
+        "spec_ref": "§21.1",
+        "rule_code": "MANUAL.REVIEW",
+        "title": "Batasan teknis sistem otomatis dan kewajiban penelaahan manusia",
+        "implementation_mode": "manual",
+        "verification_test": "Tests\\Feature\\FinalReviewTest",
+        "status": "covered"
+      }
+    ]
+  }
+}

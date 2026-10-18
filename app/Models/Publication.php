@@ -13,14 +13,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Publication extends Model
 {
-    protected $fillable = ['owner_id', 'title', 'region', 'year', 'kind', 'notes', 'pdf_path', 'pdf_name', 'pdf_checksum', 'template_path', 'template_name', 'template_checksum', 'page_count', 'status', 'manifest', 'ai_config_id', 'rule_version', 'prompt_version', 'error', 'started_at', 'completed_at', 'locked_at', 'revision'];
+    protected $fillable = ['owner_id', 'title', 'region', 'year', 'kind', 'notes', 'pdf_path', 'pdf_name', 'pdf_checksum', 'template_path', 'template_name', 'template_checksum', 'page_count', 'status', 'manifest', 'context', 'ai_config_id', 'rule_version', 'prompt_version', 'error', 'started_at', 'completed_at', 'locked_at', 'revision'];
 
     protected function casts(): array
     {
-        return ['manifest' => 'array', 'started_at' => 'datetime', 'completed_at' => 'datetime', 'locked_at' => 'datetime'];
+        return ['manifest' => 'array', 'context' => 'array', 'started_at' => 'datetime', 'completed_at' => 'datetime', 'locked_at' => 'datetime'];
     }
 
     use HasUuids;
+
+    public function checkRuns(): HasMany
+    {
+        return $this->hasMany(PublicationCheckRun::class)->latest();
+    }
 
     public function pages(): HasMany
     {

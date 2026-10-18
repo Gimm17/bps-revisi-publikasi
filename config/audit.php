@@ -3,7 +3,11 @@
 declare(strict_types=1);
 
 return [
-    'rule_version' => 'bps-2026.10.05-v1',
+    'rule_version' => env('AUDIT_RULE_VERSION', 'bps-2026.10.05-v1'),
+    'target_rule_version' => 'bps-2026.10.18-v2',
+    'rules_v2_enabled' => (bool) env('AUDIT_RULES_V2_ENABLED', false),
+    'visual_pair_enabled' => (bool) env('AUDIT_VISUAL_PAIR_ENABLED', false),
+    'external_references_enabled' => (bool) env('AUDIT_EXTERNAL_REFERENCES_ENABLED', false),
     'pdfinfo' => env('PDFINFO_BINARY', 'pdfinfo'),
     'pdftoppm' => env('PDFTOPPM_BINARY', 'pdftoppm'),
     'max_pages' => 500,

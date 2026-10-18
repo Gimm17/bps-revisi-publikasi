@@ -25,11 +25,22 @@ class RuleRegistry
             'LANGUAGE.BILINGUAL' => 'Tata letak dan terjemahan dwibahasa', 'LANGUAGE.EJAAN' => 'Ejaan dan penulisan',
             'BIBLIOGRAPHY.FORMAT' => 'Daftar pustaka dan penutup', 'VISUAL.LAYOUT' => 'Detail layout dan keterbacaan',
             'VISUAL.TYPOGRAPHY' => 'Konsistensi tipografi', 'MANUAL.REVIEW' => 'Temuan manual pemeriksa',
+            'VOLUME.HISTORY' => 'Kesesuaian volume publikasi terhadap edisi sebelumnya',
+            'TITLE.COVER_LAYOUT' => 'Kesamaan tata letak halaman judul dengan kover depan',
+            'TITLE.WHITE_BACKGROUND' => 'Halaman judul berlatar putih bersih tanpa ilustrasi kover',
+            'PRINT.ROMAN_END' => 'Halaman pendahuluan romawi berakhir genap',
+            'PRINT.TRAILING_BLANKS' => 'Kesesuaian halaman putih akhir sebelum kover belakang',
         ];
     }
 
-    public function guidance(): string
+    public function guidance(?string $version = null): string
     {
-        return file_get_contents(base_path('audit-rules/pedoman.md'));
+        $version ??= config('audit.rule_version');
+        $file = $version === config('audit.target_rule_version') ? 'audit-rules/pedoman-v2.md' : 'audit-rules/pedoman.md';
+        if (! file_exists(base_path($file))) {
+            $file = 'audit-rules/pedoman.md';
+        }
+
+        return file_get_contents(base_path($file));
     }
 }

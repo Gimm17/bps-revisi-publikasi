@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Finding extends Model
 {
-    protected $fillable = ['publication_id', 'fingerprint', 'rule_code', 'section', 'severity', 'source', 'confidence', 'observed', 'expected', 'recommendation', 'evidences', 'review_status', 'review_note', 'version', 'deleted'];
+    protected $fillable = ['publication_id', 'check_run_id', 'fingerprint', 'rule_code', 'section', 'severity', 'source', 'confidence', 'observed', 'expected', 'recommendation', 'evidences', 'review_status', 'review_note', 'version', 'deleted'];
 
     protected function casts(): array
     {
@@ -20,6 +20,16 @@ class Finding extends Model
     public function publication(): BelongsTo
     {
         return $this->belongsTo(Publication::class);
+    }
+
+    public function checkRun(): BelongsTo
+    {
+        return $this->belongsTo(PublicationCheckRun::class, 'check_run_id');
+    }
+
+    public function assessments(): HasMany
+    {
+        return $this->hasMany(FindingAssessment::class);
     }
 
     public function revisions(): HasMany
