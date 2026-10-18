@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Audit\AuditCoordinator;
+use App\Audit\CoverageService;
 use App\Audit\RuleRegistry;
 use App\Http\Requests\PartialExportRequest;
 use App\Http\Requests\PublicationRequest;
 use App\Models\AiProviderConfig;
 use App\Models\Export;
+use App\Models\FindingAssessment;
 use App\Models\Publication;
 use App\Models\User;
 use App\Services\AuditLogger;
@@ -66,6 +68,44 @@ class PublicationController extends Controller
             'rules' => app(RuleRegistry::class)->all(), 'canEdit' => $request->user()->can('update', $publication), 'canReview' => $request->user()->can('review', $publication),
             'assignedUsers' => $request->user()->isAdmin() ? $publication->assignees()->pluck('users.id') : [],
             'employees' => $request->user()->isAdmin() ? User::where('is_active', true)->get(['id', 'name', 'role']) : [],
+            'coverage' => fn () => app(CoverageService::class)->summarize($publication),
+            'checkRuns' => fn () => $publication->checkRuns()->with(['checks', 'references'])->latest()->get()->map(function ($run) {
+                return [
+                    'id' => $run->id,
+                    'mode' => $run->mode,
+                    'baseline_rule_version' => $run->baseline_rule_version,
+                    'target_rule_version' => $run->target_rule_version,
+                    'scope' => $run->scope,
+                    'status' => $run->status,
+                    'started_at' => $run->started_at,
+                    'completed_at' => $run->completed_at,
+                    'summary' => $run->summary,
+                    'checks' => $run->checks->map(fn ($c) => [
+                        'id' => $c->id,
+                        'check_type' => $c->check_type,
+                        'execution_status' => $c->execution_status,
+                        'decision' => $c->decision,
+                        'error_message' => $c->error_message,
+                        'attempts' => $c->attempts,
+                        'result' => $c->result,
+                    ]),
+                    'references' => $run->references->map(fn ($r) => [
+                        'id' => $r->id,
+                        'series' => $r->series,
+                        'jurisdiction' => $r->jurisdiction,
+                        'year' => $r->year,
+                        'source_url' => $r->source_url,
+                        'provenance' => $r->provenance,
+                        'access_status' => $r->access_status,
+                        'read_status' => $r->read_status,
+                        'artifact_manifest' => $r->artifact_manifest,
+                    ]),
+                ];
+            }),
+            'assessments' => fn () => FindingAssessment::whereIn('finding_id', $publication->findings()->pluck('id'))
+                ->with('reviewer:id,name')
+                ->latest()
+                ->get(),
         ]);
     }
 

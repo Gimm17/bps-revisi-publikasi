@@ -19,6 +19,8 @@ import {
 import AppLayout from "../../Layouts/AppLayout.vue";
 import StatusBadge from "../../Components/StatusBadge.vue";
 import FindingEditor from "../../Components/FindingEditor.vue";
+import AdditionalChecksPanel from "../../Components/AdditionalChecksPanel.vue";
+import ReferenceEvidencePanel from "../../Components/ReferenceEvidencePanel.vue";
 import { askConfirmation, confirmation } from "../../Components/confirmation";
 import {
     label,
@@ -28,6 +30,9 @@ import {
     type ExportRecord,
     type Employee,
     type Shared,
+    type CoverageSummary,
+    type CheckRunRecord,
+    type FindingAssessmentRecord,
 } from "../../types";
 const props = defineProps<{
     publication: Publication;
@@ -40,6 +45,9 @@ const props = defineProps<{
     canReview: boolean;
     employees: Employee[];
     assignedUsers: number[];
+    coverage?: CoverageSummary | null;
+    checkRuns?: CheckRunRecord[] | null;
+    assessments?: FindingAssessmentRecord[] | null;
 }>();
 const shared = usePage<Shared>();
 const section = ref("workspace");
@@ -748,8 +756,15 @@ onUnmounted(() => {
                         @evidence="pageTo"
                         @saved="adding = false"
                     />
-                </aside></div
-        ></template>
+                </aside>
+            </div>
+            <AdditionalChecksPanel
+                :publication-id="publication.id"
+                :can-edit="canEdit"
+                :coverage="coverage"
+                :check-runs="checkRuns"
+            />
+        </template>
         <section v-if="section === 'exports'" class="exports-panel">
             <div class="section-heading">
                 <div>
@@ -797,6 +812,8 @@ onUnmounted(() => {
                         {{
                             e.validation?.mode === "partial"
                                 ? "Excel sementara — BELUM LENGKAP"
+                                : e.validation?.mode === "complete_with_limitations"
+                                ? "Hasil pemeriksaan — DENGAN KETERBATASAN"
                                 : "Hasil pemeriksaan"
                         }}
                         · Versi {{ e.version }}
@@ -880,6 +897,12 @@ onUnmounted(() => {
                     <Unlock :size="17" />Buka untuk penyuntingan
                 </button>
             </div>
+            <ReferenceEvidencePanel
+                :publication-id="publication.id"
+                :can-review="canReview"
+                :check-runs="checkRuns"
+                :assessments="assessments ?? []"
+            />
         </section>
     </AppLayout>
 </template>

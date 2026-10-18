@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FindingController;
+use App\Http\Controllers\PublicationCheckController;
 use App\Http\Controllers\PublicationController;
 use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +25,11 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/publications/{publication}/pages/{page}/retry', [PublicationController::class, 'retry']);
     Route::get('/publications/{publication}/pdf', [PublicationController::class, 'pdf']);
     Route::get('/publications/{publication}/pages/{page}/image', [PublicationController::class, 'image']);
+    Route::post('/publications/{publication}/checks', [PublicationCheckController::class, 'store']);
+    Route::post('/publications/{publication}/checks/{check}/retry', [PublicationCheckController::class, 'retry']);
+    Route::post('/publications/{publication}/references', [PublicationCheckController::class, 'storeReference']);
+    Route::get('/publications/{publication}/references/{reference}/artifacts/{artifact}', [PublicationCheckController::class, 'artifact']);
+    Route::patch('/publications/{publication}/assessments/{assessment}', [PublicationCheckController::class, 'updateAssessment']);
     Route::post('/publications/{publication}/exports', [PublicationController::class, 'export']);
     Route::post('/publications/{publication}/exports/partial', [PublicationController::class, 'exportPartial'])->middleware('throttle:5,1');
     Route::get('/publications/{publication}/exports/{export}', [PublicationController::class, 'download']);
@@ -38,4 +44,5 @@ Route::middleware('auth')->group(function (): void {
     Route::put('/settings/users/{user}', [SettingsController::class, 'updateUser']);
     Route::post('/settings/ai', [SettingsController::class, 'saveAi']);
     Route::post('/settings/ai/test', [SettingsController::class, 'testAi'])->middleware('throttle:5,1');
+    Route::post('/settings/reference-provider', [SettingsController::class, 'saveReferenceProvider']);
 });

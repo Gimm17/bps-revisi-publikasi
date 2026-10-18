@@ -86,6 +86,59 @@ export interface CheckItemRecord {
     error_code: string | null;
     error_message: string | null;
 }
+
+export interface PublicationReferenceRecord {
+    id: number;
+    check_run_id: string;
+    series: string | null;
+    jurisdiction: string | null;
+    year: number | null;
+    source_url: string | null;
+    provenance: 'official_browser' | 'user_upload';
+    access_status: 'pending' | 'opened' | 'blocked';
+    read_status: 'pending' | 'readable' | 'unreadable';
+    artifact_manifest: {
+        id?: number;
+        artifact_type: string;
+        path: string;
+        checksum?: string;
+    }[] | null;
+}
+
+export interface FindingAssessmentRecord {
+    id: number;
+    finding_id: number;
+    check_run_id: string;
+    proposed_decision: string;
+    reason: string;
+    evidences: Evidence[] | null;
+    reviewer_id: number | null;
+    reviewed_at: string | null;
+    reviewer?: { id: number; name: string } | null;
+}
+
+export interface CoverageSummary {
+    page_coverage: {
+        checked_pages: number;
+        total_pages: number;
+        complete: boolean;
+    };
+    base_crosscheck: {
+        complete: boolean;
+        status: string;
+    };
+    additional_checks: {
+        id: number;
+        check_type: string;
+        execution_status: string;
+        decision: string | null;
+        error_message: string | null;
+    }[];
+    limitations: string[];
+    report_mode: 'partial' | 'complete_with_limitations' | 'complete';
+    can_export: boolean;
+    can_lock: boolean;
+}
 export interface Finding {
     id: number;
     rule_code: string;
@@ -122,7 +175,7 @@ export interface ExportRecord {
     created_at: string;
     checksum: string | null;
     validation: {
-        mode?: "partial" | "full";
+        mode?: "partial" | "complete_with_limitations" | "complete" | "full";
         checked_pages?: number;
         total_pages?: number;
         unchecked_pages?: {

@@ -10,6 +10,7 @@ use App\Http\Requests\EmployeeRequest;
 use App\Models\AiProviderConfig;
 use App\Models\AiUsageRecord;
 use App\Models\AuditEvent;
+use App\Models\ReferenceProviderConfig;
 use App\Models\User;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
@@ -28,9 +29,35 @@ class SettingsController extends Controller
         return Inertia::render('Settings', [
             'users' => User::orderBy('name')->get(['id', 'name', 'email', 'role', 'is_active']),
             'ai' => AiProviderConfig::latest('id')->first()?->only('id', 'base_url', 'model', 'tested_at', 'vision_tested_at', 'updated_at'),
+            'reference_provider' => ReferenceProviderConfig::latest('id')->first()?->only('id', 'provider', 'endpoint', 'is_ready', 'tested_at', 'updated_at'),
             'events' => AuditEvent::latest()->limit(100)->get(),
             'health' => ['queue' => DB::table('jobs')->count(), 'failed' => DB::table('failed_jobs')->count(), 'usage' => AiUsageRecord::count(), 'driver' => config('queue.default'), 'disk_free_mb' => (int) (disk_free_space(storage_path()) / 1048576)],
         ]);
+    }
+
+    public function saveReferenceProvider(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+        $data = $request->validate([
+            'provider' => ['required', 'string', 'in:browserless,brave'],
+            'endpoint' => ['required', 'url', 'max:500'],
+            'api_key' => ['nullable', 'string', 'max:500'],
+        ]);
+        $prev = ReferenceProviderConfig::where('provider', $data['provider'])->latest('id')->first();
+        $apiKey = $data['api_key'] ?? $prev?->api_key;
+        if (! $apiKey) {
+            throw ValidationException::withMessages(['api_key' => 'API key penyedia wajib diisi pada konfigurasi awal.']);
+        }
+        ReferenceProviderConfig::create([
+            'provider' => $data['provider'],
+            'endpoint' => $data['endpoint'],
+            'api_key' => $apiKey,
+            'created_by' => $request->user()->id,
+            'is_ready' => false,
+        ]);
+        AuditLogger::record('reference_provider.updated', null, ['provider' => $data['provider']]);
+
+        return back()->with('success', 'Konfigurasi penyedia rujukan disimpan.');
     }
 
     public function createUser(EmployeeRequest $request): RedirectResponse

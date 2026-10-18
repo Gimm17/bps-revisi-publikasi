@@ -69,5 +69,25 @@ if (! $partial) {
     }
     $partial->update(['status' => 'partial_failure']);
     $partial->findings()->create(['fingerprint' => 'partial-browser-finding', 'rule_code' => 'MANUAL.REVIEW', 'section' => 'Pengujian', 'severity' => 'verifikasi', 'source' => 'manual', 'confidence' => 1, 'observed' => 'Temuan parsial tetap tersimpan', 'expected' => 'Hasil tidak hilang', 'recommendation' => 'Pertahankan hasil', 'evidences' => [['physical_page' => 1, 'quote' => 'PUBLIKASI TEST']]]);
+    $run = $partial->checkRuns()->create([
+        'requested_by' => $user->id,
+        'mode' => 'supplemental',
+        'baseline_rule_version' => $partial->rule_version,
+        'target_rule_version' => 'bps-2026.10.18-v2',
+        'prompt_version' => 'page-v2',
+        'pdf_sha256' => $partial->pdf_checksum,
+        'rules_path' => 'audit-rules/pedoman-v2.md',
+        'rules_hash' => hash('sha256', 'v2'),
+        'scope' => ['volume', 'cover_title', 'print_layout'],
+        'status' => 'completed',
+        'input_revision' => $partial->revision,
+    ]);
+    $run->checks()->create([
+        'check_type' => 'volume',
+        'input_hash' => hash('sha256', 'vol-check'),
+        'execution_status' => 'completed',
+        'decision' => 'needs_verification',
+        'error_message' => 'Volume edisi sebelumnya belum terbaca dari rujukan resmi',
+    ]);
 }
 echo "Browser fixtures ready; isolated SQLite testing database.\n";
