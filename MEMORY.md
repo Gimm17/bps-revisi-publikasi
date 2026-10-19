@@ -271,3 +271,74 @@ Dipicu otomatis hanya ketika **100% halaman** selesai (`canComplete() === true`)
   - Aset Produksi: Vite bundle versi terbaru aktif dilayani.
 - **Catatan Operasional**: Pemeriksaan AI sesungguhnya memerlukan kredensial 9Router/LimitRouter aktif yang telah lulus `testVision`. Rujukan eksternal dapat diintegrasikan dengan Brave Search / Browserless via Pengaturan > Referensi Eksternal.
 
+---
+
+## 9. Detail Arsitektur Superpowers Rules V2 (18 Oktober 2026)
+
+Implementasi **Publication Rules V2** (`docs/superpowers/plans/2026-10-18-publication-rules-v2.md`) memperluas kapabilitas audit dokumen publikasi BPS dengan 5 pemeriksaan tambahan tanpa memecah atau me-reset hasil audit V1 yang telah ada:
+
+### 1. Pemeriksaan Tambahan (Supplemental Checks)
+- **Komparasi Visual Kover vs Halaman Judul (`CoverTitleComparator`)**:
+  - Kode Aturan: `COVER.TITLE.LAYOUT`.
+  - Mengambil pasangan gambar resolusi tinggi kover dan halaman judul (`vision-pair`), lalu mengirimkannya ke model multimodal Vision LLM dengan prompt `resources/prompts/cover-title-v1.md`.
+  - Memverifikasi hierarki tipografi, konsistensi penulisan nama wilayah, tahun, dan penempatan logo BPS.
+- **Tata Letak Cetak & Halaman Kosong (`PrintLayoutChecker` & `PageAnatomyIndexer`)**:
+  - Kode Aturan: `PAGINATION.PRINT_BLANK` dan `CATALOGUE.PAGE_COUNT`.
+  - Menganalisis anatomi dokumen secara deterministik: penomoran romawi/Arab, memastikan halaman romawi genap pada layout cetak 2-up kosong jika bab baru dimulai pada halaman ganjil, mendeteksi trailing blanks, serta memvalidasi kesesuaian jumlah halaman katalog dengan halaman terakhir publikasi.
+- **Verifikasi Riwayat Volume Edisi Sebelumnya (`VolumeHistoryChecker`)**:
+  - Kode Aturan: `VOLUME.PREVIOUS_EDITION`.
+  - Menghubungkan nomor volume saat ini ($N$) dengan edisi tahun sebelumnya ($N-1$). Memastikan bahwa kenaikan volume tahunan konsisten dan tidak melompat.
+- **Pencarian & Inspeksi Rujukan Publikasi Resmi (`PublicationSearchClient` & `PublicationBrowserClient`)**:
+  - Kode Aturan: `OFFICIAL.REFERENCE`.
+  - Mengintegrasikan Brave Search API (`BraveSearchClient`) dan headless browser (`BrowserlessPublicationClient`) untuk memverifikasi keabsahan data rujukan BPS dengan pembatasan domain ketat (`ReferenceUrlPolicy`: hanya domain `.bps.go.id` yang diizinkan).
+  - Berjalan secara asinkron di antrean khusus `references` via `FetchPublicationReference`.
+- **Pelaporan Ketercakupan Kejujuran (`CoverageService`)**:
+  - Menggabungkan temuan dari audit per halaman, pemeriksaan silang global, dan pemeriksaan tambahan terhadap matriks `audit-rules/coverage.json` (21 bagian pedoman BPS).
+  - Membedakan secara transparan antara aturan yang dievaluasi penuh (*evaluated*), didukung sebagian (*partial*), dan belum didukung (*unsupported*).
+
+### 2. Skema Data Additive
+- `publication_check_runs`: Menyimpan batch eksekusi pemeriksaan tambahan berversi (`rule_version`, `status`, `summary`).
+- `publication_checks`: Status dan metrik individu per jenis pemeriksaan (`cover_title`, `print_layout`, `volume_history`, `official_reference`).
+- `publication_references`: Menyimpan URL rujukan eksternal, judul rujukan, status verifikasi, dan payload artifak bukti.
+- `reference_provider_configs`: Kredensial dan endpoint aman untuk provider pencarian eksternal.
+- `finding_assessments`: Evaluasi temuan yang dihasilkan dari pemeriksaan tambahan.
+
+### 3. Komponen Antarmuka Pengguna (UI)
+- `AdditionalChecksPanel.vue`: Panel ringkasan pemeriksaan tambahan di workspace `Show.vue`.
+- `CoverTitleComparison.vue`: Tampilan komparasi berdampingan kover vs halaman judul dengan overlay bounding box.
+- `ReferenceEvidencePanel.vue`: Tampilan daftar rujukan resmi BPS dengan tautan terverifikasi dan cuplikan bukti.
+- Tab konfigurasi provider rujukan eksternal di halaman `Settings.vue`.
+
+---
+
+## 10. Catatan Operasional Deployment cPanel
+
+- **Akses Hosting**:
+  - Server IP: `195.88.211.25` | Port SSH: `6699` | User: `pinnhost`
+  - URL Produksi: `https://bps-cek-publikasi.pinnhost.my.id/`
+  - Direktori Aplikasi: `/home/pinnhost/apps/bps-publication-audit`
+  - Direktori Dokumen Publik: `/home/pinnhost/apps/bps-publication-audit/public`
+  - Direktori Alat Poppler: `/home/pinnhost/apps/bps-publication-tools`
+  - Direktori Cadangan: `/home/pinnhost/apps/bps-publication-backup`
+- **Konfigurasi PHP & Handler**:
+  - CLI: `/opt/alt/php84/usr/bin/php`
+  - Handler Apache/LiteSpeed: `alt-php84`
+  - Upload Limits: `upload_max_filesize = 150M`, `post_max_size = 170M`, `memory_limit = 512M`.
+- **Worker Crontab Aktif**:
+  ```crontab
+  * * * * * /usr/bin/flock -n /home/pinnhost/apps/bps-publication-audit/storage/framework/scheduler.lock /opt/alt/php84/usr/bin/php /home/pinnhost/apps/bps-publication-audit/artisan schedule:run >> /home/pinnhost/apps/bps-publication-audit/storage/logs/scheduler.log 2>&1
+  * * * * * /bin/bash /home/pinnhost/apps/bps-publication-audit/deploy/audit-worker.sh general >> /home/pinnhost/apps/bps-publication-audit/storage/logs/worker-general.log 2>&1
+  * * * * * /bin/bash /home/pinnhost/apps/bps-publication-audit/deploy/audit-worker.sh ai-1 >> /home/pinnhost/apps/bps-publication-audit/storage/logs/worker-ai-1.log 2>&1
+  * * * * * /bin/bash /home/pinnhost/apps/bps-publication-audit/deploy/audit-worker.sh ai-2 >> /home/pinnhost/apps/bps-publication-audit/storage/logs/worker-ai-2.log 2>&1
+  * * * * * /bin/bash /home/pinnhost/apps/bps-publication-audit/deploy/audit-worker.sh references >> /home/pinnhost/apps/bps-publication-audit/storage/logs/worker-references.log 2>&1
+  ```
+- **Prosedur Update Mandiri di Masa Mendatang**:
+  1. Build aset lokal: `npm run build` dan jalankan test `php artisan test`.
+  2. Cadangkan database dan kode remote ke `apps/bps-publication-backup`.
+  3. Upload file release (tanpa `.env`, `vendor`, `storage`, atau `.htaccess` cPanel).
+  4. Hapus cache bootstrap lama: `rm -f bootstrap/cache/*.php`.
+  5. Jalankan migrasi: `/opt/alt/php84/usr/bin/php artisan migrate --force`.
+  6. Optimasi ulang: `/opt/alt/php84/usr/bin/php artisan optimize:clear && /opt/alt/php84/usr/bin/php artisan config:cache && /opt/alt/php84/usr/bin/php artisan route:cache && /opt/alt/php84/usr/bin/php artisan view:cache`.
+  7. Kirim sinyal restart antrean: `/opt/alt/php84/usr/bin/php artisan queue:restart`.
+
+
