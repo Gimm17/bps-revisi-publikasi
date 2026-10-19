@@ -341,4 +341,29 @@ Implementasi **Publication Rules V2** (`docs/superpowers/plans/2026-10-18-public
   6. Optimasi ulang: `/opt/alt/php84/usr/bin/php artisan optimize:clear && /opt/alt/php84/usr/bin/php artisan config:cache && /opt/alt/php84/usr/bin/php artisan route:cache && /opt/alt/php84/usr/bin/php artisan view:cache`.
   7. Kirim sinyal restart antrean: `/opt/alt/php84/usr/bin/php artisan queue:restart`.
 
+---
+
+## 11. Halaman Interaktif Pedoman & Katalog Aturan (/rules)
+
+Ditambahkan pada 19 Oktober 2026 sebagai sarana edukasi, transparansi logika, dan referensi visual baku bagi penelaah publikasi BPS:
+
+- **Route & Controller**:
+  - URL: `/rules` (dan alias `/guidelines`), Controller: `App\Http\Controllers\RuleGuideController@index`.
+  - Service: `App\Audit\RuleDocumentationService`.
+  - Halaman Vue: `resources/js/Pages/Rules/Index.vue`.
+  - Tautan Navigasi: Menu "Aturan Periksa" pada header `AppLayout.vue`.
+- **Fitur Utama Halaman**:
+  1. **Visual Pipeline 6 Tahap**: Menjelaskan alur dari Ingestion PDF, Rasterisasi 160/240 DPI, Vision AI per halaman, Dual-Image Pair, Pemeriksaan Silang & Web Rujukan, hingga Ekspor Excel BPS.
+  2. **Panduan Visual Baku Interaktif**:
+     - *Mockup Kover & Judul*: Letak nomor katalog, ISSN tanpa titik dua, judul dwibahasa, logo BPS flat tanpa bayangan, dan barcode kover belakang.
+     - *Mockup Format Tabel Terbuka*: 3 garis horizontal utama, tanpa garis vertikal, kolom satuan unit, dan konsistensi matematis baris total.
+     - *Mockup Tata Letak Cetak 2-Up*: Alasan pendahuluan romawi genap, bab baru selalu di halaman kanan (ganjil), running title ganjil/genap, dan halaman kosong penyeimbang.
+  3. **Katalog Terstruktur 38 Aturan**:
+     - Filter pencarian cepat real-time, filter kategori (6 kategori), filter tingkat keparahan (`wajib`, `saran`, `verifikasi`), dan filter metode eksekusi.
+     - Kartu akordeon detail memuat: ringkasan, cara kerja pemeriksaan, logika algoritma, kondisi lolos vs kondisi pelanggaran, contoh kasus sesuai standar vs contoh kesalahan (Do's & Don'ts), serta rekomendasi perbaikan teknis.
+- **Pengujian & QA**:
+  - Test feature: `Tests\Feature\RuleGuideTest` (3 tests, 61 assertions, 100% lulus).
+  - TypeScript typecheck: `vue-tsc --noEmit` 0 errors.
+  - Produksi: Ter-compile di `public/build/assets/Index-C1C514cf.js` dan aktif dideploy di `https://bps-cek-publikasi.pinnhost.my.id/rules`.
+
 
