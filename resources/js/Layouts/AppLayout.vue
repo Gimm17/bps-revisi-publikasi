@@ -38,6 +38,17 @@ defineProps<{ wide?: boolean }>();
                     page.url.startsWith('/publications') ? 'page' : undefined
                 "
                 >Publikasi</Link
+            ><Link
+                href="/rules"
+                :class="{
+                    active:
+                        page.url.startsWith('/rules') ||
+                        page.url.startsWith('/guidelines'),
+                }"
+                :aria-current="
+                    page.url.startsWith('/rules') ? 'page' : undefined
+                "
+                >Aturan Periksa</Link
             >
         </nav>
         <div class="header-actions">

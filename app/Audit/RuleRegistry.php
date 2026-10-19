@@ -30,6 +30,8 @@ class RuleRegistry
             'TITLE.WHITE_BACKGROUND' => 'Halaman judul berlatar putih bersih tanpa ilustrasi kover',
             'PRINT.ROMAN_END' => 'Halaman pendahuluan romawi berakhir genap',
             'PRINT.TRAILING_BLANKS' => 'Kesesuaian halaman putih akhir sebelum kover belakang',
+            'COVER.TITLE.LAYOUT' => 'Kesamaan tata letak halaman judul dengan kover depan',
+            'OFFICIAL.REFERENCE' => 'Validasi rujukan publikasi resmi BPS',
         ];
     }
 

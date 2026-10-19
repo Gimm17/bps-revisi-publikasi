@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FindingController;
 use App\Http\Controllers\PublicationCheckController;
 use App\Http\Controllers\PublicationController;
+use App\Http\Controllers\RuleGuideController;
 use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,6 +18,8 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'destroy']);
     Route::get('/', [PublicationController::class, 'index'])->name('dashboard');
     Route::get('/publications', [PublicationController::class, 'index']);
+    Route::get('/rules', [RuleGuideController::class, 'index'])->name('rules');
+    Route::get('/guidelines', [RuleGuideController::class, 'index']);
     Route::get('/publications/create', [PublicationController::class, 'create']);
     Route::post('/publications', [PublicationController::class, 'store'])->middleware('throttle:20,1');
     Route::get('/publications/{publication}', [PublicationController::class, 'show']);

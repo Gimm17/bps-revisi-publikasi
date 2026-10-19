@@ -210,3 +210,45 @@ export const labels: Record<string, string> = {
     rejected: "Ditolak",
 };
 export const label = (status: string) => labels[status] ?? status;
+
+export interface RuleGuideItem {
+    code: string;
+    title: string;
+    category: string;
+    severity: 'wajib' | 'saran' | 'verifikasi';
+    mode: 'deterministic' | 'ai_page' | 'ai_pair' | 'external_evidence' | 'manual';
+    spec_ref: string;
+    summary: string;
+    how_it_works: string;
+    logic: string;
+    criteria_pass: string;
+    criteria_fail: string;
+    example_good: string;
+    example_bad: string;
+    recommendation: string;
+}
+
+export interface RuleCategory {
+    id: string;
+    label: string;
+    icon: string;
+    description: string;
+}
+
+export interface WorkflowStage {
+    step: number;
+    id: string;
+    title: string;
+    badge: string;
+    description: string;
+    logic: string;
+    icon: string;
+}
+
+export interface RuleGuideSummary {
+    total_rules: number;
+    mandatory_count: number;
+    advisory_count: number;
+    verification_count: number;
+    categories_count: number;
+}
