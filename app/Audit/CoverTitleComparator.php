@@ -27,9 +27,10 @@ class CoverTitleComparator
     public function compare(PublicationCheckRun $run, int $coverPage, int $titlePage): array
     {
         $pub = $run->publication;
-        $config = $pub->aiConfig ?? AiProviderConfig::latest('id')->first();
+        $config = \App\Models\AiAgent::ready()->first() ?? $pub->aiConfig ?? AiProviderConfig::latest('id')->first();
+        $isTested = ($config instanceof \App\Models\AiAgent) ? $config->isReady() : (bool) $config?->vision_tested_at;
 
-        if (! $config || ! $config->vision_tested_at) {
+        if (! $config || ! $isTested) {
             return [
                 'decision' => 'needs_verification',
                 'components' => [],

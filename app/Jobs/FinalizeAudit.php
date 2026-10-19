@@ -46,6 +46,12 @@ class FinalizeAudit implements ShouldBeUnique, ShouldQueue
             if (! $pub->exports()->whereIn('status', ['pending', 'processing', 'complete'])->where(fn ($q) => $q->whereNull('validation->mode')->orWhere('validation->mode', '!=', 'partial'))->exists()) {
                 $coordinator->export($pub);
             }
+            if (config('audit.rules_v2_enabled', false)) {
+                $actor = $pub->creator ?? \App\Models\User::first();
+                if ($actor) {
+                    app(\App\Audit\AdditionalCheckCoordinator::class)->start($pub, $actor, ['volume', 'cover_title', 'print_layout']);
+                }
+            }
             AuditLogger::record('audit.cross_checks_completed', $pub);
         });
     }

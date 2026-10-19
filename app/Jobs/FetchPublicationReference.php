@@ -83,5 +83,10 @@ class FetchPublicationReference implements ShouldQueue
                 break;
             }
         }
+
+        $volumeCheck = $run->checks()->where('check_type', 'volume')->first();
+        if ($volumeCheck) {
+            app(\App\Audit\AdditionalCheckCoordinator::class)->executeVolume($run, $volumeCheck);
+        }
     }
 }

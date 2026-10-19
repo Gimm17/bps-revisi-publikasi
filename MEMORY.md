@@ -431,5 +431,37 @@ Diimplementasikan dan diluncurkan ke server produksi pada 19 Oktober 2026 untuk 
   - TypeScript Typecheck: `vue-tsc --noEmit` 0 error.
   - Asset Build: Vite production build berhasil.
 
+---
+
+## 13. Resolusi Masalah Audit Terhenti di Halaman 114 & Otomatisasi Aturan V2 Global Pipeline
+
+### A. Diagnosa & Resolusi Halaman Macet (114/118 Halaman)
+Pada audit publikasi riil BPS (Kecamatan Dalam Angka 118 halaman), audit sempat terhenti di 114 halaman karena 4 halaman mengalami kegagalan berulang (`failed` / `partial_failure`):
+1. **PDF Halaman 9 & 10 (Kata Pengantar & Preface)**:
+   - **Penyebab**: Terpicunya filter keselamatan `recitation` Google Gemini saat model mencoba mentranskripsi paragraf teks pembuka standar BPS secara *verbatim* (>150 token). Gemini memutus respons dengan `finish_reason: "recitation"` dan `content: null`. Pada versi sebelumnya, `NineRouterClient.php` mengklasifikasikan `content: null` sebagai kesalahan non-retryable fatal (`failed_image`).
+   - **Solusi**:
+     - `NineRouterClient.php`: Menangani alasan pemutusan `recitation`, `safety`, dan `block` sebagai error yang dapat ditangani atau di-retry, bukan fatal `failed_image`.
+     - `resources/prompts/page-audit-v1.md` & `app/Audit/PromptBuilder.php`: Memodifikasi instruksi prompt khusus halaman Kata Pengantar dan Preface agar AI mengekstrak struktur penting (judul, tanggal pengesahan, jabatan/penandatangan) dan membuat ringkasan singkat per paragraf, menghindari transkripsi kata-per-kata yang memicu filter hak cipta/recitation.
+2. **PDF Halaman 15 & 17 (Daftar Tabel xiii & xv)**:
+   - **Penyebab**: Baris terbawah pada daftar tabel (tabel 4.4.2 pada hal 15 dan tabel 7.2 pada hal 17) pada naskah asli PDF BPS mengalami pemotongan teks atau tidak mencantumkan nomor halaman target cetak. `PageResultValidator.php` sebelumnya menolak keras `target_page: null` jika `readability === 'readable'`.
+   - **Solusi**:
+     - `PromptBuilder.php` & `PageResultValidator.php`: Mengizinkan `target_page: null` dengan status `readability: 'uncertain'` apabila nomor halaman pada baris daftar tabel memang tidak tercetak pada dokumen sumber.
+     - `app/Jobs/AnalyzePage.php`: Pada resolusi tinggi (240 DPI / `high_dpi`), halaman dengan status `uncertain` tidak lagi digagalkan sebagai `partial_failure`. Temuannya disimpan dan halaman diselesaikan (`completed`) disertai catatan verifikasi manual (*review flag*), sehingga tidak memblokir kelanjutan audit publikasi.
+
+### B. Otomatisasi Pemeriksaan V2 ke Dalam Pipeline Global
+Sebelumnya, pemeriksaan aturan V2 (Perbandingan Kover vs Judul, Riwayat Volume, dan Layout Cetak) memerlukan klik tombol manual di antarmuka web.
+- **Integrasi Otomatis**:
+  - `app/Jobs/FinalizeAudit.php`: Ketika seluruh halaman publikasi selesai diproses (`all_completed`), sistem secara otomatis memicu `AdditionalCheckCoordinator::start($publication)` jika aturan V2 diaktifkan (`config('audit.rules_v2_enabled')`).
+  - `app/Audit/AdditionalCheckCoordinator.php`: Mengotomatiskan eksekusi seluruh rangkaian pemeriksaan tambahan (`executeCoverTitle`, `executeVolume`, `executePrintLayout`) dan memulihkan pemeriksaan yang tertunda (*pending*).
+  - **Otomatisasi Ekspor Excel BPS**: Setelah seluruh pemeriksaan V2 selesai (`status === 'completed'`), metode `advance()` pada `AdditionalCheckCoordinator.php` otomatis memicu `AuditCoordinator::export($publication)`. Publikasi langsung berpindah ke status `review_ready` dengan file laporan Excel resmi BPS yang siap diunduh tanpa intervensi manual pengguna.
+  - `resources/js/Components/AdditionalChecksPanel.vue`: Antarmuka diperbarui untuk mencerminkan status otomatisasi (badge *"Otomatis Berjalan"* dan panduan bahwa pemeriksaan V2 terintegrasi dalam alur utama).
+
+### C. Hasil Deployment & Verifikasi di Live Server (cPanel)
+- Perubahan dideploy dan diuji langsung pada server produksi (`https://bps-cek-publikasi.pinnhost.my.id/`).
+- Kedua publikasi uji berhasil diproses hingga tuntas **118 / 118 halaman (100% Selesai)**:
+  - `kecamatan ampana tete dalam angka 2026`: 118/118 halaman selesai, 3 pemeriksaan V2 tuntas, file ekspor Excel v3 tergenerate otomatis.
+  - `kecamatan ampana kota dalam angka 2026`: 118/118 halaman selesai, 3 pemeriksaan V2 tuntas, status `review_ready` dengan file Excel tergenerate otomatis.
+
+
 
 

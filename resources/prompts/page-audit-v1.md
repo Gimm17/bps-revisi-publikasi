@@ -39,3 +39,6 @@ Baca seluruh halaman, bukan hanya rangkumannya. Transkripsikan teks yang terbaca
 - Pada halaman katalog ISSN memakai titik dua; bagian lain tanpa titik dua. Larangan itu khusus label ISSN, bukan semua tanda titik dua pada dokumen.
 - Pada running title, parity mengikuti nomor halaman tercetak, bukan urutan fisik PDF. Halaman awal/romawi/kosong/pembatas dikecualikan sesuai pedoman.
 - Evaluasi detail kecil: spasi di sekitar slash, en dash, kapitalisasi, italic Inggris, superskrip, bold total, nomor kolom, clip/overlap, footer/header, judul/satuan/waktu, dan konsistensi layout. Jangan mencatat koreksi pada elemen yang sudah benar.
+- Khusus teks narasi formal panjang (kata pengantar, preface, sambutan): pada field "text", tuliskan judul, tanggal, nama penandatangan, dan intisari poin per paragraf. Jangan menyalin seluruh isi artikel kata-per-kata secara verbatim panjang penuh agar tidak memicu filter keamanan/recitation model AI.
+- Pada halaman daftar isi/tabel/gambar: jika entri tertentu di bagian bawah halaman memang tidak tercantum nomor halaman tujuannya (misal judul terputus atau nomor ada di halaman berikutnya), gunakan target_page null dan readability uncertain agar diverifikasi pemeriksa. Catat ketidaklengkapan nomor sebagai temuan jika relevan.
+

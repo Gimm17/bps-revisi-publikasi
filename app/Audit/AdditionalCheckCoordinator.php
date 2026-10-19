@@ -17,11 +17,15 @@ class AdditionalCheckCoordinator
     public function __construct(
         private ?PageAnatomyIndexer $indexer = null,
         private ?PrintLayoutChecker $printChecker = null,
-        private ?FindingWriter $writer = null
+        private ?FindingWriter $writer = null,
+        private ?CoverTitleComparator $coverComparator = null,
+        private ?VolumeHistoryChecker $volumeChecker = null
     ) {
         $this->indexer ??= new PageAnatomyIndexer;
         $this->printChecker ??= new PrintLayoutChecker;
         $this->writer ??= new FindingWriter;
+        $this->coverComparator ??= new CoverTitleComparator;
+        $this->volumeChecker ??= new VolumeHistoryChecker;
     }
 
     /**
@@ -32,9 +36,23 @@ class AdditionalCheckCoordinator
         return DB::transaction(function () use ($publication, $actor, $scope): PublicationCheckRun {
             $pub = Publication::whereKey($publication->id)->lockForUpdate()->firstOrFail();
 
-            // Idempotency: return active run if already running
+            // Idempotency: return active run if already running, and advance any pending checks
             $activeRun = $pub->checkRuns()->whereIn('status', ['pending', 'running'])->first();
             if ($activeRun) {
+                foreach ($activeRun->checks()->whereIn('execution_status', ['pending', 'running'])->get() as $pendingCheck) {
+                    if ($pendingCheck->check_type === 'volume') {
+                        if ($pub->kind === 'kcda') {
+                            FetchPublicationReference::dispatch($activeRun->id);
+                        } else {
+                            $this->executeVolume($activeRun, $pendingCheck);
+                        }
+                    } elseif ($pendingCheck->check_type === 'print_layout') {
+                        $this->executePrintLayout($activeRun, $pendingCheck);
+                    } elseif ($pendingCheck->check_type === 'cover_title') {
+                        $this->executeCoverTitle($activeRun, $pendingCheck);
+                    }
+                }
+
                 return $activeRun;
             }
 
@@ -61,10 +79,16 @@ class AdditionalCheckCoordinator
                     'execution_status' => 'pending',
                 ]);
 
-                if ($type === 'volume' && $pub->kind === 'kcda') {
-                    FetchPublicationReference::dispatch($run->id);
+                if ($type === 'volume') {
+                    if ($pub->kind === 'kcda') {
+                        FetchPublicationReference::dispatch($run->id);
+                    } else {
+                        $this->executeVolume($run, $check);
+                    }
                 } elseif ($type === 'print_layout') {
                     $this->executePrintLayout($run, $check);
+                } elseif ($type === 'cover_title') {
+                    $this->executeCoverTitle($run, $check);
                 }
             }
 
@@ -92,6 +116,11 @@ class AdditionalCheckCoordinator
                 'check_run_id' => $run->id,
                 'status' => $run->status,
             ]);
+
+            $pub = $run->publication->fresh();
+            if ($pub && in_array($pub->status, ['exporting', 'review_ready'], true)) {
+                app(AuditCoordinator::class)->export($pub);
+            }
         }
     }
 
@@ -107,10 +136,16 @@ class AdditionalCheckCoordinator
         $run = $check->checkRun;
         $run->update(['status' => 'running']);
 
-        if ($check->check_type === 'volume' && $run->publication->kind === 'kcda') {
-            FetchPublicationReference::dispatch($run->id);
+        if ($check->check_type === 'volume') {
+            if ($run->publication->kind === 'kcda') {
+                FetchPublicationReference::dispatch($run->id);
+            } else {
+                $this->executeVolume($run, $check);
+            }
         } elseif ($check->check_type === 'print_layout') {
             $this->executePrintLayout($run, $check);
+        } elseif ($check->check_type === 'cover_title') {
+            $this->executeCoverTitle($run, $check);
         }
     }
 
@@ -140,6 +175,69 @@ class AdditionalCheckCoordinator
             'evidences' => $result['findings'][0]['evidences'] ?? [],
             'error_message' => ! empty($result['limitations']) ? implode('; ', $result['limitations']) : null,
         ]);
+
+        $this->advance($run);
+    }
+
+    public function executeCoverTitle(PublicationCheckRun $run, PublicationCheck $check): void
+    {
+        $pub = $run->publication;
+        $coverPage = 1;
+        $titlePage = $pub->pages()->where('page_type', 'title')->value('physical_page')
+            ?? $pub->pages()->whereIn('page_type', ['title', 'catalogue'])->value('physical_page')
+            ?? 3;
+
+        $result = $this->coverComparator->compare($run, (int) $coverPage, (int) $titlePage);
+
+        foreach ($result['findings'] as $candidate) {
+            $candidate['check_run_id'] = $run->id;
+            $this->writer->store($pub, $candidate);
+        }
+
+        $check->update([
+            'execution_status' => 'completed',
+            'decision' => $result['decision'],
+            'result' => $result,
+            'evidences' => $result['evidences'] ?? [],
+            'error_message' => ! empty($result['limitations']) ? implode('; ', $result['limitations']) : null,
+        ]);
+
+        $this->advance($run);
+    }
+
+    public function executeVolume(PublicationCheckRun $run, PublicationCheck $check): void
+    {
+        $pub = $run->publication;
+        $reference = $run->references()->latest('id')->first();
+        if ($reference) {
+            $res = $this->volumeChecker->compare($pub->context ?? [], [
+                'read_status' => $reference->read_status,
+                'prior_volume' => $reference->metadata['volume'] ?? null,
+                'evidences' => $reference->artifact_manifest ?? [],
+            ]);
+            foreach ($res['findings'] as $candidate) {
+                $candidate['check_run_id'] = $run->id;
+                $this->writer->store($pub, $candidate);
+            }
+            $check->update([
+                'execution_status' => 'completed',
+                'decision' => $res['decision'],
+                'result' => $res,
+                'evidences' => $res['evidences'] ?? [],
+                'error_message' => ! empty($res['limitations']) ? implode('; ', $res['limitations']) : null,
+            ]);
+        } else {
+            $check->update([
+                'execution_status' => 'completed',
+                'decision' => 'needs_verification',
+                'result' => [
+                    'decision' => 'needs_verification',
+                    'limitations' => ['Volume edisi sebelumnya belum diverifikasi secara daring (rujukan eksternal dapat diunggah manual jika diperlukan).'],
+                ],
+                'evidences' => [],
+                'error_message' => 'Volume edisi sebelumnya belum diverifikasi secara daring.',
+            ]);
+        }
 
         $this->advance($run);
     }

@@ -245,7 +245,9 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
             'Respons AI bukan JSON lengkap. Jalankan ulang halaman ini.',
             'Struktur respons AI tidak valid.',
         ];
-        if (in_array($message, $safeMessages, true) || preg_match('/^Penyedia AI mengembalikan status HTTP \d{3}\. Periksa koneksi, model, atau kuota\.$/', $message)) {
+        if (in_array($message, $safeMessages, true)
+            || str_starts_with($message, 'Respons AI terpotong atau dibatasi')
+            || preg_match('/^Penyedia AI mengembalikan status HTTP \d{3}\. Periksa koneksi, model, atau kuota\.$/', $message)) {
             return $message;
         }
 

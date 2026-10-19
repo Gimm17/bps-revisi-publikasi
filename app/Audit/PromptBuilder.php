@@ -18,7 +18,11 @@ class PromptBuilder
         $disk = Storage::disk('local');
         $system .= "\nPEDOMAN LENGKAP BERVERSI:\n".$disk->get('publications/'.$pub->id.'/rules.md');
         $schema = $disk->get('publications/'.$pub->id.'/prompt.md');
-        $schema .= "\nPenegasan kontrak daftar: judul kelompok yang memang tidak memiliki nomor halaman menggunakan type heading dan target_page null. Entri tabel/gambar/bab harus memiliki target_page string yang terbaca; bila nomor tidak terbaca, gunakan target_page null dan readability uncertain. Field target_page tetap wajib hadir. Jangan menyebut judul kelompok sebagai entri tabel.\n";
+        $schema .= "\nPenegasan kontrak daftar: judul kelompok yang memang tidak memiliki nomor halaman menggunakan type heading dan target_page null. Entri tabel/gambar/bab yang memiliki nomor halaman diisi string nomor tersebut. Jika ada entri yang nomor halamannya belum tercantum/terpotong di halaman ini, gunakan target_page null dan readability uncertain. Field target_page tetap wajib hadir.\n";
+        $schema .= "\nPenegasan teks narasi/kata pengantar/preface: pada field 'text', tuliskan judul, tanggal, nama penandatangan, dan intisari poin per paragraf. Jangan menyalin teks kalimat secara verbatim panjang penuh agar tidak memicu pemotongan filter keamanan/recitation model AI.\n";
+        if (str_contains($page->error ?? '', 'recitation') || str_contains($page->error ?? '', 'dibatasi oleh filter')) {
+            $schema .= "\nKoreksi respons sebelumnya: respons terpotong filter keamanan/recitation. Pada field 'text', JANGAN menyalin teks narasi kata-per-kata. Tuliskan ringkasan intisari poin per paragraf saja dan fokus pada metadata serta temuan.\n";
+        }
         if (str_starts_with($page->error ?? '', 'Format respons AI belum valid pada kolom:')) {
             $fields = preg_replace('/[^a-zA-Z0-9_., ]/', '', explode('. Proses', substr($page->error, strlen('Format respons AI belum valid pada kolom:')))[0]);
             $schema .= "\nKoreksi respons sebelumnya: kolom ".mb_substr(trim($fields), 0, 250)." belum valid. Baca ulang gambar dan isi JSON sesuai kontrak. Jangan menebak teks/angka agar lolos validasi; jika belum terbaca, gunakan uncertain.\n";

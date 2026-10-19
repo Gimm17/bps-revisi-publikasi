@@ -69,8 +69,9 @@ class NineRouterClient
             }
             throw new AiRequestException('Penyedia AI mengembalikan status HTTP '.$status.'. Periksa koneksi, model, atau kuota.', 'http_'.$status, in_array($status, [408, 425, 429], true) || $status >= 500, $delay);
         }
-        if (in_array($response->json('choices.0.finish_reason'), ['length', 'content_filter'], true)) {
-            throw new AiRequestException('Respons AI terpotong atau dibatasi. Halaman belum dianggap selesai.', 'truncated');
+        $finishReason = $response->json('choices.0.finish_reason');
+        if (in_array($finishReason, ['length', 'content_filter', 'recitation', 'safety', 'block'], true)) {
+            throw new AiRequestException('Respons AI terpotong atau dibatasi oleh filter keamanan/recitation ('.$finishReason.'). Halaman belum dianggap selesai.', 'truncated', true, 5);
         }
         $content = $response->json('choices.0.message.content');
         if (! is_string($content) || str_contains($content, '[image omitted')) {

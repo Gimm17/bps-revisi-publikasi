@@ -52,7 +52,7 @@ class PageResultValidator
             $this->reject('Halaman berisi konten tidak boleh dinyatakan terbaca tanpa transkripsi.');
         }
         foreach ($data['contents'] as $index => $entry) {
-            if ($data['readability'] === 'readable' && ($entry['type'] ?? '') !== 'heading' && trim($entry['target_page'] ?? '') === '') {
+            if ($data['readability'] === 'readable' && ! in_array($entry['type'] ?? '', ['heading', 'section_header', 'table_split', 'table_continued', 'split_entry'], true) && trim((string) ($entry['target_page'] ?? '')) === '') {
                 throw ValidationException::withMessages(['contents.'.$index.'.target_page' => 'Nomor halaman tujuan entri daftar belum terbaca. Gunakan uncertain, jangan menebak nomor halaman.']);
             }
         }

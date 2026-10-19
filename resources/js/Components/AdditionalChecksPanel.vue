@@ -115,7 +115,7 @@ function handleKeydown(e: KeyboardEvent) {
                     <h2>Pemeriksaan Tambahan Aturan Terbaru (V2)</h2>
                 </div>
                 <p class="header-subtitle">
-                    Verifikasi nomor volume rujukan resmi, keselarasan visual kover-judul, dan tata letak cetak.
+                    Pemeriksaan aturan terbaru (V2) otomatis terintegrasi dan berjalan saat audit final, mencakup verifikasi volume edisi sebelumnya, keselarasan visual kover-judul, dan tata letak cetak.
                 </p>
             </div>
 
@@ -128,7 +128,7 @@ function handleKeydown(e: KeyboardEvent) {
                     @click="showStartDialog = true"
                 >
                     <Sparkles :size="16" />
-                    <span>Periksa tambahan dengan aturan terbaru</span>
+                    <span>Jalankan / Ulangi Pemeriksaan V2</span>
                 </button>
             </div>
         </div>
