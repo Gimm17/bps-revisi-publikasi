@@ -411,12 +411,11 @@ function copyFromSlot1() {
                 </article>
             </div>
         </section>
-        <section v-if="tab === 'ai'" class="settings-panel ai-settings-multi" style="display: flex; flex-direction: column; gap: 24px;">
+        <section v-if="tab === 'ai'" class="settings-panel ai-settings-multi" style="display: flex; flex-direction: column; gap: 20px;">
             <div class="agent-pool-header">
                 <div>
-                    <span class="aside-sticker"><ShieldCheck :size="31" /></span>
                     <h2>Pool Agen AI Paralel (Hingga 5 Agen)</h2>
-                    <p>
+                    <p style="margin-top: 6px; color: var(--muted); font-size: 13px;">
                         Setiap agen dapat memiliki Base URL, API Key, Model, dan kapasitas konkuren masing-masing.
                         Semua agen yang aktif <strong>wajib lulus uji pembacaan gambar visual</strong> sebelum digunakan dalam pemeriksaan.
                     </p>
@@ -536,12 +535,12 @@ function copyFromSlot1() {
                         required
                         placeholder="https://api.9router.com/v1"
                     />
-                    <div class="inline-actions" style="margin-top: -6px; margin-bottom: 10px;">
-                        <small style="color: #666;">Preset cepat:</small>
-                        <button type="button" class="button secondary" style="min-height: 28px; padding: 2px 10px; font-size: 11px;" @click="currentForm.base_url = 'https://api.9router.com/v1'">
+                    <div class="preset-chips">
+                        <span class="preset-label">Preset cepat:</span>
+                        <button type="button" class="preset-chip" @click="currentForm.base_url = 'https://api.9router.com/v1'">
                             9Router
                         </button>
-                        <button type="button" class="button secondary" style="min-height: 28px; padding: 2px 10px; font-size: 11px;" @click="currentForm.base_url = 'https://api.limitrouter.com/v1'">
+                        <button type="button" class="preset-chip" @click="currentForm.base_url = 'https://api.limitrouter.com/v1'">
                             LimitRouter
                         </button>
                     </div>

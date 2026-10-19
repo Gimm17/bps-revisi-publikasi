@@ -2038,10 +2038,10 @@ progress::-webkit-progress-value {
 .agent-slot-selector {
     display: flex;
     gap: 8px;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
     flex-wrap: wrap;
     border-bottom: 2px solid #e7e3d7;
-    padding-bottom: 12px;
+    padding-bottom: 14px;
 }
 .agent-slot-btn {
     display: inline-flex;
@@ -2051,6 +2051,7 @@ progress::-webkit-progress-value {
     border-radius: 99px;
     border: 1px solid #d4cebe;
     background: #f7f4ec;
+    color: var(--ink);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -2058,22 +2059,71 @@ progress::-webkit-progress-value {
 }
 .agent-slot-btn:hover {
     background: #ece6d8;
+    border-color: #beb7a5;
 }
 .agent-slot-btn.active {
-    background: var(--charcoal);
+    background: var(--ink);
+    color: #ffffff !important;
+    border-color: var(--ink);
+    box-shadow: 0 2px 6px rgba(48, 43, 42, 0.25);
+}
+.agent-slot-btn.active strong {
+    color: #ffffff !important;
+}
+.agent-slot-btn.active .badge.neutral {
+    background: rgba(255, 255, 255, 0.22);
     color: #ffffff;
-    border-color: var(--charcoal);
+}
+.agent-slot-btn.active .badge.complete {
+    background: #a3d9cf;
+    color: #143831;
 }
 .agent-slot-dot {
     width: 9px;
     height: 9px;
     border-radius: 50%;
     display: inline-block;
+    flex-shrink: 0;
 }
 .agent-slot-dot.ready { background: #198754; }
 .agent-slot-dot.testing { background: #fd7e14; animation: pulse 1.5s infinite; }
 .agent-slot-dot.failed { background: #dc3545; }
 .agent-slot-dot.untested { background: #adb5bd; }
+
+.badge.neutral {
+    background: #e8e3d8;
+    color: #5c5554;
+}
+
+.preset-chips {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    margin-bottom: 14px;
+}
+.preset-chips .preset-label {
+    font-size: 12px;
+    color: var(--muted);
+}
+.preset-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 11px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: #f7f4ec;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    line-height: 1.4;
+}
+.preset-chip:hover {
+    background: #ece6d8;
+    border-color: #b5ada0;
+}
 
 .agent-card-editor {
     background: #ffffff;
@@ -2099,17 +2149,21 @@ progress::-webkit-progress-value {
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
+    user-select: none;
 }
 .toggle-switch input[type="checkbox"] {
     position: relative;
-    width: 40px;
+    width: 38px;
     height: 22px;
+    min-height: 22px;
+    margin: 0;
     appearance: none;
     background: #ccc;
     outline: none;
     border-radius: 20px;
-    transition: .3s;
+    transition: .25s ease;
     cursor: pointer;
+    vertical-align: middle;
 }
 .toggle-switch input[type="checkbox"]:checked {
     background: #198754;
@@ -2123,10 +2177,11 @@ progress::-webkit-progress-value {
     top: 2px;
     left: 2px;
     background: #fff;
-    transition: .3s;
+    transition: .25s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 .toggle-switch input[type="checkbox"]:checked:before {
-    left: 20px;
+    left: 18px;
 }
 
 .finding-agreement-banner {
