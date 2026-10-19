@@ -7,12 +7,15 @@ namespace App\Http\Controllers;
 use App\Audit\NineRouterClient;
 use App\Http\Requests\AiConfigRequest;
 use App\Http\Requests\EmployeeRequest;
+use App\Jobs\TestAiAgent;
+use App\Models\AiAgent;
 use App\Models\AiProviderConfig;
 use App\Models\AiUsageRecord;
 use App\Models\AuditEvent;
 use App\Models\ReferenceProviderConfig;
 use App\Models\User;
 use App\Services\AuditLogger;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,8 +29,29 @@ class SettingsController extends Controller
     {
         abort_unless($request->user()->isAdmin(), 403);
 
+        $existingAgents = AiAgent::orderBy('slot')->get()->keyBy('slot');
+        $agentsList = [];
+        for ($slot = 1; $slot <= 5; $slot++) {
+            $agent = $existingAgents->get($slot);
+            $agentsList[] = [
+                'id' => $agent?->id,
+                'slot' => $slot,
+                'name' => $agent?->name ?? 'Agent '.$slot,
+                'base_url' => $agent?->base_url ?? 'https://api.9router.com/v1',
+                'model' => $agent?->model ?? 'gemini-2.5-flash',
+                'enabled' => $agent ? (bool) $agent->enabled : ($slot === 1),
+                'status' => $agent?->status ?? 'untested',
+                'test_message' => $agent?->test_message,
+                'vision_tested_at' => $agent?->vision_tested_at?->toIso8601String(),
+                'has_api_key' => ! empty($agent?->api_key),
+                'max_concurrency' => $agent?->max_concurrency ?? 1,
+                'updated_at' => $agent?->updated_at?->toIso8601String(),
+            ];
+        }
+
         return Inertia::render('Settings', [
             'users' => User::orderBy('name')->get(['id', 'name', 'email', 'role', 'is_active']),
+            'ai_agents' => $agentsList,
             'ai' => AiProviderConfig::latest('id')->first()?->only('id', 'base_url', 'model', 'tested_at', 'vision_tested_at', 'updated_at'),
             'reference_provider' => ReferenceProviderConfig::latest('id')->first()?->only('id', 'provider', 'endpoint', 'is_ready', 'tested_at', 'updated_at'),
             'events' => AuditEvent::latest()->limit(100)->get(),
@@ -117,5 +141,178 @@ class SettingsController extends Controller
         }
 
         return back()->with('success', 'Koneksi dan pembacaan gambar berhasil diuji.');
+    }
+
+    public function saveAiAgent(Request $request, int $slot, NineRouterClient $client): RedirectResponse
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+        if ($slot < 1 || $slot > 5) {
+            abort(404, 'Slot agen AI tidak valid.');
+        }
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'base_url' => ['required', 'url', 'max:500'],
+            'api_key' => ['nullable', 'string', 'max:500'],
+            'model' => ['required', 'string', 'max:150'],
+            'enabled' => ['required', 'boolean'],
+            'max_concurrency' => ['nullable', 'integer', 'min:1', 'max:5'],
+        ]);
+
+        $validatedUrl = $client->validateUrl($data['base_url']);
+        $existing = AiAgent::where('slot', $slot)->first();
+
+        $apiKey = ! empty($data['api_key']) ? trim($data['api_key']) : $existing?->api_key;
+        if (empty($apiKey)) {
+            throw ValidationException::withMessages(['api_key' => 'API Key wajib diisi untuk Agen AI baru.']);
+        }
+
+        $newHash = AiAgent::computeConfigHash($validatedUrl, $data['model'], $apiKey);
+        $configChanged = ! $existing || $existing->config_hash !== $newHash;
+
+        $agent = AiAgent::updateOrCreate(
+            ['slot' => $slot],
+            [
+                'name' => $data['name'],
+                'base_url' => $validatedUrl,
+                'api_key' => $apiKey,
+                'model' => $data['model'],
+                'enabled' => (bool) $data['enabled'],
+                'max_concurrency' => $data['max_concurrency'] ?? 1,
+                'config_hash' => $newHash,
+                'status' => $configChanged ? 'untested' : $existing->status,
+                'vision_tested_at' => $configChanged ? null : $existing->vision_tested_at,
+                'test_message' => $configChanged ? 'Konfigurasi disimpan. Jalankan uji pembacaan gambar.' : $existing->test_message,
+                'created_by' => $request->user()->id,
+            ]
+        );
+
+        if ($slot === 1) {
+            AiProviderConfig::create([
+                'base_url' => $validatedUrl,
+                'model' => $data['model'],
+                'api_key' => $apiKey,
+                'created_by' => $request->user()->id,
+                'tested_at' => $agent->vision_tested_at,
+                'vision_tested_at' => $agent->vision_tested_at,
+            ]);
+        }
+
+        AuditLogger::record('ai_agent.saved', null, [
+            'slot' => $slot,
+            'name' => $agent->name,
+            'model' => $agent->model,
+            'enabled' => $agent->enabled,
+        ]);
+
+        return back()->with('success', "Konfigurasi {$agent->name} (Slot {$slot}) berhasil disimpan.");
+    }
+
+    public function testAiAgent(Request $request, AiAgent $agent): RedirectResponse|JsonResponse
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+
+        $agent->update([
+            'status' => 'testing',
+            'test_message' => 'Sedang menguji koneksi dan pembacaan gambar...',
+        ]);
+
+        TestAiAgent::dispatch($agent->id);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Pengujian {$agent->name} sedang berlangsung.",
+                'agent' => [
+                    'id' => $agent->id,
+                    'slot' => $agent->slot,
+                    'status' => 'testing',
+                ],
+            ]);
+        }
+
+        return back()->with('success', "Pengujian {$agent->name} sedang berlangsung di antrean.");
+    }
+
+    public function testAllAiAgents(Request $request): RedirectResponse|JsonResponse
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+
+        $agents = AiAgent::where('enabled', true)->get();
+        if ($agents->isEmpty()) {
+            throw ValidationException::withMessages(['agents' => 'Tidak ada Agen AI aktif untuk diuji. Aktifkan minimal 1 agen.']);
+        }
+
+        foreach ($agents as $agent) {
+            $agent->update([
+                'status' => 'testing',
+                'test_message' => 'Sedang menguji koneksi dan pembacaan gambar...',
+            ]);
+            TestAiAgent::dispatch($agent->id);
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Pengujian untuk {$agents->count()} agen sedang berjalan di antrean.",
+                'count' => $agents->count(),
+            ]);
+        }
+
+        return back()->with('success', "Pengujian untuk {$agents->count()} agen sedang berjalan di antrean.");
+    }
+
+    public function aiAgentsStatus(): JsonResponse
+    {
+        $agents = AiAgent::orderBy('slot')->get()->map(fn ($agent) => [
+            'id' => $agent->id,
+            'slot' => $agent->slot,
+            'name' => $agent->name,
+            'model' => $agent->model,
+            'enabled' => (bool) $agent->enabled,
+            'status' => $agent->status,
+            'test_message' => $agent->test_message,
+            'vision_tested_at' => $agent->vision_tested_at?->toIso8601String(),
+        ]);
+
+        return response()->json([
+            'agents' => $agents,
+            'any_testing' => $agents->contains('status', 'testing'),
+            'ready_count' => $agents->where('status', 'ready')->where('enabled', true)->count(),
+        ]);
+    }
+
+    public function copyAgent(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+        $data = $request->validate([
+            'from_slot' => ['required', 'integer', 'between:1,5'],
+            'to_slot' => ['required', 'integer', 'between:1,5', 'different:from_slot'],
+        ]);
+
+        $source = AiAgent::where('slot', $data['from_slot'])->firstOrFail();
+        if (empty($source->api_key)) {
+            throw ValidationException::withMessages(['from_slot' => 'Agen sumber belum memiliki konfigurasi lengkap.']);
+        }
+
+        $hash = AiAgent::computeConfigHash($source->base_url, $source->model, $source->api_key);
+        AiAgent::updateOrCreate(
+            ['slot' => $data['to_slot']],
+            [
+                'name' => "Agent {$data['to_slot']}",
+                'base_url' => $source->base_url,
+                'api_key' => $source->api_key,
+                'model' => $source->model,
+                'enabled' => true,
+                'max_concurrency' => 1,
+                'status' => 'untested',
+                'vision_tested_at' => null,
+                'test_message' => "Disalin dari Agent {$data['from_slot']}. Jalankan uji pembacaan gambar.",
+                'config_hash' => $hash,
+                'created_by' => $request->user()->id,
+            ]
+        );
+
+        return back()->with('success', "Konfigurasi disalin dari Agent {$data['from_slot']} ke Agent {$data['to_slot']}.");
     }
 }

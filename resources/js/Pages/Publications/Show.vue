@@ -45,6 +45,8 @@ const props = defineProps<{
     canReview: boolean;
     employees: Employee[];
     assignedUsers: number[];
+    publicationAgents?: { id: number; slot: number; name: string; model: string }[] | null;
+    readyAgentsCount?: number;
     coverage?: CoverageSummary | null;
     checkRuns?: CheckRunRecord[] | null;
     assessments?: FindingAssessmentRecord[] | null;
@@ -59,6 +61,7 @@ const adding = ref(false);
 const query = ref("");
 const severity = ref("");
 const review = ref("");
+const agreement = ref("");
 const allPages = ref(false);
 const imageError = ref(false);
 const editor = ref<InstanceType<typeof FindingEditor> | null>(null);
@@ -92,6 +95,7 @@ const filtered = computed(() =>
                 )) &&
             (!severity.value || f.severity === severity.value) &&
             (!review.value || f.review_status === review.value) &&
+            (!agreement.value || f.agreement === agreement.value) &&
             `${f.observed} ${f.recommendation} ${f.rule_code}`
                 .toLowerCase()
                 .includes(query.value.toLowerCase()),
@@ -292,8 +296,13 @@ onUnmounted(() => {
                 <h1>{{ publication.title }}</h1>
                 <p>
                     {{ publication.page_count }} halaman ·
-                    {{ publication.rule_version }} · Revisi
-                    {{ publication.revision }}
+                    {{ publication.rule_version }} · Revisi {{ publication.revision }}
+                    <template v-if="publicationAgents && publicationAgents.length">
+                        · Agen Aktif: <strong v-for="(ag, idx) in publicationAgents" :key="ag.id">{{ ag.name }}{{ idx < publicationAgents.length - 1 ? ', ' : '' }}</strong>
+                    </template>
+                    <template v-if="publication.cross_verify_mode">
+                        · Mode Verifikasi: <em>{{ publication.cross_verify_mode === 'high_risk' ? 'Resiko Tinggi & Tabel' : (publication.cross_verify_mode === 'all_pages' ? 'Semua Halaman' : 'Nonaktif') }}</em>
+                    </template>
                 </p>
             </div>
             <div class="inline-actions">
@@ -465,15 +474,17 @@ onUnmounted(() => {
                                 loading="lazy"
                             /><span v-else class="page-placeholder">{{
                                 p.physical_page
-                            }}</span
-                            ><span
-                                ><strong>PDF {{ p.physical_page }}</strong
-                                ><small>{{
-                                    p.printed_page
-                                        ? `Tercetak ${p.printed_page}`
-                                        : label(p.status)
-                                }}</small></span
-                            ><i
+                            }}</span>
+                            <span>
+                                <strong>PDF {{ p.physical_page }}</strong>
+                                <small>
+                                    {{ p.printed_page ? `Tercetak ${p.printed_page}` : label(p.status) }}
+                                    <template v-if="p.primary_agent_slot">
+                                        · A{{ p.primary_agent_slot }}<span v-if="p.verifier_agent_slot">·A{{ p.verifier_agent_slot }}</span>
+                                    </template>
+                                </small>
+                            </span>
+                            <i
                                 :class="['status-dot', p.status]"
                                 aria-hidden="true"
                             ></i>
@@ -606,17 +617,27 @@ onUnmounted(() => {
                             >
                         </div>
                     </div>
-                    <div class="viewer-footer">
-                        <StatusBadge :status="currentPage.status" /><small
-                            >{{
-                                currentPage.page_type ??
-                                "Jenis halaman belum ditentukan"
-                            }}{{
-                                currentPage.printed_page
-                                    ? ` · Tercetak ${currentPage.printed_page}`
-                                    : ""
-                            }}</small
-                        ><button
+                    <div class="viewer-footer" style="flex-wrap: wrap; gap: 8px;">
+                        <StatusBadge :status="currentPage.status" />
+                        <small>
+                            {{ currentPage.page_type ?? "Jenis halaman belum ditentukan" }}
+                            {{ currentPage.printed_page ? ` · Tercetak ${currentPage.printed_page}` : "" }}
+                        </small>
+                        <span v-if="currentPage.primary_agent" class="badge" style="background: #e9ecef; color: #495057;">
+                            Dibaca: {{ currentPage.primary_agent.name }}
+                        </span>
+                        <template v-if="currentPage.verification">
+                            <span v-if="currentPage.verification.status === 'completed'" class="badge confirmed" :title="`Verifikasi silang selesai oleh ${currentPage.verification.agent?.name ?? 'Agent 2'}`">
+                                ✓ Diverifikasi: {{ currentPage.verification.agent?.name ?? 'Agent 2' }}
+                            </span>
+                            <span v-else-if="currentPage.verification.status === 'running'" class="badge analyzing">
+                                Sedang diverifikasi: {{ currentPage.verification.agent?.name ?? 'Agent' }}...
+                            </span>
+                            <span v-else-if="currentPage.verification.status === 'skipped'" class="badge single-agent" :title="currentPage.verification.error ?? ''">
+                                Verifikasi silang: dilewati
+                            </span>
+                        </template>
+                        <button
                             v-if="
                                 canEdit &&
                                 ['failed', 'needs_verification'].includes(
@@ -702,6 +723,16 @@ onUnmounted(() => {
                                 </option>
                             </select>
                         </div>
+                        <div class="form-grid" style="margin-top: 6px;">
+                            <select
+                                v-model="agreement"
+                                aria-label="Filter verifikasi agen"
+                            >
+                                <option value="">Semua status agen</option>
+                                <option value="confirmed">2 Agen Sepakat (Confirmed)</option>
+                                <option value="single_agent">Hanya 1 Agen (Single Agent)</option>
+                            </select>
+                        </div>
                         <label class="checkbox"
                             ><input
                                 type="checkbox"
@@ -719,18 +750,23 @@ onUnmounted(() => {
                             ]"
                             @click="choose(f)"
                         >
-                            <span :class="['severity', f.severity]">{{
-                                f.severity === "wajib"
-                                    ? "Wajib diperbaiki"
-                                    : f.severity === "saran"
-                                      ? "Saran"
-                                      : "Perlu verifikasi"
-                            }}</span
-                            ><strong>{{ f.observed }}</strong
-                            ><small
-                                >{{ f.rule_code }} ·
-                                {{ label(f.review_status) }}</small
-                            >
+                            <div class="inline-actions" style="margin-bottom: 4px; gap: 6px;">
+                                <span :class="['severity', f.severity]">{{
+                                    f.severity === "wajib"
+                                        ? "Wajib diperbaiki"
+                                        : f.severity === "saran"
+                                          ? "Saran"
+                                          : "Perlu verifikasi"
+                                }}</span>
+                                <span v-if="f.agreement === 'confirmed'" class="badge confirmed" title="Dikonfirmasi oleh 2 Agen AI">
+                                    2 Agen
+                                </span>
+                                <span v-else-if="f.agreement === 'single_agent'" class="badge single-agent" title="Hanya terdeteksi oleh 1 Agen AI">
+                                    1 Agen
+                                </span>
+                            </div>
+                            <strong>{{ f.observed }}</strong>
+                            <small>{{ f.rule_code }} · {{ label(f.review_status) }}</small>
                         </button>
                         <p v-if="!filtered.length" class="pane-empty">
                             {{

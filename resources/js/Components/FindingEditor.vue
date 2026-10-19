@@ -95,6 +95,12 @@ defineExpose({ dirty: () => form.isDirty });
                 <History :size="18" />
             </button>
         </div>
+        <div v-if="finding?.agreement === 'confirmed'" class="finding-agreement-banner confirmed">
+            <span>✓ Temuan ini dikonfirmasi oleh 2 Agen AI mandiri</span>
+        </div>
+        <div v-else-if="finding?.agreement === 'single_agent'" class="finding-agreement-banner single-agent">
+            <span>⚠ Temuan ini terdeteksi oleh 1 Agen AI (Dapat ditinjau manual oleh reviewer)</span>
+        </div>
         <div v-if="finding" class="evidence-list">
             <span class="eyebrow">Bukti pada dokumen</span
             ><button

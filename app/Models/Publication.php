@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Publication extends Model
 {
-    protected $fillable = ['owner_id', 'title', 'region', 'year', 'kind', 'notes', 'pdf_path', 'pdf_name', 'pdf_checksum', 'template_path', 'template_name', 'template_checksum', 'page_count', 'status', 'manifest', 'context', 'ai_config_id', 'rule_version', 'prompt_version', 'error', 'started_at', 'completed_at', 'locked_at', 'revision'];
+    protected $fillable = ['owner_id', 'title', 'region', 'year', 'kind', 'notes', 'pdf_path', 'pdf_name', 'pdf_checksum', 'template_path', 'template_name', 'template_checksum', 'page_count', 'status', 'manifest', 'context', 'ai_config_id', 'cross_verify_mode', 'rule_version', 'prompt_version', 'error', 'started_at', 'completed_at', 'locked_at', 'revision'];
 
     protected function casts(): array
     {
@@ -50,6 +50,13 @@ class Publication extends Model
     public function aiConfig(): BelongsTo
     {
         return $this->belongsTo(AiProviderConfig::class, 'ai_config_id');
+    }
+
+    public function aiAgents(): BelongsToMany
+    {
+        return $this->belongsToMany(AiAgent::class, 'publication_ai_agents')
+            ->withPivot('config_hash_at_start')
+            ->withTimestamps();
     }
 
     public function scopeVisibleTo(Builder $query, User $user): Builder

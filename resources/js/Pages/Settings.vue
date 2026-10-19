@@ -1,16 +1,26 @@
 <script setup lang="ts">
 import { Head, useForm, router } from "@inertiajs/vue3";
-import { ref } from "vue";
-import { Plus, Save, FlaskConical, ShieldCheck, Server } from "lucide-vue-next";
+import { ref, computed, onUnmounted, watch } from "vue";
+import { Plus, Save, FlaskConical, ShieldCheck, Server, Copy, Check, AlertCircle, RefreshCw } from "lucide-vue-next";
 import AppLayout from "../Layouts/AppLayout.vue";
-import type { Employee } from "../types";
+import type { Employee, AiAgentItem } from "../types";
+
 const props = defineProps<{
     users: Employee[];
+    ai_agents?: AiAgentItem[];
     ai: {
         id: number;
         base_url: string;
         model: string;
         vision_tested_at: string | null;
+    } | null;
+    reference_provider?: {
+        id: number;
+        provider: string;
+        endpoint: string;
+        is_ready: boolean;
+        tested_at: string | null;
+        updated_at: string;
     } | null;
     events: {
         id: number;
@@ -26,12 +36,13 @@ const props = defineProps<{
         disk_free_mb: number;
     };
 }>();
+
 const tab = ref(
     new URLSearchParams(window.location.search).get("tab") ?? "users",
 );
 const editing = ref<number | null>(null);
 const userOpen = ref(false);
-const testing = ref(false);
+
 const employee = useForm({
     name: "",
     email: "",
@@ -39,11 +50,7 @@ const employee = useForm({
     role: "examiner",
     is_active: true,
 });
-const ai = useForm({
-    base_url: props.ai?.base_url ?? "https://9router.com/v1",
-    model: props.ai?.model ?? "",
-    api_key: "",
-});
+
 function edit(u?: Employee) {
     editing.value = u?.id ?? null;
     employee.defaults({
@@ -57,6 +64,7 @@ function edit(u?: Employee) {
     employee.clearErrors();
     userOpen.value = true;
 }
+
 function saveUser() {
     const options = {
         preserveScroll: true,
@@ -69,26 +77,205 @@ function saveUser() {
         ? employee.put(`/settings/users/${editing.value}`, options)
         : employee.post("/settings/users", options);
 }
-function saveAi() {
-    ai.post("/settings/ai", {
+
+// Multi-Agent State
+const activeSlot = ref(1);
+const testingAll = ref(false);
+const testingSlot = ref<number | null>(null);
+const pollTimer = ref<number | null>(null);
+const copySuccess = ref(false);
+
+const localAgents = ref<AiAgentItem[]>(
+    props.ai_agents && props.ai_agents.length > 0
+        ? JSON.parse(JSON.stringify(props.ai_agents))
+        : [
+            { slot: 1, name: 'Agent 1 (Utama)', base_url: props.ai?.base_url ?? 'https://api.9router.com/v1', model: props.ai?.model ?? 'gemini-2.5-flash', enabled: true, status: props.ai?.vision_tested_at ? 'ready' : 'untested', test_message: null, vision_tested_at: props.ai?.vision_tested_at ?? null, has_api_key: false, max_concurrency: 1, updated_at: null, id: null },
+            { slot: 2, name: 'Agent 2', base_url: 'https://api.9router.com/v1', model: 'gemini-2.5-flash', enabled: false, status: 'untested', test_message: null, vision_tested_at: null, has_api_key: false, max_concurrency: 1, updated_at: null, id: null },
+            { slot: 3, name: 'Agent 3', base_url: 'https://api.9router.com/v1', model: 'gemini-2.5-flash', enabled: false, status: 'untested', test_message: null, vision_tested_at: null, has_api_key: false, max_concurrency: 1, updated_at: null, id: null },
+            { slot: 4, name: 'Agent 4', base_url: 'https://api.9router.com/v1', model: 'gemini-2.5-flash', enabled: false, status: 'untested', test_message: null, vision_tested_at: null, has_api_key: false, max_concurrency: 1, updated_at: null, id: null },
+            { slot: 5, name: 'Agent 5', base_url: 'https://api.9router.com/v1', model: 'gemini-2.5-flash', enabled: false, status: 'untested', test_message: null, vision_tested_at: null, has_api_key: false, max_concurrency: 1, updated_at: null, id: null },
+        ]
+);
+
+watch(() => props.ai_agents, (newAgents) => {
+    if (newAgents && newAgents.length > 0) {
+        localAgents.value = JSON.parse(JSON.stringify(newAgents));
+    }
+}, { deep: true });
+
+const currentAgent = computed(() => {
+    return localAgents.value.find(a => a.slot === activeSlot.value) ?? localAgents.value[0];
+});
+
+const currentForm = ref({
+    name: currentAgent.value.name,
+    base_url: currentAgent.value.base_url,
+    model: currentAgent.value.model,
+    api_key: '',
+    enabled: currentAgent.value.enabled,
+    max_concurrency: currentAgent.value.max_concurrency || 1,
+    saving: false,
+    errorMessage: '',
+});
+
+watch(activeSlot, (newSlot) => {
+    const ag = localAgents.value.find(a => a.slot === newSlot);
+    if (ag) {
+        currentForm.value = {
+            name: ag.name,
+            base_url: ag.base_url,
+            model: ag.model,
+            api_key: '',
+            enabled: ag.enabled,
+            max_concurrency: ag.max_concurrency || 1,
+            saving: false,
+            errorMessage: '',
+        };
+    }
+});
+
+const readyCount = computed(() => {
+    return localAgents.value.filter(a => a.enabled && a.status === 'ready').length;
+});
+
+const activeCount = computed(() => {
+    return localAgents.value.filter(a => a.enabled).length;
+});
+
+async function pollStatus() {
+    try {
+        const res = await fetch('/settings/ai-agents/status', {
+            headers: { 'Accept': 'application/json' }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.agents) {
+                data.agents.forEach((srv: any) => {
+                    const local = localAgents.value.find(a => a.slot === srv.slot);
+                    if (local) {
+                        local.status = srv.status;
+                        local.test_message = srv.test_message;
+                        local.vision_tested_at = srv.vision_tested_at;
+                        local.enabled = srv.enabled;
+                        local.name = srv.name;
+                        local.model = srv.model;
+                        if (srv.id) local.id = srv.id;
+                    }
+                });
+            }
+            if (!data.any_testing) {
+                stopPolling();
+                testingAll.value = false;
+                testingSlot.value = null;
+            }
+        }
+    } catch {
+        // ignore network hiccup during poll
+    }
+}
+
+function startPolling() {
+    if (pollTimer.value) clearInterval(pollTimer.value);
+    pollTimer.value = window.setInterval(pollStatus, 2500);
+}
+
+function stopPolling() {
+    if (pollTimer.value) {
+        clearInterval(pollTimer.value);
+        pollTimer.value = null;
+    }
+}
+
+onUnmounted(() => {
+    stopPolling();
+});
+
+function saveActiveAgent() {
+    currentForm.value.saving = true;
+    currentForm.value.errorMessage = '';
+    router.post(`/settings/ai-agents/${activeSlot.value}`, {
+        name: currentForm.value.name,
+        base_url: currentForm.value.base_url,
+        model: currentForm.value.model,
+        api_key: currentForm.value.api_key || undefined,
+        enabled: currentForm.value.enabled,
+        max_concurrency: currentForm.value.max_concurrency,
+    }, {
         preserveScroll: true,
         onSuccess: () => {
-            ai.defaults({
-                base_url: props.ai?.base_url ?? ai.base_url,
-                model: props.ai?.model ?? ai.model,
-                api_key: "",
-            });
-            ai.reset();
+            currentForm.value.saving = false;
+            currentForm.value.api_key = '';
+            router.reload({ only: ['ai_agents', 'ai'] });
         },
+        onError: (errs) => {
+            currentForm.value.saving = false;
+            currentForm.value.errorMessage = (Object.values(errs)[0] as string) || 'Gagal menyimpan konfigurasi agen.';
+        }
     });
 }
-function testAi() {
-    testing.value = true;
-    router.post(
-        "/settings/ai/test",
-        {},
-        { preserveScroll: true, onFinish: () => (testing.value = false) },
-    );
+
+async function testSingleAgent() {
+    const ag = currentAgent.value;
+    if (!ag || !ag.id) {
+        alert('Simpan konfigurasi agen terlebih dahulu sebelum melakukan uji pembacaan gambar.');
+        return;
+    }
+    testingSlot.value = ag.slot;
+    ag.status = 'testing';
+    ag.test_message = 'Sedang menguji koneksi dan pembacaan gambar...';
+
+    const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '';
+    try {
+        await fetch(`/settings/ai-agents/${ag.id}/test`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrf,
+                'Accept': 'application/json',
+            }
+        });
+        startPolling();
+    } catch {
+        testingSlot.value = null;
+    }
+}
+
+async function testAllAgents() {
+    testingAll.value = true;
+    localAgents.value.forEach(a => {
+        if (a.enabled && (a.has_api_key || a.id)) {
+            a.status = 'testing';
+            a.test_message = 'Sedang menguji koneksi dan pembacaan gambar...';
+        }
+    });
+    const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '';
+    try {
+        await fetch('/settings/ai-agents/test-all', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrf,
+                'Accept': 'application/json',
+            }
+        });
+        startPolling();
+    } catch {
+        testingAll.value = false;
+    }
+}
+
+function copyFromSlot1() {
+    router.post('/settings/ai-agents/copy', {
+        from_slot: 1,
+        to_slot: activeSlot.value,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            copySuccess.value = true;
+            setTimeout(() => (copySuccess.value = false), 2500);
+            router.reload({ only: ['ai_agents'] });
+        }
+    });
 }
 </script>
 <template>
@@ -224,101 +411,189 @@ function testAi() {
                 </article>
             </div>
         </section>
-        <section v-if="tab === 'ai'" class="settings-panel ai-settings">
-            <div>
-                <span class="aside-sticker"><ShieldCheck :size="31" /></span>
-                <h2>Koneksi AI</h2>
-                <p>
-                    Mendukung 9Router dan LimitRouter. Model harus benar-benar
-                    dapat membaca gambar, termasuk teks kecil dan tabel.
-                </p>
-                <span
-                    :class="[
-                        'badge',
-                        props.ai?.vision_tested_at
-                            ? 'complete'
-                            : 'needs_verification',
-                    ]"
-                    >{{
-                        props.ai?.vision_tested_at
-                            ? "Pembacaan gambar sudah diuji"
-                            : "Belum lulus uji gambar"
-                    }}</span
-                >
-                <p class="small">
-                    API key disimpan terenkripsi di server, tidak dikirim
-                    kembali ke browser.
-                </p>
-                <div class="notice neutral">
-                    <strong>ChatGPT Plus</strong>
+        <section v-if="tab === 'ai'" class="settings-panel ai-settings-multi" style="display: flex; flex-direction: column; gap: 24px;">
+            <div class="agent-pool-header">
+                <div>
+                    <span class="aside-sticker"><ShieldCheck :size="31" /></span>
+                    <h2>Pool Agen AI Paralel (Hingga 5 Agen)</h2>
                     <p>
-                        Langganan Plus bukan API key. Sign in with ChatGPT belum
-                        diaktifkan karena aplikasi privat memerlukan akses
-                        resmi. Tidak ada pemakaian kuota pribadi secara
-                        diam-diam.
+                        Setiap agen dapat memiliki Base URL, API Key, Model, dan kapasitas konkuren masing-masing.
+                        Semua agen yang aktif <strong>wajib lulus uji pembacaan gambar visual</strong> sebelum digunakan dalam pemeriksaan.
                     </p>
                 </div>
-            </div>
-            <form class="form-stack" @submit.prevent="saveAi">
-                <label for="base-url">Base URL</label
-                ><input
-                    id="base-url"
-                    type="url"
-                    v-model="ai.base_url"
-                    required
-                    placeholder="https://router.example.go.id/v1"
-                /><small
-                    >HTTPS; host harus masuk daftar izin pada server. Alamat
-                    lokal/IP tidak boleh.</small
-                ><label for="model">Model vision</label
-                ><input
-                    id="model"
-                    v-model="ai.model"
-                    required
-                    placeholder="ID model persis dari katalog penyedia"
-                /><label for="api-key"
-                    >API key
-                    {{
-                        props.ai ? "(kosongkan untuk mempertahankan kunci)" : ""
-                    }}</label
-                ><input
-                    id="api-key"
-                    type="password"
-                    v-model="ai.api_key"
-                    :required="!props.ai"
-                    autocomplete="off"
-                />
-                <div class="form-actions">
+                <div class="inline-actions">
+                    <span :class="['badge', readyCount === activeCount && activeCount > 0 ? 'complete' : 'needs_verification']">
+                        {{ readyCount }} dari {{ activeCount }} Agen Aktif Siap
+                    </span>
                     <button
                         type="button"
-                        class="button secondary"
-                        @click="testAi"
-                        :disabled="
-                            !props.ai || testing || ai.processing || ai.isDirty
-                        "
-                    >
-                        <FlaskConical :size="17" />{{
-                            testing
-                                ? "Menguji gambar..."
-                                : "Uji pembacaan gambar"
-                        }}</button
-                    ><button
                         class="button primary"
-                        :disabled="ai.processing || testing"
+                        @click="testAllAgents"
+                        :disabled="testingAll || testingSlot !== null || activeCount === 0"
                     >
-                        <Save :size="17" />Simpan koneksi
+                        <FlaskConical :size="17" />
+                        {{ testingAll ? "Menguji Semua Agen..." : "Uji Semua Agent Aktif" }}
                     </button>
                 </div>
-                <small
-                    >{{
-                        !props.ai || ai.isDirty
-                            ? "Simpan koneksi terlebih dahulu untuk mengaktifkan uji gambar."
-                            : "Koneksi tersimpan. Uji pembacaan gambar sebelum memulai pemeriksaan."
-                    }}
-                    Uji dapat memakai kuota API. Saat mengganti penyedia, isi
-                    API key penyedia yang baru.</small
+            </div>
+
+            <!-- Slot Selector Pills -->
+            <div class="agent-slot-selector" role="tablist" aria-label="Slot Agen AI">
+                <button
+                    v-for="ag in localAgents"
+                    :key="ag.slot"
+                    type="button"
+                    :class="['agent-slot-btn', { active: activeSlot === ag.slot }]"
+                    @click="activeSlot = ag.slot"
                 >
-            </form>
+                    <span :class="['agent-slot-dot', ag.status]"></span>
+                    <strong>Slot {{ ag.slot }}: {{ ag.name }}</strong>
+                    <span :class="['badge', ag.enabled ? 'complete' : 'neutral']" style="padding: 2px 7px; font-size: 10px;">
+                        {{ ag.enabled ? 'ON' : 'OFF' }}
+                    </span>
+                </button>
+            </div>
+
+            <!-- Active Slot Editor Card -->
+            <div class="agent-card-editor">
+                <div class="agent-card-header">
+                    <div>
+                        <h3 style="margin: 0; font-size: 18px;">Pengaturan Slot {{ activeSlot }}: {{ currentAgent.name }}</h3>
+                        <small style="color: #666;">
+                            Kapasitas: {{ currentForm.max_concurrency }} halaman paralel
+                        </small>
+                    </div>
+
+                    <div class="inline-actions">
+                        <label class="toggle-switch">
+                            <input type="checkbox" v-model="currentForm.enabled" />
+                            <span>{{ currentForm.enabled ? "Agen Aktif" : "Agen Dinonaktifkan" }}</span>
+                        </label>
+
+                        <button
+                            v-if="activeSlot > 1"
+                            type="button"
+                            class="button secondary"
+                            @click="copyFromSlot1"
+                            title="Salin Base URL, Model, dan API Key dari Slot 1"
+                        >
+                            <Copy :size="15" />
+                            {{ copySuccess ? "Tersalin!" : "Salin dari Agent 1" }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Status Banner -->
+                <div v-if="currentAgent.status === 'ready'" class="finding-agreement-banner confirmed">
+                    <Check :size="16" />
+                    <span>Lulus uji pembacaan gambar (Terakhir diuji: {{ currentAgent.vision_tested_at ? new Date(currentAgent.vision_tested_at).toLocaleString('id-ID') : 'Baru saja' }})</span>
+                </div>
+                <div v-else-if="currentAgent.status === 'testing'" class="finding-agreement-banner single-agent">
+                    <RefreshCw :size="16" class="animate-spin" />
+                    <span>Sedang menguji koneksi dan pembacaan visual PDF di background antrean...</span>
+                </div>
+                <div v-else-if="currentAgent.status === 'failed'" class="finding-agreement-banner" style="background: #f8d7da; color: #842029; border: 1px solid #f5c2c7;">
+                    <AlertCircle :size="16" />
+                    <span>{{ currentAgent.test_message || 'Uji gambar gagal. Periksa Base URL, API Key, dan model vision.' }}</span>
+                </div>
+                <div v-else class="finding-agreement-banner" style="background: #fff3cd; color: #664d03; border: 1px solid #ffecb5;">
+                    <AlertCircle :size="16" />
+                    <span>Agen ini belum diuji. Simpan konfigurasi lalu klik <strong>Uji Gambar Agen Ini</strong>.</span>
+                </div>
+
+                <p v-if="currentForm.errorMessage" class="notice warning">
+                    {{ currentForm.errorMessage }}
+                </p>
+
+                <form class="form-stack" @submit.prevent="saveActiveAgent">
+                    <div class="form-grid">
+                        <div>
+                            <label for="agent-name">Nama Agen</label>
+                            <input
+                                id="agent-name"
+                                v-model="currentForm.name"
+                                required
+                                placeholder="Contoh: Agent 1 (Utama)"
+                            />
+                        </div>
+                        <div>
+                            <label for="agent-concurrency">Maksimum Permintaan Bersamaan (Concurrency)</label>
+                            <select id="agent-concurrency" v-model.number="currentForm.max_concurrency">
+                                <option :value="1">1 permintaan paralel (Aman & Stabil)</option>
+                                <option :value="2">2 permintaan paralel</option>
+                                <option :value="3">3 permintaan paralel</option>
+                                <option :value="4">4 permintaan paralel</option>
+                                <option :value="5">5 permintaan paralel (Beban Tinggi)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <label for="agent-base-url">Base URL</label>
+                    <input
+                        id="agent-base-url"
+                        type="url"
+                        v-model="currentForm.base_url"
+                        required
+                        placeholder="https://api.9router.com/v1"
+                    />
+                    <div class="inline-actions" style="margin-top: -6px; margin-bottom: 10px;">
+                        <small style="color: #666;">Preset cepat:</small>
+                        <button type="button" class="button secondary" style="min-height: 28px; padding: 2px 10px; font-size: 11px;" @click="currentForm.base_url = 'https://api.9router.com/v1'">
+                            9Router
+                        </button>
+                        <button type="button" class="button secondary" style="min-height: 28px; padding: 2px 10px; font-size: 11px;" @click="currentForm.base_url = 'https://api.limitrouter.com/v1'">
+                            LimitRouter
+                        </button>
+                    </div>
+
+                    <label for="agent-model">Model Vision</label>
+                    <input
+                        id="agent-model"
+                        v-model="currentForm.model"
+                        required
+                        placeholder="Contoh: gemini-2.5-flash atau gpt-4o-mini"
+                    />
+
+                    <label for="agent-api-key">
+                        API Key
+                        <span v-if="currentAgent.has_api_key" style="color: #198754; font-weight: normal;">
+                            (Tersimpan terenkripsi. Kosongkan jika tidak ingin mengubah)
+                        </span>
+                        <span v-else style="color: #dc3545; font-weight: normal;">
+                            (Wajib diisi pada konfigurasi awal)
+                        </span>
+                    </label>
+                    <input
+                        id="agent-api-key"
+                        type="password"
+                        v-model="currentForm.api_key"
+                        :required="!currentAgent.has_api_key"
+                        placeholder="sk-..."
+                        autocomplete="off"
+                    />
+
+                    <div class="form-actions" style="margin-top: 18px;">
+                        <button
+                            type="button"
+                            class="button secondary"
+                            @click="testSingleAgent"
+                            :disabled="!currentAgent.id || currentAgent.status === 'testing' || currentForm.saving"
+                        >
+                            <FlaskConical :size="17" />
+                            {{ currentAgent.status === 'testing' ? 'Menguji...' : 'Uji Gambar Agen Ini' }}
+                        </button>
+
+                        <button
+                            type="submit"
+                            class="button primary"
+                            :disabled="currentForm.saving || currentAgent.status === 'testing'"
+                        >
+                            <Save :size="17" />
+                            {{ currentForm.saving ? 'Menyimpan...' : `Simpan Konfigurasi Slot ${activeSlot}` }}
+                        </button>
+                    </div>
+                </form>
+            </div>
         </section>
         <section v-if="tab === 'system'" class="settings-panel">
             <div class="section-heading">

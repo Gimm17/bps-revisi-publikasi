@@ -23,6 +23,7 @@ export interface Publication {
     findings_count?: number;
     manifest: Record<string, unknown>;
     revision: number;
+    cross_verify_mode?: 'off' | 'high_risk' | 'all_pages';
     locked_at: string | null;
     error: string | null;
     rule_version: string;
@@ -139,6 +140,39 @@ export interface CoverageSummary {
     can_export: boolean;
     can_lock: boolean;
 }
+export interface AiAgentItem {
+    id: number | null;
+    slot: number;
+    name: string;
+    base_url: string;
+    model: string;
+    enabled: boolean;
+    status: 'untested' | 'testing' | 'ready' | 'failed';
+    test_message: string | null;
+    vision_tested_at: string | null;
+    has_api_key: boolean;
+    max_concurrency: number;
+    updated_at: string | null;
+}
+
+export interface PageVerificationRecord {
+    id?: number;
+    publication_page_id?: number;
+    ai_agent_id?: number | null;
+    status: 'pending' | 'running' | 'completed' | 'skipped' | 'failed';
+    agreement?: {
+        confirmed_count: number;
+        single_agent_count: number;
+        table_alignment_checked?: boolean;
+    } | null;
+    error?: string | null;
+    agent?: {
+        id: number;
+        slot: number;
+        name: string;
+    } | null;
+}
+
 export interface Finding {
     id: number;
     rule_code: string;
@@ -154,14 +188,24 @@ export interface Finding {
     deleted: boolean;
     source: string;
     confidence: number;
+    agreement?: 'confirmed' | 'single_agent' | null;
+    agent_ids?: number[] | null;
 }
+
 export interface PageRecord {
+    id?: number;
     physical_page: number;
     status: string;
     page_type: string | null;
     printed_page: string | null;
     has_image: boolean;
     error: string | null;
+    attempts?: number;
+    primary_agent_slot?: number | null;
+    verifier_agent_slot?: number | null;
+    verification_status?: string | null;
+    primary_agent?: { id: number; slot: number; name: string } | null;
+    verification?: PageVerificationRecord | null;
     result?: { text?: string; inventory?: Record<string, unknown> };
     image_path?: string | null;
 }

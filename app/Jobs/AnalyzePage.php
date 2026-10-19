@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Audit\AgentPoolSelector;
 use App\Audit\AiRequestException;
 use App\Audit\AuditCoordinator;
+use App\Audit\CrossVerifier;
 use App\Audit\FindingWriter;
 use App\Audit\NineRouterClient;
 use App\Audit\PageResultValidator;
 use App\Audit\PromptBuilder;
 use App\Audit\RuleEvaluator;
 use App\Models\AiUsageRecord;
+use App\Models\PageVerification;
 use App\Models\Publication;
 use App\Models\PublicationPage;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -64,8 +67,15 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
         return [(new WithoutOverlapping('audit-page-'.$this->pageId))->shared()->releaseAfter(15)->expireAfter(250)];
     }
 
-    public function handle(NineRouterClient $client, PromptBuilder $prompt, PageResultValidator $validator, FindingWriter $writer, AuditCoordinator $coordinator): void
-    {
+    public function handle(
+        NineRouterClient $client,
+        PromptBuilder $prompt,
+        PageResultValidator $validator,
+        FindingWriter $writer,
+        AuditCoordinator $coordinator,
+        AgentPoolSelector $poolSelector,
+        CrossVerifier $crossVerifier
+    ): void {
         $page = PublicationPage::findOrFail($this->pageId);
         $publication = $page->publication;
         if ($page->status === 'complete' || $page->dpi !== $this->dpi) {
@@ -79,19 +89,42 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
 
             return;
         }
+
+        $endpoint = $poolSelector->selectAgent($publication);
+        if (! $endpoint) {
+            $exception = new AiRequestException('Tidak ada Agen AI yang siap membaca gambar. Periksa menu Pengaturan Agen AI.', 'configuration');
+            $this->failed($exception);
+            $this->fail($exception);
+
+            return;
+        }
+
         $response = null;
         $requestStarted = false;
         $usageRecorded = false;
         $started = microtime(true);
         try {
-            $response = $client->request($publication->aiConfig, $prompt->messages($page, Storage::disk('local')->path($page->image_path)), function () use ($page, &$requestStarted, &$started): void {
+            $response = $client->request($endpoint, $prompt->messages($page, Storage::disk('local')->path($page->image_path)), function () use ($page, $endpoint, &$requestStarted, &$started): void {
                 $requestStarted = true;
                 $started = microtime(true);
                 $page->increment('attempts');
-                $page->update(['status' => 'analyzing', 'error' => null]);
+                $page->update([
+                    'status' => 'analyzing',
+                    'ai_agent_id' => $endpoint->agentId(),
+                    'error' => null,
+                ]);
             });
             $result = $validator->validate($response['result'], $page->physical_page);
-            AiUsageRecord::create(['publication_id' => $publication->id, 'page_id' => $page->id, 'model' => $response['model'], 'request_id' => $response['request_id'], 'usage' => $response['usage'], 'duration_ms' => (int) ((microtime(true) - $started) * 1000), 'status' => $result['readability']]);
+            AiUsageRecord::create([
+                'publication_id' => $publication->id,
+                'page_id' => $page->id,
+                'ai_agent_id' => $endpoint->agentId(),
+                'model' => $response['model'],
+                'request_id' => $response['request_id'],
+                'usage' => $response['usage'],
+                'duration_ms' => (int) ((microtime(true) - $started) * 1000),
+                'status' => $result['readability'],
+            ]);
             $usageRecorded = true;
             if ($result['readability'] !== 'readable') {
                 $page->update(['result' => $result, 'status' => 'needs_verification', 'error' => 'AI belum dapat membaca semua area dengan yakin.']);
@@ -104,7 +137,7 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
 
                 return;
             }
-            DB::transaction(function () use ($page, $result, $writer, $publication): void {
+            DB::transaction(function () use ($page, $result, $writer, $publication, $endpoint): void {
                 // Match export/editor lock order; concurrent AI waits only while saving.
                 Publication::whereKey($publication->id)->lockForUpdate()->firstOrFail();
                 $current = PublicationPage::whereKey($page->id)->lockForUpdate()->firstOrFail();
@@ -115,13 +148,34 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
                     $candidate['source'] = 'ai_visual';
                     $candidate['section'] = $result['page_type'];
                     $candidate['evidences'] = [['page' => $page->physical_page, 'quote' => $candidate['quote'] ?? '', 'bbox' => $candidate['bbox'] ?? null]];
+                    if ($endpoint->agentId()) {
+                        $candidate['agent_ids'] = [$endpoint->agentId()];
+                    }
                     $writer->store($publication, $candidate);
                 }
                 foreach (app(RuleEvaluator::class)->evaluate($result) as $candidate) {
                     $writer->store($publication, $candidate);
                 }
-                $current->update(['result' => $result, 'page_type' => $result['page_type'], 'printed_page' => $result['printed_page'], 'status' => 'complete', 'completed_at' => now(), 'error' => null]);
+                $current->update([
+                    'result' => $result,
+                    'ai_agent_id' => $endpoint->agentId(),
+                    'page_type' => $result['page_type'],
+                    'printed_page' => $result['printed_page'],
+                    'status' => 'complete',
+                    'completed_at' => now(),
+                    'error' => null,
+                ]);
             }, 3);
+
+            // If cross-verification is enabled for this page, dispatch VerifyPage
+            if ($crossVerifier->shouldVerify($page)) {
+                PageVerification::updateOrCreate(
+                    ['publication_page_id' => $page->id],
+                    ['status' => 'pending', 'error' => null]
+                );
+                VerifyPage::dispatch($page->id)->onQueue('verify');
+            }
+
             $coordinator->afterPage($publication);
         } catch (\Throwable $e) {
             if ($e instanceof AiRequestException && $e->category === 'capacity') {
@@ -131,7 +185,16 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
             }
             if ($requestStarted && ! $usageRecorded) {
                 $category = $e instanceof ValidationException ? 'validation' : ($e instanceof AiRequestException ? $e->category : 'internal');
-                AiUsageRecord::create(['publication_id' => $publication->id, 'page_id' => $page->id, 'model' => $response['model'] ?? $publication->aiConfig->model, 'request_id' => $response['request_id'] ?? null, 'usage' => $response['usage'] ?? null, 'duration_ms' => (int) ((microtime(true) - $started) * 1000), 'status' => 'failed_'.$category]);
+                AiUsageRecord::create([
+                    'publication_id' => $publication->id,
+                    'page_id' => $page->id,
+                    'ai_agent_id' => $endpoint?->agentId(),
+                    'model' => $response['model'] ?? $endpoint?->model() ?? $publication->aiConfig?->model ?? 'unknown',
+                    'request_id' => $response['request_id'] ?? null,
+                    'usage' => $response['usage'] ?? null,
+                    'duration_ms' => (int) ((microtime(true) - $started) * 1000),
+                    'status' => 'failed_'.$category,
+                ]);
             }
             $formatError = $e instanceof ValidationException || ($e instanceof AiRequestException && $e->category === 'format');
             $formatFailures = $formatError ? AiUsageRecord::where('page_id', $page->id)->where('id', '>', $this->usageBaseline ?? 0)->whereIn('status', ['failed_validation', 'failed_format'])->count() : 0;

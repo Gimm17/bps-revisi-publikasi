@@ -42,10 +42,16 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/publications/{publication}/findings', [FindingController::class, 'store']);
     Route::patch('/publications/{publication}/findings/{finding}', [FindingController::class, 'update']);
     Route::get('/publications/{publication}/findings/{finding}/history', [FindingController::class, 'history']);
+    Route::patch('/publications/{publication}/cross-verify-mode', [PublicationController::class, 'updateCrossVerifyMode']);
     Route::get('/settings', [SettingsController::class, 'index']);
     Route::post('/settings/users', [SettingsController::class, 'createUser']);
     Route::put('/settings/users/{user}', [SettingsController::class, 'updateUser']);
     Route::post('/settings/ai', [SettingsController::class, 'saveAi']);
     Route::post('/settings/ai/test', [SettingsController::class, 'testAi'])->middleware('throttle:5,1');
+    Route::post('/settings/ai-agents/copy', [SettingsController::class, 'copyAgent']);
+    Route::post('/settings/ai-agents/test-all', [SettingsController::class, 'testAllAiAgents'])->middleware('throttle:10,1');
+    Route::get('/settings/ai-agents/status', [SettingsController::class, 'aiAgentsStatus']);
+    Route::post('/settings/ai-agents/{slot}', [SettingsController::class, 'saveAiAgent']);
+    Route::post('/settings/ai-agents/{agent}/test', [SettingsController::class, 'testAiAgent'])->middleware('throttle:10,1');
     Route::post('/settings/reference-provider', [SettingsController::class, 'saveReferenceProvider']);
 });

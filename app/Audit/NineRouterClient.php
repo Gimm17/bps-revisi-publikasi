@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Audit;
 
-use App\Models\AiProviderConfig;
+use App\Audit\Contracts\AiEndpoint;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -23,10 +23,10 @@ class NineRouterClient
         return rtrim($url, '/');
     }
 
-    public function request(AiProviderConfig $config, array $messages, ?\Closure $onRequest = null): array
+    public function request(AiEndpoint $config, array $messages, ?\Closure $onRequest = null): array
     {
-        $url = $this->validateUrl($config->base_url);
-        $lock = app(AiCapacity::class)->acquire((string) parse_url($url, PHP_URL_HOST));
+        $url = $this->validateUrl($config->baseUrl());
+        $lock = app(AiCapacity::class)->acquire($config);
         try {
             return $this->send($config, $messages, $url, $onRequest);
         } finally {
@@ -34,7 +34,7 @@ class NineRouterClient
         }
     }
 
-    private function send(AiProviderConfig $config, array $messages, string $url, ?\Closure $onRequest): array
+    private function send(AiEndpoint $config, array $messages, string $url, ?\Closure $onRequest): array
     {
         $options = ['allow_redirects' => false];
         if (app()->environment('production')) {
@@ -53,8 +53,8 @@ class NineRouterClient
         }
         $onRequest?->__invoke();
         try {
-            $response = Http::withToken($config->api_key)->acceptJson()->withOptions($options)
-                ->connectTimeout(15)->timeout(config('audit.ai_timeout'))->post($url.'/chat/completions', ['model' => $config->model, 'messages' => $messages]);
+            $response = Http::withToken($config->apiKey())->acceptJson()->withOptions($options)
+                ->connectTimeout(15)->timeout(config('audit.ai_timeout'))->post($url.'/chat/completions', ['model' => $config->model(), 'messages' => $messages]);
         } catch (\Throwable $e) {
             throw new AiRequestException('Koneksi penyedia AI gagal atau melewati batas waktu.', 'network', true);
         }
@@ -65,7 +65,7 @@ class NineRouterClient
                 $header = $response->header('Retry-After');
                 $seconds = ctype_digit((string) $header) ? (int) $header : (strtotime((string) $header) ?: now()->timestamp) - now()->timestamp;
                 $delay = max(30, min(600, $seconds));
-                app(AiCapacity::class)->coolDown((string) parse_url($url, PHP_URL_HOST), $delay);
+                app(AiCapacity::class)->coolDown($config, $delay);
             }
             throw new AiRequestException('Penyedia AI mengembalikan status HTTP '.$status.'. Periksa koneksi, model, atau kuota.', 'http_'.$status, in_array($status, [408, 425, 429], true) || $status >= 500, $delay);
         }
@@ -86,10 +86,10 @@ class NineRouterClient
             throw new AiRequestException('Struktur respons AI tidak valid.', 'format', true, 5);
         }
 
-        return ['result' => $result, 'request_id' => $response->json('id'), 'model' => $response->json('model') ?? $config->model, 'usage' => $response->json('usage') ?? []];
+        return ['result' => $result, 'request_id' => $response->json('id'), 'model' => $response->json('model') ?? $config->model(), 'usage' => $response->json('usage') ?? []];
     }
 
-    public function testVision(AiProviderConfig $config): void
+    public function testVision(AiEndpoint $config): void
     {
         $code = $this->visionChallenge();
         $image = imagecreatetruecolor(900, 700);

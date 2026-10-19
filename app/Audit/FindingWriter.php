@@ -34,6 +34,8 @@ class FindingWriter
                 'expected' => $candidate['expected'],
                 'recommendation' => $candidate['recommendation'],
                 'evidences' => $candidate['evidences'],
+                'agreement' => $candidate['agreement'] ?? null,
+                'agent_ids' => $candidate['agent_ids'] ?? null,
             ]);
             $locked = Finding::whereKey($finding->id)->lockForUpdate()->firstOrFail();
             $evidences = [...$locked->evidences, ...$candidate['evidences']];
@@ -41,7 +43,18 @@ class FindingWriter
             foreach ($evidences as $evidence) {
                 $unique[hash('sha256', json_encode($evidence))] = $evidence;
             }
-            $locked->update(['evidences' => array_values($unique)]);
+            $updateData = ['evidences' => array_values($unique)];
+            if (! empty($candidate['agent_ids'])) {
+                $mergedAgentIds = array_values(array_unique(array_filter([
+                    ...($locked->agent_ids ?? []),
+                    ...$candidate['agent_ids'],
+                ])));
+                $updateData['agent_ids'] = $mergedAgentIds;
+            }
+            if (! empty($candidate['agreement'])) {
+                $updateData['agreement'] = $candidate['agreement'];
+            }
+            $locked->update($updateData);
 
             return $locked;
         });

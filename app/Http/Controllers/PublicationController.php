@@ -9,6 +9,7 @@ use App\Audit\CoverageService;
 use App\Audit\RuleRegistry;
 use App\Http\Requests\PartialExportRequest;
 use App\Http\Requests\PublicationRequest;
+use App\Models\AiAgent;
 use App\Models\AiProviderConfig;
 use App\Models\Export;
 use App\Models\FindingAssessment;
@@ -39,7 +40,16 @@ class PublicationController extends Controller
         }
         $publications = $query->withCount(['pages as checked_pages_count' => fn ($q) => $q->where('status', 'complete'), 'findings' => fn ($q) => $q->where('deleted', false)->where('review_status', '!=', 'rejected')])->latest()->paginate(20)->withQueryString();
 
-        return Inertia::render($request->routeIs('dashboard') ? 'Dashboard' : 'Publications/Index', ['publications' => $publications, 'filters' => $request->only('q', 'status'), 'aiReady' => AiProviderConfig::latest('id')->first()?->vision_tested_at !== null, 'metrics' => ['total' => Publication::visibleTo($request->user())->count(), 'active' => Publication::visibleTo($request->user())->whereIn('status', ['processing', 'cross_checking', 'exporting'])->count(), 'ready' => Publication::visibleTo($request->user())->whereIn('status', ['review_ready', 'final'])->count()]]);
+        return Inertia::render($request->routeIs('dashboard') ? 'Dashboard' : 'Publications/Index', [
+            'publications' => $publications,
+            'filters' => $request->only('q', 'status'),
+            'aiReady' => AiAgent::ready()->exists() || AiProviderConfig::latest('id')->first()?->vision_tested_at !== null,
+            'metrics' => [
+                'total' => Publication::visibleTo($request->user())->count(),
+                'active' => Publication::visibleTo($request->user())->whereIn('status', ['processing', 'cross_checking', 'exporting'])->count(),
+                'ready' => Publication::visibleTo($request->user())->whereIn('status', ['review_ready', 'final'])->count(),
+            ],
+        ]);
     }
 
     public function create(): Response
@@ -60,9 +70,33 @@ class PublicationController extends Controller
         $page = max(1, min($publication->page_count, $request->integer('page', 1)));
 
         return Inertia::render('Publications/Show', [
-            'publication' => $publication->only('id', 'title', 'region', 'year', 'kind', 'notes', 'status', 'page_count', 'manifest', 'pdf_name', 'template_name', 'rule_version', 'started_at', 'completed_at', 'locked_at', 'revision', 'error'),
-            'pages' => fn () => $publication->pages()->get(['id', 'physical_page', 'status', 'page_type', 'printed_page', 'image_path', 'attempts', 'error'])->map(fn ($p) => [...$p->only('physical_page', 'status', 'page_type', 'printed_page', 'attempts', 'error'), 'has_image' => (bool) $p->image_path]),
-            'currentPage' => fn () => $publication->pages()->where('physical_page', $page)->first()?->only('physical_page', 'status', 'page_type', 'printed_page', 'image_path', 'result', 'error'),
+            'publication' => $publication->only('id', 'title', 'region', 'year', 'kind', 'notes', 'status', 'page_count', 'manifest', 'pdf_name', 'template_name', 'rule_version', 'started_at', 'completed_at', 'locked_at', 'revision', 'error', 'cross_verify_mode'),
+            'publicationAgents' => fn () => $publication->aiAgents()->get(['ai_agents.id', 'slot', 'name', 'model']),
+            'readyAgentsCount' => fn () => AiAgent::ready()->count(),
+            'pages' => fn () => $publication->pages()->with(['aiAgent', 'latestVerification.agent'])->get()->map(fn ($p) => [
+                ...$p->only('id', 'physical_page', 'status', 'page_type', 'printed_page', 'attempts', 'error'),
+                'has_image' => (bool) $p->image_path,
+                'primary_agent_slot' => $p->aiAgent?->slot,
+                'verifier_agent_slot' => $p->latestVerification?->agent?->slot,
+                'verification_status' => $p->latestVerification?->status,
+            ]),
+            'currentPage' => function () use ($publication, $page) {
+                $p = $publication->pages()->where('physical_page', $page)->with(['aiAgent', 'latestVerification.agent'])->first();
+                if (! $p) {
+                    return null;
+                }
+
+                return [
+                    ...$p->only('id', 'physical_page', 'status', 'page_type', 'printed_page', 'image_path', 'result', 'error', 'ai_agent_id'),
+                    'primary_agent' => $p->aiAgent ? ['id' => $p->aiAgent->id, 'slot' => $p->aiAgent->slot, 'name' => $p->aiAgent->name] : null,
+                    'verification' => $p->latestVerification ? [
+                        'status' => $p->latestVerification->status,
+                        'agent' => $p->latestVerification->agent ? ['id' => $p->latestVerification->agent->id, 'slot' => $p->latestVerification->agent->slot, 'name' => $p->latestVerification->agent->name] : null,
+                        'agreement' => $p->latestVerification->agreement,
+                        'error' => $p->latestVerification->error,
+                    ] : null,
+                ];
+            },
             'findings' => fn () => $publication->findings()->orderBy('id')->get(),
             'exports' => fn () => $publication->exports()->get()->map(fn ($e) => $e->only('id', 'version', 'publication_revision', 'status', 'checksum', 'finding_count', 'validation', 'error', 'created_at')),
             'rules' => app(RuleRegistry::class)->all(), 'canEdit' => $request->user()->can('update', $publication), 'canReview' => $request->user()->can('review', $publication),
@@ -133,6 +167,20 @@ class PublicationController extends Controller
         $coordinator->rebindAi($publication);
 
         return back()->with('success', 'Koneksi AI diganti dengan persetujuan Anda. Halaman selesai dipertahankan; halaman tersisa dilanjutkan.');
+    }
+
+    public function updateCrossVerifyMode(Request $request, Publication $publication): RedirectResponse
+    {
+        Gate::authorize('update', $publication);
+        if (in_array($publication->status, ['review_ready', 'final'], true) || $publication->locked_at) {
+            throw ValidationException::withMessages(['cross_verify_mode' => 'Mode verifikasi tidak dapat diubah setelah pemeriksaan selesai/dikunci.']);
+        }
+        $data = $request->validate([
+            'cross_verify_mode' => ['required', 'string', 'in:off,high_risk,all_pages'],
+        ]);
+        $publication->update(['cross_verify_mode' => $data['cross_verify_mode']]);
+
+        return back()->with('success', 'Mode verifikasi silang diperbarui.');
     }
 
     public function pdf(Publication $publication): BinaryFileResponse

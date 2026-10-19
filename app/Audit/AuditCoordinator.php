@@ -7,8 +7,10 @@ namespace App\Audit;
 use App\Jobs\FinalizeAudit;
 use App\Jobs\RenderPage;
 use App\Jobs\WriteWorkbook;
+use App\Models\AiAgent;
 use App\Models\AiProviderConfig;
 use App\Models\Export;
+use App\Models\PageVerification;
 use App\Models\Publication;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\DB;
@@ -21,23 +23,39 @@ class AuditCoordinator
         if (in_array($publication->status, ['review_ready', 'final'], true)) {
             return;
         }
+        $readyAgents = AiAgent::ready()->get();
         $config = $publication->aiConfig ?? AiProviderConfig::latest('id')->first();
-        if (! $config?->vision_tested_at) {
-            throw ValidationException::withMessages(['ai' => 'Admin perlu mengatur 9Router dan meluluskan uji pembacaan gambar terlebih dahulu.']);
+        if ($readyAgents->isEmpty() && ! $config?->vision_tested_at) {
+            throw ValidationException::withMessages(['ai' => 'Admin perlu mengatur AI Agent dan meluluskan uji pembacaan gambar pada minimal 1 agent terlebih dahulu.']);
         }
         if ($publication->locked_at) {
             throw ValidationException::withMessages(['audit' => 'Hasil final sudah dikunci.']);
         }
-        $publication->update(['ai_config_id' => $config->id, 'status' => 'processing', 'started_at' => $publication->started_at ?? now(), 'error' => null]);
+        $publication->update([
+            'ai_config_id' => $config?->id,
+            'status' => 'processing',
+            'started_at' => $publication->started_at ?? now(),
+            'error' => null,
+        ]);
+        if ($readyAgents->isNotEmpty()) {
+            $syncData = [];
+            foreach ($readyAgents as $ag) {
+                $syncData[$ag->id] = ['config_hash_at_start' => (string) $ag->config_hash];
+            }
+            $publication->aiAgents()->sync($syncData);
+        }
         foreach ($publication->pages()->where('status', '!=', 'complete')->get() as $page) {
             RenderPage::dispatch($page->id);
         }
-        AuditLogger::record('audit.started', $publication, ['model' => $config->model]);
+        AuditLogger::record('audit.started', $publication, [
+            'model' => $readyAgents->first()?->model ?? $config?->model,
+            'active_agents_count' => $readyAgents->count(),
+        ]);
     }
 
     public function retry(Publication $publication, int $physicalPage): void
     {
-        if (! $publication->ai_config_id) {
+        if (! $publication->ai_config_id && ! $publication->aiAgents()->exists() && ! AiAgent::ready()->exists()) {
             throw ValidationException::withMessages(['audit' => 'Mulai pemeriksaan terlebih dahulu.']);
         }
         $page = $publication->pages()->where('physical_page', $physicalPage)->firstOrFail();
@@ -56,22 +74,45 @@ class AuditCoordinator
             if ($pub->status !== 'partial_failure' || $pub->locked_at || $pub->pages()->whereIn('status', ['rendering', 'analyzing'])->exists()) {
                 throw ValidationException::withMessages(['ai' => 'Pergantian koneksi hanya dapat dilakukan setelah proses gagal dan tidak ada halaman yang sedang dibaca.']);
             }
+            $readyAgents = AiAgent::ready()->get();
             $config = AiProviderConfig::latest('id')->first();
-            if (! $config?->vision_tested_at || $config->id === $pub->ai_config_id) {
+            if ($readyAgents->isEmpty() && ! $config?->vision_tested_at) {
                 throw ValidationException::withMessages(['ai' => 'Admin perlu menyimpan dan meluluskan uji koneksi AI baru terlebih dahulu.']);
             }
             $old = $pub->ai_config_id;
-            $pub->update(['ai_config_id' => $config->id]);
-            AuditLogger::record('audit.provider_rebound', $pub, ['previous_config_id' => $old, 'new_config_id' => $config->id, 'model' => $config->model, 'completed_pages_preserved' => $pub->pages()->where('status', 'complete')->count()]);
+            $pub->update(['ai_config_id' => $config?->id]);
+            if ($readyAgents->isNotEmpty()) {
+                $syncData = [];
+                foreach ($readyAgents as $ag) {
+                    $syncData[$ag->id] = ['config_hash_at_start' => (string) $ag->config_hash];
+                }
+                $pub->aiAgents()->sync($syncData);
+            }
+            AuditLogger::record('audit.provider_rebound', $pub, [
+                'previous_config_id' => $old,
+                'new_config_id' => $config?->id,
+                'model' => $readyAgents->first()?->model ?? $config?->model,
+                'active_agents_count' => $readyAgents->count(),
+                'completed_pages_preserved' => $pub->pages()->where('status', 'complete')->count(),
+            ]);
         });
-        $publication->refresh()->unsetRelation('aiConfig');
+        $publication->refresh()->unsetRelation('aiConfig')->unsetRelation('aiAgents');
         $this->start($publication);
         $this->afterPage($publication);
     }
 
     public function canComplete(Publication $publication): bool
     {
-        return $publication->pages()->count() === $publication->page_count && ! $publication->pages()->where(fn ($q) => $q->where('status', '!=', 'complete')->orWhereNull('result')->orWhereNull('completed_at'))->exists();
+        $pagesComplete = $publication->pages()->count() === $publication->page_count && ! $publication->pages()->where(fn ($q) => $q->where('status', '!=', 'complete')->orWhereNull('result')->orWhereNull('completed_at'))->exists();
+        if (! $pagesComplete) {
+            return false;
+        }
+
+        $pendingVerifications = PageVerification::whereIn('publication_page_id', $publication->pages()->select('id'))
+            ->whereIn('status', ['pending', 'running'])
+            ->exists();
+
+        return ! $pendingVerifications;
     }
 
     public function afterPage(Publication $publication): void
