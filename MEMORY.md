@@ -366,4 +366,70 @@ Ditambahkan pada 19 Oktober 2026 sebagai sarana edukasi, transparansi logika, da
   - TypeScript typecheck: `vue-tsc --noEmit` 0 errors.
   - Produksi: Ter-compile di `public/build/assets/Index-C1C514cf.js` dan aktif dideploy di `https://bps-cek-publikasi.pinnhost.my.id/rules`.
 
+---
+
+## 12. Sistem Multi-Agent Paralel (Pool Hingga 5 Agen) & Mode Verifikasi Silang (Cross-Verification)
+
+Diimplementasikan dan diluncurkan ke server produksi pada 19 Oktober 2026 untuk meningkatkan ketelitian audit visual, keandalan model AI, dan throughput pemeriksaan:
+
+### A. Arsitektur Pool 5 Agen AI Paralel
+- **Slot Independen (1 s/d 5)**:
+  - Setiap slot memiliki konfigurasi mandiri: `name`, `base_url`, `api_key` (terenkripsi di server), `model`, `enabled` (toggle switch ON/OFF), `max_concurrency` (1–5 halaman bersamaan), dan `config_hash`.
+  - Status Agen: `untested`, `testing`, `ready`, atau `failed`.
+  - Host diizinkan (*whitelisted*): `9router.com`, `api.9router.com`, `limitrouter.com`, `api.limitrouter.com`.
+- **Standar Wajib Kemampuan Vision**:
+  - Seluruh agen yang aktif **wajib lulus uji visual** sebelum dapat digunakan dalam pemeriksaan publikasi.
+  - Pengujian dijalankan via job antrean `TestAiAgent` yang memverifikasi:
+    1. *Synthetic Visual Challenge*: Membaca teks acak dengan warna latar dinamis untuk memastikan model tidak sekadar membaca teks ASCII melainkan memproses raster visual.
+    2. *Reference PDF Inspection*: Membaca halaman 37 dokumen pedoman publikasi resmi BPS (judul bab, header, nomor halaman cetak).
+- **Pengujian Multi-Agent Terpadu & Polling**:
+  - Tombol **"Uji Semua Agent Aktif"**: Memicu pengujian paralel seluruh agen aktif secara simultan.
+  - Endpoint live status: `GET /settings/ai-agents/status` dipolling frontend setiap 2,5 detik hingga seluruh pengujian selesai.
+  - Fitur **"Salin dari Agent 1"**: Memudahkan setup instan untuk slot 2–5 dengan menyalin konfigurasi dasar tanpa mengetik ulang.
+- **Penyalur Beban (*AgentPoolSelector*)**:
+  - Mendistribusikan halaman audit secara seimbang (*load-balanced*) di antara agen-agen yang berstatus `ready`.
+  - Menghindari agen yang sedang terkena cooldown batas kuota / HTTP 429 (`AiCapacity`).
+
+### B. Mode Verifikasi Silang (*Cross-Verification*)
+- **Sasaran Halaman Berisiko Tinggi (*High Risk Pages*)**:
+  - Halaman struktur utama: Kover luar (`cover`), Kover dalam / Halaman Judul (`title`), Katalog BPS (`catalogue`), Tim Penyusun (`team`), Kata Pengantar (`preface`), Daftar Isi (`toc`), dan Kover Belakang (`back_cover`).
+  - Halaman yang memuat data tabel statistik (`inventory.tables` terdeteksi atau terdapat temuan kategori `TABLE.*`).
+- **Heuristik Khusus Perataan Kolom Tabel (*Table Alignment*)**:
+  - Berdasarkan pedoman BPS, perataan sel tabel memiliki aturan ketat:
+    - Kolom label / teks wajib **rata kiri** (*left-aligned*).
+    - Kolom angka statistik numerik wajib **rata kanan** (*right-aligned*).
+    - Kolom kode wilayah, lambang, atau simbol wajib **rata tengah** (*centered*).
+  - Karena secara visual selisih alignment sering kali samar (*subtle*), `CrossVerifier::checkTableAlignmentSpecifics` memindai alignment kolom dan teks pendukung untuk mendeteksi ketidaksesuaian format `TABLE.FORMAT`.
+- **Rekonsiliasi Temuan & Kebijakan Badge**:
+  - Dua agen AI yang berbeda memeriksa halaman yang sama secara terpisah.
+  - Temuan yang disepakati kedua agen mendapatkan badge `2 Agen Sepakat` (`confirmed`).
+  - Temuan yang hanya ditemukan salah satu agen mendapatkan badge `1 Agen` (`single_agent`).
+  - Sesuai keputusan penelaah (*"KASIH BADGE AJA"*), temuan satu agen tidak memblokir kelulusan audit otomatis, melainkan diberi badge jelas dan filter khusus pada antarmuka penelaahan agar reviewer dapat memprioritaskan peninjauan.
+
+### C. Skema Database
+- **Tabel Baru**:
+  - `ai_agents`: Slot (1..5), nama, base_url, api_key, model, enabled, status, test_message, vision_tested_at, config_hash, max_concurrency.
+  - `publication_ai_agents`: Snapshot relasi agen yang aktif saat publikasi mulai diperiksa beserta `config_hash_at_start`.
+  - `page_verifications`: Hasil verifikasi silang per halaman (`publication_page_id`, `ai_agent_id`, `status`, `result`, `agreement`, `error`).
+- **Kolom Baru**:
+  - `publications.cross_verify_mode`: Mode verifikasi (`high_risk`, `all_pages`, `off`).
+  - `publication_pages.ai_agent_id`: ID agen utama yang membaca halaman.
+  - `findings.agreement`: Status kesepakatan (`confirmed` / `single_agent`).
+  - `findings.agent_ids`: JSON array ID agen yang mengonfirmasi temuan.
+  - `ai_usage_records.ai_agent_id`: Tracking biaya & token per agen.
+
+### D. Status Deployment & Operasional cPanel
+- **Aplikasi Online**: `https://bps-cek-publikasi.pinnhost.my.id/` (HTTP 200 OK).
+- **Database Backup**: Terverifikasi non-zero byte (`db-before-multiagent-*.sql`, 1,8 MB).
+- **Crontab Worker**:
+  - `audit-worker.sh general` (antrean `default`)
+  - `audit-worker.sh ai-1`, `ai-2`, `ai-3` (antrean `ai,verify`)
+  - `audit-worker.sh verify` (antrean `verify,ai`)
+  - `audit-worker.sh references` (antrean `references`)
+- **Hasil Pengujian**:
+  - Unit & Feature Test: **110 tests, 2.402 assertions, 100% LULUS**.
+  - TypeScript Typecheck: `vue-tsc --noEmit` 0 error.
+  - Asset Build: Vite production build berhasil.
+
+
 
