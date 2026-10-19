@@ -462,6 +462,35 @@ Sebelumnya, pemeriksaan aturan V2 (Perbandingan Kover vs Judul, Riwayat Volume, 
   - `kecamatan ampana tete dalam angka 2026`: 118/118 halaman selesai, 3 pemeriksaan V2 tuntas, file ekspor Excel v3 tergenerate otomatis.
   - `kecamatan ampana kota dalam angka 2026`: 118/118 halaman selesai, 3 pemeriksaan V2 tuntas, status `review_ready` dengan file Excel tergenerate otomatis.
 
+---
+
+## 14. Resolusi Antrean Worker cPanel & Diagnosa Pengujian Agen AI yang Tertahan
+
+### A. Akar Masalah Pengujian Berputar Terus (*Pending Stalled*)
+Pengujian pembacaan gambar AI sempat tampak tidak selesai (*stuck* 30 menit) dengan status `Sedang menguji koneksi dan pembacaan visual PDF di background antrean...`:
+1. **Pekerja Antrean Default Tidak Aktif di Crontab cPanel**:
+   - Job pengujian koneksi visual (`App\Jobs\TestAiAgent`) serta job sistem lainnya (seperti `WriteWorkbook` dan `RenderPage`) masuk ke antrean `default`.
+   - Pada saat diperiksa, konfigurasi crontab di server cPanel hanya menjalankan worker untuk antrean `verify` dan `ai-3`, tanpa worker `general` (yang bertugas mengonsumsi antrean `default`).
+   - Akibatnya, job `TestAiAgent` menumpuk di database antrean dengan `attempts: 0` dan tidak pernah dieksekusi oleh worker mana pun.
+
+### B. Resolusi & Penguatan Ketahanan Antrean
+1. **Penyempurnaan Worker Script (`deploy/audit-worker.sh`)**:
+   - Seluruh worker `ai-*` dan `verify` kini menyertakan antrean `default` sebagai *fallback*:
+     - `ai-1` .. `ai-5`: `task_queue="ai,verify,default"`
+     - `verify`: `task_queue="verify,ai,default"`
+     - `references`: `task_queue="references,default"`
+   - Dengan konfigurasi ini, jika tidak ada tugas audit per halaman, worker akan otomatis mengambil dan mengeksekusi job sistem dan pengujian AI dari antrean `default`.
+2. **Restorasi Crontab Lengkap di Server cPanel**:
+   - Mengaktifkan seluruh worker cron: `schedule:run`, `general`, `ai-1`, `ai-2`, `ai-3`, `verify`, dan `references`.
+3. **Eksekusi Job Tertahan**:
+   - Semua job pengujian yang tertahan langsung diproses hingga selesai.
+
+### C. Hasil Pengujian Model AI
+- **Slot 1 (Agent 1 - Utama)**: `gemini-3.8-flash` via LimitRouter -> **LULUS** (`ready`).
+- **Slot 2 (Agent 2)**: `gemini-3.8-flash` via LimitRouter -> **LULUS** (`ready`).
+- **Slot 3 (Agent 3)**: `gemini-2.8-flash` via 9Router -> **GAGAL (HTTP 404)**. Model `gemini-2.8-flash` tidak ditemukan pada katalog 9Router (solusi: ganti nama model menjadi `gemini-2.5-flash` atau `gemini-1.5-flash`).
+
+
 
 
 
