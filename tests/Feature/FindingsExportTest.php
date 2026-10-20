@@ -45,6 +45,34 @@ class FindingsExportTest extends TestCase
         $this->patchJson('/publications/'.$p->id.'/findings/'.$f->id, $data)->assertConflict();
     }
 
+    public function test_rejected_finding_with_reason_records_permanent_examiner_learning(): void
+    {
+        $p = $this->publication();
+        $f = $this->finding($p);
+        $data = [
+            'version' => 1,
+            'rule_code' => $f->rule_code,
+            'severity' => 'wajib',
+            'observed' => $f->observed,
+            'expected' => $f->expected,
+            'recommendation' => $f->recommendation,
+            'review_status' => 'rejected',
+            'review_note' => 'INI TIDAK ADA DI ATURAN PEDOMAN SOAL LOGO',
+            'evidences' => $f->evidences,
+        ];
+        $this->patch('/publications/'.$p->id.'/findings/'.$f->id, $data)
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('success');
+
+        $this->assertSame('rejected', $f->fresh()->review_status);
+        $this->assertSame('INI TIDAK ADA DI ATURAN PEDOMAN SOAL LOGO', $f->fresh()->review_note);
+
+        $learningService = app(\App\Audit\ExaminerLearningService::class);
+        $promptText = $learningService->activeLearningsForPrompt();
+        $this->assertStringContainsString('PEMBELAJARAN PERMANEN', $promptText);
+        $this->assertStringContainsString('TIDAK ADA DI ATURAN PEDOMAN SOAL LOGO', $promptText);
+    }
+
     public function test_locked_publication_is_not_editable(): void
     {
         $p = $this->publication();

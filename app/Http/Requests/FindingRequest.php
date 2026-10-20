@@ -23,12 +23,13 @@ class FindingRequest extends FormRequest
             'page' => ['sometimes', 'integer', 'min:1', 'max:'.$this->route('publication')->page_count],
             'quote' => ['sometimes', 'nullable', 'string', 'max:3000'],
             'evidences' => ['sometimes', 'array', 'min:1', 'max:50'],
-            'evidences.*' => ['array:physical_page,printed_page,quote,bbox'],
-            'evidences.*.physical_page' => ['required', 'integer', 'min:1', 'max:'.$this->route('publication')->page_count],
+            'evidences.*' => ['array'],
+            'evidences.*.physical_page' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:'.$this->route('publication')->page_count],
             'evidences.*.printed_page' => ['sometimes', 'nullable', 'string', 'max:50'],
             'evidences.*.quote' => ['sometimes', 'nullable', 'string', 'max:3000'],
-            'evidences.*.bbox' => ['sometimes', 'nullable', 'array', 'list', 'size:4'],
+            'evidences.*.bbox' => ['sometimes', 'nullable', 'array', 'size:4'],
             'evidences.*.bbox.*' => ['numeric', 'between:0,1'],
+            'evidences.*.kind' => ['sometimes', 'nullable', 'string', 'max:50'],
         ];
     }
 }

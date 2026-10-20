@@ -72,10 +72,18 @@ class FindingController extends Controller
             $f->update([...collect($data)->except(['version', 'page', 'quote'])->all(), 'version' => $f->version + 1]);
             $f->revisions()->create(['user_id' => $request->user()->id, 'before' => $before, 'after' => $f->toArray(), 'reason' => $data['review_note'] ?? 'Penyuntingan temuan']);
             $pub->increment('revision');
+
+            if ($data['review_status'] === 'rejected' && ! empty(trim($data['review_note'] ?? ''))) {
+                app(\App\Audit\ExaminerLearningService::class)->recordRejection($f, $data['review_note'], $request->user());
+            }
         });
         AuditLogger::record('finding.updated', $publication, ['finding_id' => $finding->id]);
 
-        return back()->with('success', 'Perubahan tersimpan. Excel lama tetap tersedia; buat versi baru untuk perubahan ini.');
+        $message = $data['review_status'] === 'rejected'
+            ? 'Temuan berhasil ditolak dan dicatat sebagai bahan pembelajaran permanen untuk AI. Buat versi Excel baru untuk memuat perubahan.'
+            : 'Perubahan tersimpan. Excel lama tetap tersedia; buat versi baru untuk perubahan ini.';
+
+        return back()->with('success', $message);
     }
 
     public function history(Publication $publication, Finding $finding): JsonResponse

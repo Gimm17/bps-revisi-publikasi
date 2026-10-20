@@ -258,13 +258,24 @@ defineExpose({ dirty: () => form.isDirty });
                 v-model="form.review_note"
                 rows="2"
                 maxlength="3000"
-            /><label v-if="finding" class="checkbox"
+                :placeholder="form.review_status === 'rejected' ? 'Tuliskan alasan penolakan (misal: tidak ada di aturan/pedoman). Catatan ini otomatis menjadi bahan pembelajaran permanen bagi AI.' : ''"
+            /><small v-if="form.review_status === 'rejected'" style="margin-top: 0.25rem; margin-bottom: 0.5rem; display: block; font-size: 0.8rem; color: #047857; line-height: 1.4;">
+                💡 Catatan penolakan ini otomatis disimpan sebagai bahan pembelajaran permanen sistem agar AI tidak mengulangi temuan serupa.
+            </small><label v-if="finding" class="checkbox"
                 ><input type="checkbox" v-model="form.deleted" />Arsipkan temuan
                 ini (riwayat tetap disimpan)</label
             >
             <p v-if="form.isDirty" class="small unsaved" role="status">
                 Ada perubahan yang belum disimpan.
             </p>
+            <div v-if="form.hasErrors" class="notice error" role="alert" style="margin-bottom: 0.75rem;">
+                <strong>Gagal menyimpan temuan:</strong>
+                <ul style="margin: 0.25rem 0 0 1rem; padding: 0;">
+                    <li v-for="(msg, field) in form.errors" :key="field">
+                        {{ msg }}
+                    </li>
+                </ul>
+            </div>
             <button
                 v-if="canEdit"
                 class="button primary full-width"

@@ -17,6 +17,10 @@ class PromptBuilder
         $system .= "\nKODE ATURAN YANG DIPERBOLEHKAN:\n".json_encode($rules->all(), JSON_UNESCAPED_UNICODE);
         $disk = Storage::disk('local');
         $system .= "\nPEDOMAN LENGKAP BERVERSI:\n".$disk->get('publications/'.$pub->id.'/rules.md');
+        $learnings = app(ExaminerLearningService::class)->activeLearningsForPrompt();
+        if ($learnings !== '') {
+            $system .= "\n".$learnings;
+        }
         $schema = $disk->get('publications/'.$pub->id.'/prompt.md');
         $schema .= "\nPenegasan kontrak daftar: judul kelompok yang memang tidak memiliki nomor halaman menggunakan type heading dan target_page null. Entri tabel/gambar/bab yang memiliki nomor halaman diisi string nomor tersebut. Jika ada entri yang nomor halamannya belum tercantum/terpotong di halaman ini, gunakan target_page null dan readability uncertain. Field target_page tetap wajib hadir.\n";
         $schema .= "\nPenegasan teks narasi/kata pengantar/preface: pada field 'text', tuliskan judul, tanggal, nama penandatangan, dan intisari poin per paragraf. Jangan menyalin teks kalimat secara verbatim panjang penuh agar tidak memicu pemotongan filter keamanan/recitation model AI.\n";
