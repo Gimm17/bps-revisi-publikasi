@@ -85,7 +85,21 @@ class PipelineTest extends TestCase
         $this->assertFalse(app(AuditCoordinator::class)->canComplete($pub));
     }
 
-    public function test_uncertain_page_escalates_resolution_and_then_blocks_completion(): void
+    public function test_unreadable_page_escalates_resolution_and_then_blocks_completion(): void
+    {
+        $pub = $this->setupPub();
+        $page = $pub->pages()->first();
+        app()->call([new RenderPage($page->id), 'handle']);
+        Http::fake(['*' => Http::response(['choices' => [['message' => ['content' => json_encode($this->pageResult(1, ['readability' => 'unreadable']))]]]])]);
+        app()->call([new AnalyzePage($page->id), 'handle']);
+        $this->assertSame(240, $page->fresh()->dpi);
+        app()->call([new RenderPage($page->id), 'handle']);
+        app()->call([new AnalyzePage($page->id, 240), 'handle']);
+        $this->assertSame('needs_verification', $page->fresh()->status);
+        $this->assertSame('partial_failure', $pub->fresh()->status);
+    }
+
+    public function test_uncertain_page_escalates_resolution_and_completes_at_high_dpi(): void
     {
         $pub = $this->setupPub();
         $page = $pub->pages()->first();
@@ -95,8 +109,9 @@ class PipelineTest extends TestCase
         $this->assertSame(240, $page->fresh()->dpi);
         app()->call([new RenderPage($page->id), 'handle']);
         app()->call([new AnalyzePage($page->id, 240), 'handle']);
-        $this->assertSame('needs_verification', $page->fresh()->status);
-        $this->assertSame('partial_failure', $pub->fresh()->status);
+        $this->assertSame('complete', $page->fresh()->status);
+        $this->assertStringContainsString('keterbacaan uncertain', (string) $page->fresh()->error);
+        $this->assertNotSame('partial_failure', $pub->fresh()->status);
     }
 
     public function test_truncated_provider_response_is_rejected(): void

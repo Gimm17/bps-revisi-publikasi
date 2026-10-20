@@ -126,14 +126,33 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
                 'status' => $result['readability'],
             ]);
             $usageRecorded = true;
-            if ($result['readability'] !== 'readable') {
-                $page->update(['result' => $result, 'status' => 'needs_verification', 'error' => 'AI belum dapat membaca semua area dengan yakin.']);
+            if ($result['readability'] === 'unreadable') {
                 if ($page->dpi < config('audit.high_dpi')) {
-                    $page->update(['dpi' => config('audit.high_dpi'), 'status' => 'pending']);
+                    $page->update([
+                        'dpi' => config('audit.high_dpi'),
+                        'status' => 'pending',
+                        'error' => 'Mencoba resolusi tinggi (240 DPI) karena halaman tidak terbaca.',
+                    ]);
                     RenderPage::dispatch($page->id);
                 } else {
+                    $page->update([
+                        'result' => $result,
+                        'status' => 'needs_verification',
+                        'error' => 'Halaman tidak dapat dibaca oleh AI (unreadable).',
+                    ]);
                     $publication->update(['status' => 'partial_failure']);
                 }
+
+                return;
+            }
+
+            if ($result['readability'] === 'uncertain' && $page->dpi < config('audit.high_dpi')) {
+                $page->update([
+                    'dpi' => config('audit.high_dpi'),
+                    'status' => 'pending',
+                    'error' => 'Mencoba resolusi tinggi (240 DPI) karena ada teks/sel yang belum terbaca yakin.',
+                ]);
+                RenderPage::dispatch($page->id);
 
                 return;
             }
@@ -163,7 +182,9 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
                     'printed_page' => $result['printed_page'],
                     'status' => 'complete',
                     'completed_at' => now(),
-                    'error' => null,
+                    'error' => $result['readability'] === 'uncertain'
+                        ? 'AI belum dapat membaca semua area dengan yakin (keterbacaan uncertain pada resolusi tinggi). Temuan tetap dicatat untuk verifikasi manual.'
+                        : null,
                 ]);
             }, 3);
 

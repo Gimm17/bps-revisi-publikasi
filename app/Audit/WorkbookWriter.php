@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Audit;
 
+use App\Models\Finding;
 use App\Models\Publication;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
@@ -14,6 +15,88 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 
 class WorkbookWriter
 {
+    public const SECTION_ORDER = [
+        // 1. Kover depan & komparasi kover-judul
+        'front_cover' => 10,
+        'Kover depan' => 10,
+        'Perbandingan visual kover dan judul' => 15,
+        'Kover dan Judul' => 15,
+
+        // 2. Halaman Judul
+        'title' => 20,
+        'Halaman Judul' => 20,
+        'Halaman Judul Utama' => 20,
+
+        // 3. Halaman Katalog & Riwayat Volume
+        'catalogue' => 30,
+        'Halaman katalog' => 30,
+        'Kesesuaian volume publikasi' => 35,
+
+        // 4. Tim Penyusun
+        'team' => 40,
+        'Halaman Tim Penyusun' => 40,
+
+        // 5. Kata Pengantar
+        'preface' => 50,
+        'Kata pengantar' => 50,
+
+        // 6. Daftar Isi
+        'contents' => 60,
+        'Daftar Isi' => 60,
+
+        // 7. Daftar Tabel / Gambar & Penomoran Romawi
+        'table_list' => 70,
+        'Daftar Tabel' => 70,
+        'figure_list' => 80,
+        'Daftar Gambar' => 80,
+        'Daftar Tabel/Gambar/Grafik/Lampiran' => 85,
+        'Penomoran' => 86,
+        'Susunan halaman pendahuluan romawi' => 88,
+
+        // 8. Batang Tubuh / Isi Publikasi
+        'chapter' => 100,
+        'Penjelasan Bab' => 100,
+        'narrative' => 110,
+        'Ulasan Narasi' => 110,
+        'table' => 120,
+        'Tabel Data' => 120,
+        'Layout Isi' => 130,
+        'Pemeriksaan isi dan layout' => 140,
+        'Pemeriksaan silang' => 145,
+
+        // 9. Bagian Akhir Publikasi
+        'bibliography' => 160,
+        'Daftar Pustaka' => 160,
+        'blank' => 170,
+        'Halaman Kosong' => 170,
+        'Susunan halaman putih akhir' => 175,
+
+        // 10. Kover Belakang
+        'back_cover' => 190,
+        'Kover belakang' => 190,
+
+        // Lain-lain / Tambahan Manual
+        'Temuan manual' => 200,
+        'Pemeriksaan' => 210,
+    ];
+
+    public const SECTION_LABELS = [
+        'front_cover' => 'Kover depan',
+        'title' => 'Halaman Judul Utama',
+        'catalogue' => 'Halaman katalog',
+        'team' => 'Halaman Tim Penyusun',
+        'preface' => 'Kata pengantar',
+        'contents' => 'Daftar Isi',
+        'table_list' => 'Daftar Tabel',
+        'figure_list' => 'Daftar Gambar',
+        'chapter' => 'Penjelasan Bab',
+        'narrative' => 'Ulasan Narasi',
+        'table' => 'Tabel Data',
+        'bibliography' => 'Daftar Pustaka',
+        'blank' => 'Halaman Kosong',
+        'back_cover' => 'Kover belakang',
+    ];
+
     public function write(Publication $pub, string $path, ?array $coverage = null): array
     {
         if ($coverage === null) {
@@ -66,7 +149,26 @@ class WorkbookWriter
         foreach (['B5' => 1, 'C5' => $pub->title, 'D5' => 'Tahunan', 'E5' => 'Indonesia dan Inggris', 'F5' => '', 'G5' => now()->format('d-m-Y'), 'H5' => '', 'I5' => '', 'J5' => '', 'K5' => '', 'L5' => ''] as $cell => $value) {
             $sheet->setCellValueExplicit($cell, (string) $value, DataType::TYPE_STRING);
         }
-        $findings = $pub->findings()->where('deleted', false)->where('review_status', '!=', 'rejected')->orderBy('section')->orderBy('id')->get();
+        $findings = $pub->findings()
+            ->where('deleted', false)
+            ->where('review_status', '!=', 'rejected')
+            ->get()
+            ->sort(function ($a, $b) {
+                $weightA = self::SECTION_ORDER[$a->section] ?? 150;
+                $weightB = self::SECTION_ORDER[$b->section] ?? 150;
+                if ($weightA !== $weightB) {
+                    return $weightA <=> $weightB;
+                }
+
+                $pageA = $this->firstPhysicalPage($a);
+                $pageB = $this->firstPhysicalPage($b);
+                if ($pageA !== $pageB) {
+                    return $pageA <=> $pageB;
+                }
+
+                return $a->id <=> $b->id;
+            })
+            ->values();
         $r = 7;
         if ($partial) {
             $sheet->mergeCells('L'.$r.':M'.$r);
@@ -114,7 +216,8 @@ class WorkbookWriter
             $section = $finding->section ?: 'Pemeriksaan';
             if ($section !== $lastSection) {
                 $sheet->mergeCells('L'.$r.':M'.$r);
-                $sheet->setCellValueExplicit('L'.$r, $section, DataType::TYPE_STRING);
+                $sectionLabel = self::SECTION_LABELS[$section] ?? $section;
+                $sheet->setCellValueExplicit('L'.$r, $sectionLabel, DataType::TYPE_STRING);
                 $sheet->getStyle('L'.$r.':M'.$r)->getFill()->setFillType('solid')->getStartColor()->setARGB('FFE6F2EF');
                 $sheet->getStyle('L'.$r)->getFont()->setBold(true);
                 $sheet->getRowDimension($r)->setRowHeight(24);
@@ -252,5 +355,18 @@ class WorkbookWriter
         }
 
         return $chunks;
+    }
+
+    private function firstPhysicalPage(Finding $finding): int
+    {
+        $min = null;
+        foreach ($finding->evidences ?? [] as $ev) {
+            $p = $ev['physical_page'] ?? $ev['page'] ?? null;
+            if (is_numeric($p) && (int) $p > 0) {
+                $min = $min === null ? (int) $p : min($min, (int) $p);
+            }
+        }
+
+        return $min ?? 999999;
     }
 }

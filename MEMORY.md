@@ -490,6 +490,102 @@ Pengujian pembacaan gambar AI sempat tampak tidak selesai (*stuck* 30 menit) den
 - **Slot 2 (Agent 2)**: `gemini-3.8-flash` via LimitRouter -> **LULUS** (`ready`).
 - **Slot 3 (Agent 3)**: `gemini-2.8-flash` via 9Router -> **GAGAL (HTTP 404)**. Model `gemini-2.8-flash` tidak ditemukan pada katalog 9Router (solusi: ganti nama model menjadi `gemini-2.5-flash` atau `gemini-1.5-flash`).
 
+---
+
+## 15. Optimalisasi SEO Lengkap, Share Link Thumbnail (OpenGraph/Twitter), Indexasi Google Engine, & Responsif Mobile
+
+### A. Desain Share Link Thumbnail (OpenGraph & Twitter Card)
+- **Aset Visual Resolusi Tinggi (1200x630 px)**:
+  - Dihasilkan via Pillow (`public/images/og-thumbnail.png` dan salinan `public/og-image.png`).
+  - Mengikuti palet resmi BPS: Mint `#BADFDB`, Cream `#FCF9EA`, Coral `#FFA4A4`, dan Ink `#302B2A`.
+  - Memuat logo brand BPS ("Ruang Periksa Publikasi"), badge *"Standar V2 BPS 2026"*, judul utama, sub-judul, dan 3 kartu fitur visual (*Multi-Agent Vision*, *32 Aturan Pedoman*, *Format Excel Resmi B–M*).
+  - Dilengkapi favicon resolusi tinggi: `favicon-32x32.png`, `apple-touch-icon.png` (180x180 px), dan `site.webmanifest`.
+
+### B. Meta Tags SEO & Schema.org JSON-LD (Google Search Indexable)
+- **Tag Head Lengkap (`resources/views/app.blade.php`)**:
+  - `meta description`: Menjelaskan fungsi audit visual publikasi resmi BPS berbasis Vision AI multimodal.
+  - `meta keywords`: Kata kunci relevan audit BPS (*Kecamatan Dalam Angka, KcDA, Kendali Mutu Publikasi, Vision AI, Excel BPS*).
+  - `meta robots`: `index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1`.
+  - `canonical link`: Mengarah otomatis ke URL halaman saat ini.
+  - `og:image` & `twitter:image`: Mengarah ke URL absolut `https://bps-cek-publikasi.pinnhost.my.id/images/og-thumbnail.png` dengan rasio 1200x630 px dan format Twitter `summary_large_image`.
+  - **Schema.org Structured Data**: Dibungkus `@verbatim` Blade untuk mencegah parsing simbol `@` sebagai directive Blade; memuat skema `WebApplication` dan `WebSite` dengan publisher `Badan Pusat Statistik`.
+
+### C. Keterbukaan Indexasi Googlebot & Akses Tamu
+- **`public/robots.txt`**: Mengizinkan perayapan halaman publik (`/`, `/rules`, `/guidelines`, `/login`, `/build/`, `/images/`), membatasi direktori internal/upload privat, dan merujuk sitemap.
+- **`public/sitemap.xml`**: Format standar Google Image Sitemap untuk mengindeks halaman publik beserta gambar thumbnail.
+- **Akses Publik Halaman Aturan (`/rules` & `/guidelines`)**:
+  - Dipindahkan keluar dari middleware `auth` pada `routes/web.php` agar crawler Googlebot dan pengunjung publik dapat langsung mengakses katalog 21 bab pedoman BPS tanpa terhalang 302 redirect ke `/login`.
+  - `AppLayout.vue` & `types.ts`: Diperbarui agar aman menangani `auth.user` nullable (menampilkan tombol *"Masuk"* saat guest, tanpa runtime error `page.props.auth.user.name`).
+
+### D. Penyempurnaan Tata Letak Responsif Mobile (<768px, <640px, <480px, <420px)
+- **Navigasi Header**: Main navigation dan logo brand kini menggunakan smooth horizontal scroll tanpa scrollbar mengganggu pada layar kecil (<640px), subtitle brand disembunyikan agar tombol tindakan tetap pas di layar.
+- **Multi-Agent Slot Selector**: Slot tombol agen 1–5 pada halaman Pengaturan diubah menjadi pill horizontal-scrollable (`overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch`) sehingga tidak bertumpuk berantakan di layar ponsel.
+- **Katalog Aturan (`Rules/Index.vue`)**:
+  - Filter pencarian dan dropdown kategori/urgensi/mode ditata rapi secara vertikal full-width pada mobile (<768px).
+  - Kartu metrik hero menyesuaikan ke grid 2-kolom (<768px) dan 1-kolom (<480px).
+  - Visual mockup dan diagram perataan tabel dapat di-scroll horizontal tanpa menyebabkan overflow halaman.
+  - Banner panduan footer otomatis beralih ke tata letak vertikal dengan tombol full-width.
+
+### E. Verifikasi & Status Deployment cPanel
+- **Test Suite**: 110 tests, 2.400 assertions **100% LULUS**.
+- **Vite Compilation**: Berhasil dicompile tanpa error/warning (`npm run build`).
+- **Server Deployment**: Seluruh file dan aset build dideploy ke cPanel (`pinnhost@195.88.211.25:6699`).
+- **Live Smoke Test (HTTP 200 OK)**:
+  - `https://bps-cek-publikasi.pinnhost.my.id/robots.txt` (200 OK)
+  - `https://bps-cek-publikasi.pinnhost.my.id/sitemap.xml` (200 OK)
+  - `https://bps-cek-publikasi.pinnhost.my.id/site.webmanifest` (200 OK)
+  - `https://bps-cek-publikasi.pinnhost.my.id/images/og-thumbnail.png` (200 OK, 66.518 bytes image/png)
+  - `https://bps-cek-publikasi.pinnhost.my.id/rules` (200 OK)
+  - `https://bps-cek-publikasi.pinnhost.my.id/login` (200 OK)
+
+
+---
+
+## 17. Resolusi Halaman Macet di 99% (Halaman 102 dari 103) & Penanganan Keterbacaan Uncertain
+
+### A. Diagnosa & Akar Masalah Stuck di 99% (`partial_failure`)
+Pada publikasi `kecamatan tanantovea dalam angka 2026` (`0245ac8e-9a4d-48e4-92cb-6703546773a1`, 103 halaman), audit terhenti di 102/103 halaman (99%) dengan status `partial_failure`:
+1. **Penyebab Kontrak Prompt & PDF Asli BPS**:
+   - Halaman fisik 14 adalah Daftar Tabel (halaman romawi `xii`).
+   - Pada naskah asli PDF BPS, baris entri terbawah (Tabel 4.1.4) terpotong/bersambung ke halaman berikutnya sehingga tidak mencantumkan nomor halaman target cetak pada halaman 14.
+   - Kontrak prompt AI (`PromptBuilder.php` & `PageResultValidator.php`) secara tegas mewajibkan: apabila nomor halaman entri daftar tabel belum tercantum/terpotong, gunakan `target_page: null` dan `readability: 'uncertain'`. Jika AI mengisi `readable`, validator melempar exception: *"Nomor halaman tujuan entri daftar belum terbaca. Gunakan uncertain, jangan menebak nomor halaman."*
+   - Model Vision AI (Agent 2) mengekstrak halaman 14 dengan sangat akurat dan menemukan 2 temuan nyata:
+     - Salah ketik judul: *"Tertulis 'Jumlah Kepalad Sekolah dan Pendidik Menurut Tingkat Pendidikan' (terdapat salah ketik 'Kepalad') - LANGUAGE.EJAAN"*.
+     - Entri terputus: *"Entri Tabel 4.1.4 di bagian bawah halaman terputus: hanya memuat judul bahasa Indonesia tanpa judul bahasa Inggris, tanpa titik penuntun, dan tanpa nomor halaman tujuan - CONTENTS.MATCH"*.
+   - Mengikuti kontrak prompt, AI mengembalikan `readability: 'uncertain'`.
+2. **Kelemahan Penanganan High DPI di `app/Jobs/AnalyzePage.php`**:
+   - Kode awal `AnalyzePage.php` memeriksa `if ($result['readability'] !== 'readable')`.
+   - Pada resolusi standar (160 DPI), sistem menaikkan resolusi ke 240 DPI (`high_dpi`) dan melakukan render ulang.
+   - Namun, karena pemotongan entri tabel 4.1.4 ada pada naskah PDF asli (bukan masalah resolusi gambar), pada 240 DPI model tetap mengembalikan `readability: 'uncertain'`.
+   - Pada kondisi `dpi >= 240`, `AnalyzePage.php` mengeksekusi `$publication->update(['status' => 'partial_failure'])` dan langsung keluar (`return;`).
+   - Akibatnya:
+     - Temuan AI (salah ketik `Kepalad` dan entri terputus) **dibuang dan tidak pernah disimpan ke database**.
+     - `page_type` dan `printed_page` tetap `NULL`.
+     - Status halaman tetap `needs_verification` (tidak pernah `complete`), sehingga syarat kelengkapan publikasi (`AuditCoordinator::canComplete`) selalu bernilai `false`.
+     - Pemeriksaan silang, pemeriksaan aturan V2, dan ekspor Excel final tidak pernah berjalan.
+
+### B. Solusi Arsitektural (`app/Jobs/AnalyzePage.php`)
+1. **Pemisahan `unreadable` vs `uncertain`**:
+   - `unreadable`: Hanya jika halaman benar-benar tidak terbaca sama sekali (misal scan hitam, file korup). Jika masih di bawah 240 DPI diekskalasi; jika sudah di 240 DPI dan tetap `unreadable`, baru ditandai `needs_verification` dan publikasi `partial_failure`.
+   - `uncertain`: Menandakan halaman terbaca dan terstruktur, tetapi memiliki catatan keraguan (misal teks sel kecil atau nomor halaman terpotong). Jika masih di 160 DPI diekskalasi ke 240 DPI. Jika sudah di 240 DPI, sistem **tetap menyimpan seluruh temuan AI**, menyimpan `page_type` dan `printed_page`, menyelesaikan halaman (`status: 'complete'`), menyertakan catatan verifikasi manual pada field `error`, dan memanggil `$coordinator->afterPage($publication)` sehingga alur audit berlanjut tuntas.
+2. **Pembaruan Test Unit & Feature**:
+   - `PipelineTest.php`: Memvalidasi bahwa halaman `uncertain` pada resolusi tinggi berpindah ke status `complete`, mencatat temuan, dan mengizinkan publikasi selesai tanpa `partial_failure` (7 tests, 31 assertions, 100% lulus).
+
+### C. Verifikasi & Hasil Live Server cPanel
+1. File `app/Jobs/AnalyzePage.php` dideploy ke server produksi cPanel dan cache dioptimasi (`optimize:clear` & `optimize`).
+2. Halaman 14 publikasi Tanantovea diproses:
+   - Status Halaman 14: `complete`, Jenis: `table_list` (Daftar Tabel), Halaman Cetak: `xii`.
+   - 2 temuan halaman 14 (salah ketik `'Kepalad'` dan entri terputus) berhasil disimpan.
+3. Pipeline otomatis berjalan:
+   - Progres publikasi: **103 / 103 halaman (100% Selesai)**.
+   - Status publikasi: `review_ready`.
+   - Total temuan: **290 temuan** (sebelumnya 288).
+   - Seluruh pemeriksaan V2 (`cover_title`, `print_layout`, `volume`) selesai (`completed`).
+   - Ekspor Excel resmi BPS versi 4 tergenerate lengkap dan siap diunduh di dashboard.
+
+
+
+
 
 
 

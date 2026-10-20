@@ -76,4 +76,67 @@ class FindingsExportTest extends TestCase
         $this->assertSame('s', $s->getCell('M8')->getDataType());
         $this->assertStringContainsString('PDF hlm. 1', $s->getCell('M8')->getValue());
     }
+
+    public function test_sections_are_ordered_from_front_cover_to_back_cover(): void
+    {
+        $p = $this->publication();
+        $p->findings()->delete();
+
+        // Insert in reverse order to ensure sorting works regardless of insert order
+        $p->findings()->create([
+            'fingerprint' => 'back-1',
+            'rule_code' => 'BACK.BARCODE',
+            'section' => 'back_cover',
+            'severity' => 'wajib',
+            'source' => 'ai_visual',
+            'confidence' => 0.95,
+            'observed' => 'Barcode hilang',
+            'expected' => 'Ada barcode',
+            'recommendation' => 'Tambahkan barcode',
+            'evidences' => [['physical_page' => 103, 'quote' => 'back', 'bbox' => null]],
+        ]);
+        $p->findings()->create([
+            'fingerprint' => 'table-1',
+            'rule_code' => 'TABLE.TITLE',
+            'section' => 'table',
+            'severity' => 'wajib',
+            'source' => 'ai_visual',
+            'confidence' => 0.95,
+            'observed' => 'Judul tabel salah',
+            'expected' => 'Judul tabel benar',
+            'recommendation' => 'Perbaiki judul',
+            'evidences' => [['physical_page' => 25, 'quote' => 'tabel', 'bbox' => null]],
+        ]);
+        $p->findings()->create([
+            'fingerprint' => 'front-1',
+            'rule_code' => 'COVER.TITLE',
+            'section' => 'front_cover',
+            'severity' => 'wajib',
+            'source' => 'ai_visual',
+            'confidence' => 0.95,
+            'observed' => 'Judul kover salah',
+            'expected' => 'Judul kover benar',
+            'recommendation' => 'Perbaiki judul kover',
+            'evidences' => [['physical_page' => 1, 'quote' => 'kover', 'bbox' => null]],
+        ]);
+
+        $path = 'test/export_order.xlsx';
+        $report = app(WorkbookWriter::class)->write($p, $path);
+        $this->assertSame(3, $report['finding_count']);
+
+        $b = IOFactory::load(Storage::disk('local')->path($path));
+        $s = $b->getActiveSheet();
+
+        // Collect all section header texts in column L
+        $sectionHeaders = [];
+        for ($r = 7; $r <= $report['last_row']; $r++) {
+            $val = (string) $s->getCell('L'.$r)->getValue();
+            if ($val !== '' && ! in_array($val, ['•', '↳', 'Cakupan pemeriksaan', 'Keterbatasan pemeriksaan'], true)) {
+                $sectionHeaders[] = $val;
+            }
+        }
+
+        // Section headers must follow BPS sequence: Kover depan first, then Tabel Data, and Kover belakang last!
+        $this->assertSame(['Kover depan', 'Tabel Data', 'Kover belakang'], $sectionHeaders);
+    }
 }
