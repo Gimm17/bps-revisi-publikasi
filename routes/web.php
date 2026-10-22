@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\AgentOfficeController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DocumentationController;
 use App\Http\Controllers\FindingController;
 use App\Http\Controllers\PublicationCheckController;
 use App\Http\Controllers\PublicationController;
@@ -16,9 +17,11 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/login', [AuthController::class, 'store'])->middleware('throttle:login');
 });
 
-// Publicly accessible rules & guidelines for visitors & search engine indexation (Googlebot)
+// Publicly accessible rules & documentation for visitors & search engine indexation
 Route::get('/rules', [RuleGuideController::class, 'index'])->name('rules');
 Route::get('/guidelines', [RuleGuideController::class, 'index']);
+Route::get('/documentation', [DocumentationController::class, 'index'])->name('documentation');
+Route::get('/docs', [DocumentationController::class, 'index']);
 
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'destroy']);

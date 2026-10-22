@@ -51,6 +51,17 @@ defineProps<{ wide?: boolean }>();
                 "
                 >Aturan Periksa</Link
             ><Link
+                href="/documentation"
+                :class="{
+                    active:
+                        page.url.startsWith('/documentation') ||
+                        page.url.startsWith('/docs'),
+                }"
+                :aria-current="
+                    page.url.startsWith('/documentation') ? 'page' : undefined
+                "
+                >Dokumentasi</Link
+            ><Link
                 v-if="page.props.auth?.user"
                 href="/learnings"
                 :class="{ active: page.url.startsWith('/learnings') }"
