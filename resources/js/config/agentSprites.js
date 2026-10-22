@@ -7,7 +7,7 @@
  * - Workstation Orientation & Keyboard/Hand Calibration Metadata
  */
 
-export const OFFICE_ASSET_VERSION = '20261022_v9';
+export const OFFICE_ASSET_VERSION = '20261022_v10';
 export const OFFICE_BG_URL = `/assets/office/office-bg.png?v=${OFFICE_ASSET_VERSION}`;
 export const OFFICE_CHAIRS_FG_URL = `/assets/office/office-chairs-fg.png?v=${OFFICE_ASSET_VERSION}`;
 
@@ -78,21 +78,21 @@ export const workstationConfig = Object.freeze({
     1: {
         slot: 1,
         characterName: 'Robot Mint',
-        direction: 'toward-monitor',
+        direction: 'rear-left',
         nativeFacing: 'left',
         typingSprite: `/assets/office/typing/agent-1-typing.png?v=${OFFICE_ASSET_VERSION}`,
     },
     2: {
         slot: 2,
         characterName: 'Kucing Berkacamata',
-        direction: 'toward-monitor',
+        direction: 'rear-right',
         nativeFacing: 'right',
         typingSprite: `/assets/office/typing/agent-2-typing.png?v=${OFFICE_ASSET_VERSION}`,
     },
     3: {
         slot: 3,
         characterName: 'Girl Headset Pink',
-        direction: 'toward-monitor',
+        direction: 'rear-left',
         nativeFacing: 'left',
         typingSprite: `/assets/office/typing/agent-3-typing.png?v=${OFFICE_ASSET_VERSION}`,
     },
@@ -106,7 +106,7 @@ export const workstationConfig = Object.freeze({
     5: {
         slot: 5,
         characterName: 'Robot Peach',
-        direction: 'toward-monitor',
+        direction: 'rear-left',
         nativeFacing: 'left',
         typingSprite: `/assets/office/typing/agent-5-typing.png?v=${OFFICE_ASSET_VERSION}`,
     },
@@ -123,10 +123,10 @@ export const AGENT_ASSETS = Object.freeze({
         typing: `/assets/office/typing/agent-1-typing.png?v=${OFFICE_ASSET_VERSION}`,
         nativeTypingFacing: 'left',
         handOverlayInsetBottom: 0,
-        handLeftPct: { x: 31.28, y: 65.31 },
-        handRightPct: { x: 43.39, y: 67.83 },
-        handAnchorPct: { x: 37.74, y: 66.99 },
-        seatAnchorPct: { x: 57.37, y: 73.71 },
+        handLeftPct: { x: 24.78, y: 75.89 },
+        handRightPct: { x: 42.78, y: 79.89 },
+        handAnchorPct: { x: 33.78, y: 77.89 },
+        seatAnchorPct: { x: 39.78, y: 87.89 },
     },
     2: {
         id: 2,
@@ -138,10 +138,10 @@ export const AGENT_ASSETS = Object.freeze({
         typing: `/assets/office/typing/agent-2-typing.png?v=${OFFICE_ASSET_VERSION}`,
         nativeTypingFacing: 'right',
         handOverlayInsetBottom: 0,
-        handLeftPct: { x: 60.03, y: 67.83 },
-        handRightPct: { x: 73.86, y: 65.31 },
-        handAnchorPct: { x: 67.57, y: 66.99 },
-        seatAnchorPct: { x: 39.92, y: 73.71 },
+        handLeftPct: { x: 49.17, y: 80.09 },
+        handRightPct: { x: 67.17, y: 76.09 },
+        handAnchorPct: { x: 58.17, y: 78.09 },
+        seatAnchorPct: { x: 52.17, y: 88.09 },
     },
     3: {
         id: 3,
@@ -153,10 +153,10 @@ export const AGENT_ASSETS = Object.freeze({
         typing: `/assets/office/typing/agent-3-typing.png?v=${OFFICE_ASSET_VERSION}`,
         nativeTypingFacing: 'left',
         handOverlayInsetBottom: 0,
-        handLeftPct: { x: 30.25, y: 61.11 },
-        handRightPct: { x: 42.19, y: 62.79 },
-        handAnchorPct: { x: 37.66, y: 63.63 },
-        seatAnchorPct: { x: 56.51, y: 72.03 },
+        handLeftPct: { x: 25.40, y: 76.09 },
+        handRightPct: { x: 43.40, y: 80.09 },
+        handAnchorPct: { x: 34.40, y: 78.09 },
+        seatAnchorPct: { x: 40.40, y: 88.09 },
     },
     4: {
         id: 4,
@@ -183,10 +183,10 @@ export const AGENT_ASSETS = Object.freeze({
         typing: `/assets/office/typing/agent-5-typing.png?v=${OFFICE_ASSET_VERSION}`,
         nativeTypingFacing: 'left',
         handOverlayInsetBottom: 0,
-        handLeftPct: { x: 31.01, y: 64.47 },
-        handRightPct: { x: 43.39, y: 68.67 },
-        handAnchorPct: { x: 37.37, y: 66.99 },
-        seatAnchorPct: { x: 57.68, y: 73.71 },
+        handLeftPct: { x: 28.99, y: 75.89 },
+        handRightPct: { x: 46.99, y: 79.89 },
+        handAnchorPct: { x: 37.99, y: 77.89 },
+        seatAnchorPct: { x: 43.99, y: 87.89 },
     },
     6: {
         id: 6,

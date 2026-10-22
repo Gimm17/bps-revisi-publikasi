@@ -75,7 +75,7 @@ const overlayClipPath = computed(() => {
         }"
     >
         <div
-            class="agent-typing-sheet w-full h-full"
+            class="typing-sprite agent-typing-sheet w-full h-full"
             :class="{
                 'typing-body-shadow': layerMode === 'body',
             }"
@@ -91,12 +91,16 @@ const overlayClipPath = computed(() => {
 
 <style scoped>
 .agent-typing-direction {
-    transform-origin: 50% 50%;
+    transform-origin: center bottom;
     will-change: transform;
 }
 
+.typing-sprite,
 .agent-typing-sheet {
+    background-size: 400% 200%;
+    background-repeat: no-repeat;
     image-rendering: auto;
+    transform-origin: center bottom;
     will-change: background-position, background-image;
 }
 

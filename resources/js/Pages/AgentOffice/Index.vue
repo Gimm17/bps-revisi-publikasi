@@ -207,7 +207,7 @@ function loadLocalPreferences() {
                 }
             }
         }
-        const savedTyping = localStorage.getItem('bps_agent_office_typing_calib_v3');
+        const savedTyping = localStorage.getItem('bps_agent_office_typing_calib_v4');
         if (savedTyping) {
             const parsed = JSON.parse(savedTyping);
             for (let s = 1; s <= 5; s++) {
@@ -233,7 +233,7 @@ function saveDesksToStorage() {
 
 function saveTypingCalibrationToStorage() {
     try {
-        localStorage.setItem('bps_agent_office_typing_calib_v3', JSON.stringify(typingCalibration));
+        localStorage.setItem('bps_agent_office_typing_calib_v4', JSON.stringify(typingCalibration));
     } catch (e) {}
 }
 
