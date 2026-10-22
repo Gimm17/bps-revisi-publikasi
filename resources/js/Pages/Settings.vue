@@ -286,6 +286,15 @@ function copyFromSlot1() {
         }
     });
 }
+
+function formatDiskSpace(mb: number): string {
+    if (!mb && mb !== 0) return '0 MB';
+    if (mb >= 1000) {
+        const gb = mb / 1024;
+        return `${gb.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} GB`;
+    }
+    return `${mb.toLocaleString('id-ID')} MB`;
+}
 </script>
 <template>
     <Head title="Pengaturan" /><AppLayout
@@ -653,12 +662,8 @@ function copyFromSlot1() {
                     ><span>Job gagal</span>
                 </div>
                 <div>
-                    <strong
-                        >{{
-                            health.disk_free_mb.toLocaleString("id-ID")
-                        }}
-                        MB</strong
-                    ><span>Ruang tersisa</span>
+                    <strong>{{ formatDiskSpace(health.disk_free_mb) }}</strong>
+                    <span>Ruang tersisa</span>
                 </div>
             </div>
             <p>
