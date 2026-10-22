@@ -1,0 +1,676 @@
+{
+  "atlas_size": [
+    2048,
+    1024
+  ],
+  "grid": [
+    4,
+    2
+  ],
+  "cell_size": [
+    512,
+    512
+  ],
+  "agents": {
+    "1": {
+      "name": "Robot Mint",
+      "direction": "toward-monitor",
+      "native_facing": "left",
+      "flipped_from_raw": false,
+      "raw_resolution": [
+        1774,
+        887
+      ],
+      "normalized_atlas": "/assets/office/typing/agent-1-typing.png",
+      "individual_frames_dir": "/assets/office/typing/frames/agent-1/",
+      "hand_left_pct": [
+        28.9,
+        65.31
+      ],
+      "hand_right_pct": [
+        43.27,
+        67.83
+      ],
+      "hand_anchor_pct": [
+        37.74,
+        66.99
+      ],
+      "seat_anchor_pct": [
+        59.85,
+        73.71
+      ],
+      "head_center_pct": [
+        48.8,
+        36.76
+      ],
+      "hand_overlay_inset_bottom_pct": 27.22,
+      "consecutive_frame_mad": [
+        1.102,
+        1.114,
+        1.026,
+        1.455,
+        1.588,
+        0.853,
+        1.428
+      ],
+      "raw_islands": [
+        {
+          "frame": 1,
+          "raw_bbox": [
+            193,
+            12,
+            474,
+            440
+          ],
+          "width": 282,
+          "height": 429
+        },
+        {
+          "frame": 2,
+          "raw_bbox": [
+            570,
+            15,
+            850,
+            440
+          ],
+          "width": 281,
+          "height": 426
+        },
+        {
+          "frame": 3,
+          "raw_bbox": [
+            951,
+            17,
+            1223,
+            440
+          ],
+          "width": 273,
+          "height": 424
+        },
+        {
+          "frame": 4,
+          "raw_bbox": [
+            1328,
+            17,
+            1598,
+            440
+          ],
+          "width": 271,
+          "height": 424
+        },
+        {
+          "frame": 5,
+          "raw_bbox": [
+            190,
+            451,
+            472,
+            874
+          ],
+          "width": 283,
+          "height": 424
+        },
+        {
+          "frame": 6,
+          "raw_bbox": [
+            580,
+            450,
+            851,
+            874
+          ],
+          "width": 272,
+          "height": 425
+        },
+        {
+          "frame": 7,
+          "raw_bbox": [
+            951,
+            453,
+            1223,
+            874
+          ],
+          "width": 273,
+          "height": 422
+        },
+        {
+          "frame": 8,
+          "raw_bbox": [
+            1321,
+            452,
+            1598,
+            874
+          ],
+          "width": 278,
+          "height": 423
+        }
+      ]
+    },
+    "2": {
+      "name": "Kucing Berkacamata",
+      "direction": "toward-monitor",
+      "native_facing": "right",
+      "flipped_from_raw": false,
+      "raw_resolution": [
+        1774,
+        887
+      ],
+      "normalized_atlas": "/assets/office/typing/agent-2-typing.png",
+      "individual_frames_dir": "/assets/office/typing/frames/agent-2/",
+      "hand_left_pct": [
+        60.0,
+        67.83
+      ],
+      "hand_right_pct": [
+        73.88,
+        65.31
+      ],
+      "hand_anchor_pct": [
+        67.57,
+        66.99
+      ],
+      "seat_anchor_pct": [
+        39.81,
+        73.71
+      ],
+      "head_center_pct": [
+        51.16,
+        38.44
+      ],
+      "hand_overlay_inset_bottom_pct": 26.38,
+      "consecutive_frame_mad": [
+        1.32,
+        1.146,
+        1.091,
+        1.564,
+        1.836,
+        0.742,
+        1.543
+      ],
+      "raw_islands": [
+        {
+          "frame": 1,
+          "raw_bbox": [
+            94,
+            26,
+            406,
+            442
+          ],
+          "width": 313,
+          "height": 417
+        },
+        {
+          "frame": 2,
+          "raw_bbox": [
+            528,
+            26,
+            829,
+            443
+          ],
+          "width": 302,
+          "height": 418
+        },
+        {
+          "frame": 3,
+          "raw_bbox": [
+            951,
+            25,
+            1262,
+            442
+          ],
+          "width": 312,
+          "height": 418
+        },
+        {
+          "frame": 4,
+          "raw_bbox": [
+            1380,
+            24,
+            1687,
+            441
+          ],
+          "width": 308,
+          "height": 418
+        },
+        {
+          "frame": 5,
+          "raw_bbox": [
+            94,
+            465,
+            400,
+            875
+          ],
+          "width": 307,
+          "height": 411
+        },
+        {
+          "frame": 6,
+          "raw_bbox": [
+            523,
+            466,
+            837,
+            874
+          ],
+          "width": 315,
+          "height": 409
+        },
+        {
+          "frame": 7,
+          "raw_bbox": [
+            953,
+            462,
+            1265,
+            875
+          ],
+          "width": 313,
+          "height": 414
+        },
+        {
+          "frame": 8,
+          "raw_bbox": [
+            1381,
+            462,
+            1697,
+            874
+          ],
+          "width": 317,
+          "height": 413
+        }
+      ]
+    },
+    "3": {
+      "name": "Girl Headset Pink",
+      "direction": "toward-monitor",
+      "native_facing": "left",
+      "flipped_from_raw": false,
+      "raw_resolution": [
+        1774,
+        887
+      ],
+      "normalized_atlas": "/assets/office/typing/agent-3-typing.png",
+      "individual_frames_dir": "/assets/office/typing/frames/agent-3/",
+      "hand_left_pct": [
+        28.19,
+        61.11
+      ],
+      "hand_right_pct": [
+        42.11,
+        62.79
+      ],
+      "hand_anchor_pct": [
+        37.66,
+        63.63
+      ],
+      "seat_anchor_pct": [
+        58.81,
+        72.03
+      ],
+      "head_center_pct": [
+        48.79,
+        36.76
+      ],
+      "hand_overlay_inset_bottom_pct": 31.42,
+      "consecutive_frame_mad": [
+        1.104,
+        1.218,
+        1.112,
+        1.508,
+        1.636,
+        0.996,
+        1.538
+      ],
+      "raw_islands": [
+        {
+          "frame": 1,
+          "raw_bbox": [
+            176,
+            27,
+            445,
+            434
+          ],
+          "width": 270,
+          "height": 408
+        },
+        {
+          "frame": 2,
+          "raw_bbox": [
+            566,
+            26,
+            837,
+            434
+          ],
+          "width": 272,
+          "height": 409
+        },
+        {
+          "frame": 3,
+          "raw_bbox": [
+            974,
+            27,
+            1242,
+            434
+          ],
+          "width": 269,
+          "height": 408
+        },
+        {
+          "frame": 4,
+          "raw_bbox": [
+            1380,
+            26,
+            1649,
+            434
+          ],
+          "width": 270,
+          "height": 409
+        },
+        {
+          "frame": 5,
+          "raw_bbox": [
+            177,
+            456,
+            446,
+            865
+          ],
+          "width": 270,
+          "height": 410
+        },
+        {
+          "frame": 6,
+          "raw_bbox": [
+            577,
+            456,
+            847,
+            865
+          ],
+          "width": 271,
+          "height": 410
+        },
+        {
+          "frame": 7,
+          "raw_bbox": [
+            979,
+            455,
+            1253,
+            865
+          ],
+          "width": 275,
+          "height": 411
+        },
+        {
+          "frame": 8,
+          "raw_bbox": [
+            1387,
+            456,
+            1654,
+            865
+          ],
+          "width": 268,
+          "height": 410
+        }
+      ]
+    },
+    "4": {
+      "name": "Bear Hoodie Mint",
+      "direction": "back-three-quarter",
+      "native_facing": "left",
+      "flipped_from_raw": true,
+      "raw_resolution": [
+        1774,
+        887
+      ],
+      "normalized_atlas": "/assets/office/typing/agent-4-typing.png",
+      "individual_frames_dir": "/assets/office/typing/frames/agent-4/",
+      "hand_left_pct": [
+        26.09,
+        57.75
+      ],
+      "hand_right_pct": [
+        33.27,
+        61.95
+      ],
+      "hand_anchor_pct": [
+        28.48,
+        60.27
+      ],
+      "seat_anchor_pct": [
+        58.37,
+        77.07
+      ],
+      "head_center_pct": [
+        48.8,
+        36.76
+      ],
+      "hand_overlay_inset_bottom_pct": 28.06,
+      "consecutive_frame_mad": [
+        0.75,
+        0.755,
+        0.737,
+        0.913,
+        1.159,
+        0.703,
+        0.97
+      ],
+      "raw_islands": [
+        {
+          "frame": 1,
+          "raw_bbox": [
+            139,
+            38,
+            418,
+            430
+          ],
+          "width": 280,
+          "height": 393
+        },
+        {
+          "frame": 2,
+          "raw_bbox": [
+            562,
+            36,
+            841,
+            429
+          ],
+          "width": 280,
+          "height": 394
+        },
+        {
+          "frame": 3,
+          "raw_bbox": [
+            985,
+            39,
+            1266,
+            430
+          ],
+          "width": 282,
+          "height": 392
+        },
+        {
+          "frame": 4,
+          "raw_bbox": [
+            1408,
+            39,
+            1686,
+            430
+          ],
+          "width": 279,
+          "height": 392
+        },
+        {
+          "frame": 5,
+          "raw_bbox": [
+            136,
+            460,
+            399,
+            852
+          ],
+          "width": 264,
+          "height": 393
+        },
+        {
+          "frame": 6,
+          "raw_bbox": [
+            563,
+            461,
+            844,
+            854
+          ],
+          "width": 282,
+          "height": 394
+        },
+        {
+          "frame": 7,
+          "raw_bbox": [
+            987,
+            464,
+            1262,
+            854
+          ],
+          "width": 276,
+          "height": 391
+        },
+        {
+          "frame": 8,
+          "raw_bbox": [
+            1409,
+            468,
+            1681,
+            853
+          ],
+          "width": 273,
+          "height": 386
+        }
+      ]
+    },
+    "5": {
+      "name": "Robot Peach",
+      "direction": "toward-monitor",
+      "native_facing": "left",
+      "flipped_from_raw": false,
+      "raw_resolution": [
+        1774,
+        887
+      ],
+      "normalized_atlas": "/assets/office/typing/agent-5-typing.png",
+      "individual_frames_dir": "/assets/office/typing/frames/agent-5/",
+      "hand_left_pct": [
+        28.18,
+        64.47
+      ],
+      "hand_right_pct": [
+        43.11,
+        68.67
+      ],
+      "hand_anchor_pct": [
+        37.37,
+        66.99
+      ],
+      "seat_anchor_pct": [
+        60.34,
+        73.71
+      ],
+      "head_center_pct": [
+        48.85,
+        36.76
+      ],
+      "hand_overlay_inset_bottom_pct": 26.38,
+      "consecutive_frame_mad": [
+        1.051,
+        1.089,
+        1.016,
+        1.436,
+        1.575,
+        0.883,
+        1.396
+      ],
+      "raw_islands": [
+        {
+          "frame": 1,
+          "raw_bbox": [
+            118,
+            20,
+            401,
+            435
+          ],
+          "width": 284,
+          "height": 416
+        },
+        {
+          "frame": 2,
+          "raw_bbox": [
+            533,
+            21,
+            831,
+            436
+          ],
+          "width": 299,
+          "height": 416
+        },
+        {
+          "frame": 3,
+          "raw_bbox": [
+            956,
+            19,
+            1252,
+            434
+          ],
+          "width": 297,
+          "height": 416
+        },
+        {
+          "frame": 4,
+          "raw_bbox": [
+            1393,
+            19,
+            1679,
+            434
+          ],
+          "width": 287,
+          "height": 416
+        },
+        {
+          "frame": 5,
+          "raw_bbox": [
+            109,
+            455,
+            403,
+            868
+          ],
+          "width": 295,
+          "height": 414
+        },
+        {
+          "frame": 6,
+          "raw_bbox": [
+            536,
+            455,
+            832,
+            868
+          ],
+          "width": 297,
+          "height": 414
+        },
+        {
+          "frame": 7,
+          "raw_bbox": [
+            973,
+            455,
+            1267,
+            868
+          ],
+          "width": 295,
+          "height": 414
+        },
+        {
+          "frame": 8,
+          "raw_bbox": [
+            1399,
+            455,
+            1696,
+            868
+          ],
+          "width": 298,
+          "height": 414
+        }
+      ]
+    }
+  }
+}
