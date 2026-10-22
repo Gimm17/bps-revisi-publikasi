@@ -467,10 +467,9 @@ function copyFromSlot1() {
                     type="button"
                     :class="['agent-slot-btn', 'agent-backup-btn', { active: activeSlot === 6 }]"
                     @click="activeSlot = 6"
-                    style="border: 1.5px dashed #4f46e5; background: #f5f3ff;"
                 >
                     <span :class="['agent-slot-dot', backupAgentItem.status]"></span>
-                    <strong style="color: #4f46e5;">🛡️ {{ backupAgentItem.name }}</strong>
+                    <strong>🛡️ {{ backupAgentItem.name }}</strong>
                     <span :class="['badge', backupAgentItem.enabled ? 'complete' : 'neutral']" style="padding: 2px 7px; font-size: 10px;">
                         {{ backupAgentItem.enabled ? 'STANDBY' : 'OFF' }}
                     </span>

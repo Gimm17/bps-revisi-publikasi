@@ -2092,6 +2092,39 @@ progress::-webkit-progress-value {
     background: #a3d9cf;
     color: #143831;
 }
+.agent-slot-btn.agent-backup-btn {
+    border: 1.5px dashed #6366f1;
+    background: #f5f3ff;
+    color: #4338ca;
+}
+.agent-slot-btn.agent-backup-btn strong {
+    color: #4338ca;
+}
+.agent-slot-btn.agent-backup-btn:hover {
+    background: #ede9fe;
+    border-color: #4f46e5;
+    color: #3730a3;
+}
+.agent-slot-btn.agent-backup-btn:hover strong {
+    color: #3730a3;
+}
+.agent-slot-btn.agent-backup-btn.active {
+    background: #4338ca !important;
+    border: 1.5px solid #312e81 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(67, 56, 202, 0.35);
+}
+.agent-slot-btn.agent-backup-btn.active strong {
+    color: #ffffff !important;
+}
+.agent-slot-btn.agent-backup-btn.active .badge.complete {
+    background: #c7d2fe !important;
+    color: #1e1b4b !important;
+}
+.agent-slot-btn.agent-backup-btn.active .badge.neutral {
+    background: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+}
 .agent-slot-dot {
     width: 9px;
     height: 9px;
