@@ -94,6 +94,7 @@ const localAgents = ref<AiAgentItem[]>(
             { slot: 3, name: 'Agent 3', base_url: 'https://api.9router.com/v1', model: 'gemini-2.5-flash', enabled: false, status: 'untested', test_message: null, vision_tested_at: null, has_api_key: false, max_concurrency: 1, updated_at: null, id: null },
             { slot: 4, name: 'Agent 4', base_url: 'https://api.9router.com/v1', model: 'gemini-2.5-flash', enabled: false, status: 'untested', test_message: null, vision_tested_at: null, has_api_key: false, max_concurrency: 1, updated_at: null, id: null },
             { slot: 5, name: 'Agent 5', base_url: 'https://api.9router.com/v1', model: 'gemini-2.5-flash', enabled: false, status: 'untested', test_message: null, vision_tested_at: null, has_api_key: false, max_concurrency: 1, updated_at: null, id: null },
+            { slot: 6, name: 'Agent Cadangan (Standby)', base_url: props.ai?.base_url ?? 'https://api.9router.com/v1', model: 'claude-sonnet-4-6', enabled: true, status: 'untested', test_message: null, vision_tested_at: null, has_api_key: false, max_concurrency: 1, updated_at: null, id: null, is_backup: true },
         ]
 );
 
@@ -102,6 +103,14 @@ watch(() => props.ai_agents, (newAgents) => {
         localAgents.value = JSON.parse(JSON.stringify(newAgents));
     }
 }, { deep: true });
+
+const primaryAgents = computed(() => {
+    return localAgents.value.filter(a => a.slot <= 5);
+});
+
+const backupAgentItem = computed(() => {
+    return localAgents.value.find(a => a.slot === 6);
+});
 
 const currentAgent = computed(() => {
     return localAgents.value.find(a => a.slot === activeSlot.value) ?? localAgents.value[0];
@@ -135,11 +144,11 @@ watch(activeSlot, (newSlot) => {
 });
 
 const readyCount = computed(() => {
-    return localAgents.value.filter(a => a.enabled && a.status === 'ready').length;
+    return primaryAgents.value.filter(a => a.enabled && a.status === 'ready').length;
 });
 
 const activeCount = computed(() => {
-    return localAgents.value.filter(a => a.enabled).length;
+    return primaryAgents.value.filter(a => a.enabled).length;
 });
 
 async function pollStatus() {
@@ -439,7 +448,7 @@ function copyFromSlot1() {
             <!-- Slot Selector Pills -->
             <div class="agent-slot-selector" role="tablist" aria-label="Slot Agen AI">
                 <button
-                    v-for="ag in localAgents"
+                    v-for="ag in primaryAgents"
                     :key="ag.slot"
                     type="button"
                     :class="['agent-slot-btn', { active: activeSlot === ag.slot }]"
@@ -451,22 +460,39 @@ function copyFromSlot1() {
                         {{ ag.enabled ? 'ON' : 'OFF' }}
                     </span>
                 </button>
+
+                <!-- Dedicated Agent Cadangan (Standby) Pill -->
+                <button
+                    v-if="backupAgentItem"
+                    type="button"
+                    :class="['agent-slot-btn', 'agent-backup-btn', { active: activeSlot === 6 }]"
+                    @click="activeSlot = 6"
+                    style="border: 1.5px dashed #4f46e5; background: #f5f3ff;"
+                >
+                    <span :class="['agent-slot-dot', backupAgentItem.status]"></span>
+                    <strong style="color: #4f46e5;">🛡️ {{ backupAgentItem.name }}</strong>
+                    <span :class="['badge', backupAgentItem.enabled ? 'complete' : 'neutral']" style="padding: 2px 7px; font-size: 10px;">
+                        {{ backupAgentItem.enabled ? 'STANDBY' : 'OFF' }}
+                    </span>
+                </button>
             </div>
 
             <!-- Active Slot Editor Card -->
             <div class="agent-card-editor">
                 <div class="agent-card-header">
                     <div>
-                        <h3 style="margin: 0; font-size: 18px;">Pengaturan Slot {{ activeSlot }}: {{ currentAgent.name }}</h3>
+                        <h3 style="margin: 0; font-size: 18px;">
+                            {{ activeSlot === 6 ? '🛡️ ' : '' }}Pengaturan {{ activeSlot === 6 ? 'Agent Cadangan (Standby)' : `Slot ${activeSlot}: ${currentAgent.name}` }}
+                        </h3>
                         <small style="color: #666;">
-                            Kapasitas: {{ currentForm.max_concurrency }} halaman paralel
+                            {{ activeSlot === 6 ? 'Agen darurat jika terjadi filter recitation / safety pada agen utama' : `Kapasitas: ${currentForm.max_concurrency} halaman paralel` }}
                         </small>
                     </div>
 
                     <div class="inline-actions">
                         <label class="toggle-switch">
                             <input type="checkbox" v-model="currentForm.enabled" />
-                            <span>{{ currentForm.enabled ? "Agen Aktif" : "Agen Dinonaktifkan" }}</span>
+                            <span>{{ currentForm.enabled ? (activeSlot === 6 ? "Standby Siaga" : "Agen Aktif") : "Agen Dinonaktifkan" }}</span>
                         </label>
 
                         <button
@@ -480,6 +506,14 @@ function copyFromSlot1() {
                             {{ copySuccess ? "Tersalin!" : "Salin dari Agent 1" }}
                         </button>
                     </div>
+                </div>
+
+                <!-- Emergency Fallback Explanatory Banner for Slot 6 -->
+                <div v-if="activeSlot === 6" class="finding-agreement-banner" style="background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; margin-bottom: 16px;">
+                    <ShieldCheck :size="18" style="flex-shrink: 0;" />
+                    <span>
+                        <strong>Peran Agen Cadangan:</strong> Agen ini dalam posisi <em>standby</em> (tidak mengambil tugas antrean rutin) dan akan <strong>otomatis aktif seketika</strong> sebagai *fallback* darurat jika salah satu agen utama terhadang filter pembatasan AI (misalnya <code>finish_reason: recitation</code> dari Google Gemini). Disarankan menggunakan model seperti <strong>claude-sonnet-4-6</strong> atau model non-Gemini lainnya.
+                    </span>
                 </div>
 
                 <!-- Status Banner -->
@@ -550,7 +584,7 @@ function copyFromSlot1() {
                         id="agent-model"
                         v-model="currentForm.model"
                         required
-                        placeholder="Contoh: gemini-2.5-flash atau gpt-4o-mini"
+                        :placeholder="activeSlot === 6 ? 'Contoh: claude-sonnet-4-6 atau gpt-4o' : 'Contoh: gemini-2.5-flash atau gpt-4o-mini'"
                     />
 
                     <label for="agent-api-key">

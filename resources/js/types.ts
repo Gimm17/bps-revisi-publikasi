@@ -153,6 +153,7 @@ export interface AiAgentItem {
     has_api_key: boolean;
     max_concurrency: number;
     updated_at: string | null;
+    is_backup?: boolean;
 }
 
 export interface PageVerificationRecord {

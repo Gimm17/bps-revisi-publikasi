@@ -79,7 +79,7 @@ class AgentOfficeController extends Controller
             ? PublicationPage::whereIn('publication_id', $activePublicationIds)->where('status', 'complete')->count()
             : 0;
 
-        $agents = AiAgent::orderBy('slot')->get()->map(function (AiAgent $agent) use ($hasActiveAudit, $activePublicationIds, $primaryActivePub) {
+        $agents = AiAgent::where('slot', '<=', 5)->orderBy('slot')->get()->map(function (AiAgent $agent) use ($hasActiveAudit, $activePublicationIds, $primaryActivePub) {
             $lifetimeCompletedPages = PublicationPage::where('ai_agent_id', $agent->id)
                 ->where('status', 'complete')
                 ->count();
@@ -198,6 +198,7 @@ class AgentOfficeController extends Controller
         $totalProcessedPages = PublicationPage::where('status', 'complete')->whereNotNull('ai_agent_id')->count();
         $workingAgentsCount = $agents->whereIn('office_status', ['analyzing', 'submitting', 'testing'])->count();
         $standbyReadyCount = $agents->where('enabled', true)->whereNotIn('office_status', ['offline', 'error'])->count();
+        $backupAgent = AiAgent::where('slot', 6)->first();
 
         return [
             'agents' => $agents,
@@ -213,6 +214,14 @@ class AgentOfficeController extends Controller
                 'ready_agents' => $standbyReadyCount,
                 'active_audits' => count($activePublicationIds),
                 'total_pages_processed' => $totalProcessedPages,
+                'backup_agent' => $backupAgent ? [
+                    'id' => $backupAgent->id,
+                    'name' => $backupAgent->name,
+                    'model' => $backupAgent->model,
+                    'enabled' => (bool) $backupAgent->enabled,
+                    'status' => $backupAgent->status,
+                    'is_ready' => $backupAgent->isReady(),
+                ] : null,
             ],
             'server_time' => now()->format('H:i:s'),
         ];

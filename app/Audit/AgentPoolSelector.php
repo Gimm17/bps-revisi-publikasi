@@ -24,12 +24,14 @@ class AgentPoolSelector
             ->where('enabled', true)
             ->where('status', 'ready')
             ->whereNotNull('vision_tested_at')
+            ->where('slot', '<=', 5)
             ->when($excludeAgentId !== null, fn ($q) => $q->where('ai_agents.id', '!=', $excludeAgentId))
             ->get();
 
         if ($agents->isEmpty()) {
             // If no multi-agents attached, check if there are global ready agents
             $globalReady = AiAgent::ready()
+                ->where('slot', '<=', 5)
                 ->when($excludeAgentId !== null, fn ($q) => $q->where('id', '!=', $excludeAgentId))
                 ->orderBy('slot')
                 ->get();

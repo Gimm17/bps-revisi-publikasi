@@ -72,14 +72,28 @@ class NineRouterClient
         $finishReason = $response->json('choices.0.finish_reason');
         $content = $response->json('choices.0.message.content');
 
-        // Automatic model fallback when current model triggers recitation/content filter or returns empty content
+        // Automatic fallback to Agent Cadangan (Slot 6) when current model triggers recitation/content filter or returns empty content
         if (in_array($finishReason, ['content_filter', 'recitation', 'safety', 'block'], true) || (is_string($content) && trim($content) === '')) {
-            $fallbackModel = (string) config('audit.fallback_model', 'claude-sonnet-4-6');
-            if ($fallbackModel !== '' && $fallbackModel !== $config->model()) {
-                \Illuminate\Support\Facades\Log::warning("NineRouterClient: Model {$config->model()} hit filter '{$finishReason}'. Auto-fallback to {$fallbackModel}...");
+            $backupAgent = \App\Models\AiAgent::where('slot', 6)->where('enabled', true)->first();
+            $fallbackUrl = $backupAgent ? rtrim($this->validateUrl($backupAgent->base_url), '/') : $url;
+            $fallbackKey = $backupAgent?->api_key ?? $config->apiKey();
+            $fallbackModel = $backupAgent?->model ?? (string) config('audit.fallback_model', 'claude-sonnet-4-6');
+
+            if ($fallbackModel !== '' && ($fallbackModel !== $config->model() || $fallbackUrl !== $url)) {
+                $agentName = $backupAgent?->name ?? 'Agent Cadangan';
+                \Illuminate\Support\Facades\Log::warning("NineRouterClient: Model {$config->model()} hit filter '{$finishReason}'. Activating {$agentName} ({$fallbackModel} at {$fallbackUrl})...");
                 try {
-                    $fallbackResponse = Http::withToken($config->apiKey())->acceptJson()->withOptions($options)
-                        ->connectTimeout(15)->timeout(config('audit.ai_timeout'))->post($url.'/chat/completions', [
+                    $fallbackOptions = ['allow_redirects' => false];
+                    if (app()->environment('production')) {
+                        $fHost = parse_url($fallbackUrl, PHP_URL_HOST);
+                        $fIps = gethostbynamel($fHost) ?: [];
+                        if (! empty($fIps)) {
+                            $fPort = parse_url($fallbackUrl, PHP_URL_PORT) ?: 443;
+                            $fallbackOptions['curl'] = [CURLOPT_RESOLVE => ["$fHost:$fPort:{$fIps[0]}"]];
+                        }
+                    }
+                    $fallbackResponse = Http::withToken($fallbackKey)->acceptJson()->withOptions($fallbackOptions)
+                        ->connectTimeout(15)->timeout(config('audit.ai_timeout'))->post($fallbackUrl.'/chat/completions', [
                             'model' => $fallbackModel,
                             'messages' => $messages,
                         ]);
@@ -87,14 +101,14 @@ class NineRouterClient
                         $fallbackFinish = $fallbackResponse->json('choices.0.finish_reason');
                         $fallbackContent = $fallbackResponse->json('choices.0.message.content');
                         if (! in_array($fallbackFinish, ['content_filter', 'recitation', 'safety', 'block'], true) && is_string($fallbackContent) && trim($fallbackContent) !== '') {
-                            \Illuminate\Support\Facades\Log::info("NineRouterClient: Fallback model {$fallbackModel} succeeded.");
+                            \Illuminate\Support\Facades\Log::info("NineRouterClient: {$agentName} ({$fallbackModel}) succeeded.");
                             $response = $fallbackResponse;
                             $finishReason = $fallbackFinish;
                             $content = $fallbackContent;
                         }
                     }
                 } catch (\Throwable $e) {
-                    \Illuminate\Support\Facades\Log::error("NineRouterClient: Fallback to {$fallbackModel} failed: ".$e->getMessage());
+                    \Illuminate\Support\Facades\Log::error("NineRouterClient: {$agentName} ({$fallbackModel}) failed: ".$e->getMessage());
                 }
             }
         }

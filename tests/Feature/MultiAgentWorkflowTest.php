@@ -183,4 +183,159 @@ class MultiAgentWorkflowTest extends TestCase
         $this->assertNotNull($selected2);
         $this->assertNotSame($selected1->agentId(), $selected2->agentId());
     }
+
+    public function test_admin_can_save_and_copy_slot_6_backup_agent(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        // Save Agent 1
+        $this->actingAs($admin)->post('/settings/ai-agents/1', [
+            'name' => 'Agent 1 (Utama)',
+            'base_url' => 'https://api.9router.com/v1',
+            'api_key' => 'secret-key-1',
+            'model' => 'gemini-3.8-flash',
+            'enabled' => true,
+            'max_concurrency' => 2,
+        ])->assertSessionHasNoErrors();
+
+        // Save Agent 6 (Cadangan) directly
+        $response = $this->actingAs($admin)->post('/settings/ai-agents/6', [
+            'name' => 'Agent Cadangan (Standby)',
+            'base_url' => 'https://api.limitrouter.com/v1',
+            'api_key' => 'secret-claude-key',
+            'model' => 'claude-sonnet-4-6',
+            'enabled' => true,
+            'max_concurrency' => 1,
+        ]);
+        $response->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('ai_agents', [
+            'slot' => 6,
+            'name' => 'Agent Cadangan (Standby)',
+            'model' => 'claude-sonnet-4-6',
+            'enabled' => true,
+        ]);
+
+        // Test copy from Slot 1 to Slot 6
+        $copyResponse = $this->actingAs($admin)->post('/settings/ai-agents/copy', [
+            'from_slot' => 1,
+            'to_slot' => 6,
+        ]);
+        $copyResponse->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('ai_agents', [
+            'slot' => 6,
+            'base_url' => 'https://api.9router.com/v1',
+            'name' => 'Agent Cadangan (Standby)',
+            'model' => 'claude-sonnet-4-6',
+        ]);
+    }
+
+    public function test_agent_pool_selector_excludes_slot_6_backup_agent_from_regular_distribution(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $agent1 = AiAgent::create([
+            'slot' => 1,
+            'name' => 'Agent 1',
+            'base_url' => 'https://api.9router.com/v1',
+            'api_key' => 'k1',
+            'model' => 'm1',
+            'enabled' => true,
+            'status' => 'ready',
+            'vision_tested_at' => now(),
+            'created_by' => $admin->id,
+        ]);
+        $agentBackup = AiAgent::create([
+            'slot' => 6,
+            'name' => 'Agent Cadangan',
+            'base_url' => 'https://api.limitrouter.com/v1',
+            'api_key' => 'k_backup',
+            'model' => 'claude-sonnet-4-6',
+            'enabled' => true,
+            'status' => 'ready',
+            'vision_tested_at' => now(),
+            'created_by' => $admin->id,
+        ]);
+
+        $pub = Publication::create([
+            'owner_id' => $admin->id,
+            'title' => 'Test',
+            'region' => 'Reg',
+            'year' => 2026,
+            'kind' => 'kcda',
+            'pdf_path' => 'p.pdf',
+            'pdf_name' => 'p.pdf',
+            'pdf_checksum' => 'c',
+            'template_path' => 't.xlsx',
+            'template_name' => 't.xlsx',
+            'template_checksum' => 'c',
+            'page_count' => 4,
+            'manifest' => ['pages' => []],
+            'rule_version' => 'v2',
+        ]);
+
+        $selector = app(AgentPoolSelector::class);
+        $selected = $selector->selectAgent($pub);
+
+        // Must select Agent 1, NOT the backup agent (Slot 6)
+        $this->assertSame($agent1->id, $selected->agentId());
+    }
+
+    public function test_nine_router_client_activates_configured_backup_agent_on_recitation_filter(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $agent1 = AiAgent::create([
+            'slot' => 1,
+            'name' => 'Agent 1',
+            'base_url' => 'https://api.9router.com/v1',
+            'api_key' => 'k1',
+            'model' => 'gemini-3.8-flash',
+            'enabled' => true,
+            'status' => 'ready',
+            'vision_tested_at' => now(),
+            'created_by' => $admin->id,
+        ]);
+        $agentBackup = AiAgent::create([
+            'slot' => 6,
+            'name' => 'Agent Cadangan',
+            'base_url' => 'https://api.limitrouter.com/v1',
+            'api_key' => 'k_claude',
+            'model' => 'claude-sonnet-4-6',
+            'enabled' => true,
+            'status' => 'ready',
+            'vision_tested_at' => now(),
+            'created_by' => $admin->id,
+        ]);
+
+        Http::fake([
+            'https://api.9router.com/v1/chat/completions' => Http::response([
+                'id' => 'req-gemini',
+                'choices' => [
+                    [
+                        'finish_reason' => 'recitation',
+                        'message' => ['content' => ''],
+                    ],
+                ],
+            ], 200),
+            'https://api.limitrouter.com/v1/chat/completions' => Http::response([
+                'id' => 'req-claude-backup',
+                'model' => 'claude-sonnet-4-6',
+                'choices' => [
+                    [
+                        'finish_reason' => 'stop',
+                        'message' => ['content' => json_encode(['page_type' => 'content', 'readability' => 'readable', 'findings' => []])],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $client = app(NineRouterClient::class);
+        $response = $client->request($agent1, [
+            ['role' => 'user', 'content' => 'test prompt'],
+        ]);
+
+        // Backup agent was activated, giving claude-sonnet-4-6 result
+        $this->assertSame('claude-sonnet-4-6', $response['model']);
+        $this->assertSame('readable', $response['result']['readability']);
+    }
 }

@@ -23,7 +23,7 @@ class AuditCoordinator
         if (in_array($publication->status, ['review_ready', 'final'], true)) {
             return;
         }
-        $readyAgents = AiAgent::ready()->get();
+        $readyAgents = AiAgent::ready()->where('slot', '<=', 5)->get();
         $config = $publication->aiConfig ?? AiProviderConfig::latest('id')->first();
         if ($readyAgents->isEmpty() && ! $config?->vision_tested_at) {
             throw ValidationException::withMessages(['ai' => 'Admin perlu mengatur AI Agent dan meluluskan uji pembacaan gambar pada minimal 1 agent terlebih dahulu.']);
@@ -74,7 +74,7 @@ class AuditCoordinator
             if ($pub->status !== 'partial_failure' || $pub->locked_at || $pub->pages()->whereIn('status', ['rendering', 'analyzing'])->exists()) {
                 throw ValidationException::withMessages(['ai' => 'Pergantian koneksi hanya dapat dilakukan setelah proses gagal dan tidak ada halaman yang sedang dibaca.']);
             }
-            $readyAgents = AiAgent::ready()->get();
+            $readyAgents = AiAgent::ready()->where('slot', '<=', 5)->get();
             $config = AiProviderConfig::latest('id')->first();
             if ($readyAgents->isEmpty() && ! $config?->vision_tested_at) {
                 throw ValidationException::withMessages(['ai' => 'Admin perlu menyimpan dan meluluskan uji koneksi AI baru terlebih dahulu.']);
