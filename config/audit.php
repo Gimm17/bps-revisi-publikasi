@@ -21,7 +21,7 @@ return [
     'dpi' => 160,
     'high_dpi' => 240,
     'ai_timeout' => 180,
-    'ai_concurrency' => (int) env('AUDIT_AI_CONCURRENCY', 2),
+    'ai_concurrency' => (int) env('AUDIT_AI_CONCURRENCY', 5),
     'allowed_ai_hosts' => array_filter(explode(',', env('AI_ALLOWED_HOSTS', '9router.com,api.9router.com,limitrouter.com,api.limitrouter.com'))),
     'chatgpt_plan_enabled' => false,
 ];
