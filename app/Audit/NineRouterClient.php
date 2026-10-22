@@ -70,10 +70,38 @@ class NineRouterClient
             throw new AiRequestException('Penyedia AI mengembalikan status HTTP '.$status.'. Periksa koneksi, model, atau kuota.', 'http_'.$status, in_array($status, [408, 425, 429], true) || $status >= 500, $delay);
         }
         $finishReason = $response->json('choices.0.finish_reason');
+        $content = $response->json('choices.0.message.content');
+
+        // Automatic model fallback when current model triggers recitation/content filter or returns empty content
+        if (in_array($finishReason, ['content_filter', 'recitation', 'safety', 'block'], true) || (is_string($content) && trim($content) === '')) {
+            $fallbackModel = (string) config('audit.fallback_model', 'claude-sonnet-4-6');
+            if ($fallbackModel !== '' && $fallbackModel !== $config->model()) {
+                \Illuminate\Support\Facades\Log::warning("NineRouterClient: Model {$config->model()} hit filter '{$finishReason}'. Auto-fallback to {$fallbackModel}...");
+                try {
+                    $fallbackResponse = Http::withToken($config->apiKey())->acceptJson()->withOptions($options)
+                        ->connectTimeout(15)->timeout(config('audit.ai_timeout'))->post($url.'/chat/completions', [
+                            'model' => $fallbackModel,
+                            'messages' => $messages,
+                        ]);
+                    if ($fallbackResponse->successful()) {
+                        $fallbackFinish = $fallbackResponse->json('choices.0.finish_reason');
+                        $fallbackContent = $fallbackResponse->json('choices.0.message.content');
+                        if (! in_array($fallbackFinish, ['content_filter', 'recitation', 'safety', 'block'], true) && is_string($fallbackContent) && trim($fallbackContent) !== '') {
+                            \Illuminate\Support\Facades\Log::info("NineRouterClient: Fallback model {$fallbackModel} succeeded.");
+                            $response = $fallbackResponse;
+                            $finishReason = $fallbackFinish;
+                            $content = $fallbackContent;
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error("NineRouterClient: Fallback to {$fallbackModel} failed: ".$e->getMessage());
+                }
+            }
+        }
+
         if (in_array($finishReason, ['length', 'content_filter', 'recitation', 'safety', 'block'], true)) {
             throw new AiRequestException('Respons AI terpotong atau dibatasi oleh filter keamanan/recitation ('.$finishReason.'). Halaman belum dianggap selesai.', 'truncated', true, 5);
         }
-        $content = $response->json('choices.0.message.content');
         if (! is_string($content) || str_contains($content, '[image omitted')) {
             throw new AiRequestException('Model/rute tidak mengembalikan pembacaan gambar yang valid.', 'image');
         }

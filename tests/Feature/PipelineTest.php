@@ -89,6 +89,12 @@ class PipelineTest extends TestCase
     {
         $pub = $this->setupPub();
         $page = $pub->pages()->first();
+        // Mark remaining pages complete so batch completion logic is tested on final unreadable page
+        $pub->pages()->where('id', '!=', $page->id)->update([
+            'status' => 'complete',
+            'result' => json_encode($this->pageResult(2)),
+            'completed_at' => now(),
+        ]);
         app()->call([new RenderPage($page->id), 'handle']);
         Http::fake(['*' => Http::response(['choices' => [['message' => ['content' => json_encode($this->pageResult(1, ['readability' => 'unreadable']))]]]])]);
         app()->call([new AnalyzePage($page->id), 'handle']);

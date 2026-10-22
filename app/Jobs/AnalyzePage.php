@@ -90,7 +90,8 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
             return;
         }
 
-        $endpoint = $poolSelector->selectAgent($publication);
+        $excludeAgentId = ($page->attempts > 0 && $page->ai_agent_id) ? (int) $page->ai_agent_id : null;
+        $endpoint = $poolSelector->selectAgent($publication, $excludeAgentId) ?? $poolSelector->selectAgent($publication);
         if (! $endpoint) {
             $exception = new AiRequestException('Tidak ada Agen AI yang siap membaca gambar. Periksa menu Pengaturan Agen AI.', 'configuration');
             $this->failed($exception);
