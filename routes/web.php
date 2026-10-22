@@ -61,6 +61,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/settings/ai-agents/copy', [SettingsController::class, 'copyAgent']);
     Route::post('/settings/ai-agents/test-all', [SettingsController::class, 'testAllAiAgents'])->middleware('throttle:10,1');
     Route::get('/settings/ai-agents/status', [SettingsController::class, 'aiAgentsStatus']);
+    Route::get('/settings/ai-telemetry', [SettingsController::class, 'aiTelemetry']);
     Route::post('/settings/ai-agents/{slot}', [SettingsController::class, 'saveAiAgent']);
     Route::post('/settings/ai-agents/{agent}/test', [SettingsController::class, 'testAiAgent'])->middleware('throttle:10,1');
     Route::post('/settings/reference-provider', [SettingsController::class, 'saveReferenceProvider']);

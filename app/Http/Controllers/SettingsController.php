@@ -14,6 +14,7 @@ use App\Models\AiUsageRecord;
 use App\Models\AuditEvent;
 use App\Models\ReferenceProviderConfig;
 use App\Models\User;
+use App\Services\AiTelemetryService;
 use App\Services\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -85,6 +86,7 @@ class SettingsController extends Controller
             'ai' => AiProviderConfig::latest('id')->first()?->only('id', 'base_url', 'model', 'tested_at', 'vision_tested_at', 'updated_at'),
             'reference_provider' => ReferenceProviderConfig::latest('id')->first()?->only('id', 'provider', 'endpoint', 'is_ready', 'tested_at', 'updated_at'),
             'events' => AuditEvent::latest()->limit(100)->get(),
+            'telemetry' => app(AiTelemetryService::class)->getReport('7d'),
             'health' => ['queue' => DB::table('jobs')->count(), 'failed' => DB::table('failed_jobs')->count(), 'usage' => AiUsageRecord::count(), 'driver' => config('queue.default'), 'disk_free_mb' => (int) (disk_free_space(storage_path()) / 1048576)],
         ]);
     }
@@ -346,5 +348,16 @@ class SettingsController extends Controller
         );
 
         return back()->with('success', "Konfigurasi disalin dari Agent {$data['from_slot']} ke {$targetName}.");
+    }
+
+    public function aiTelemetry(Request $request, AiTelemetryService $telemetry): JsonResponse
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+        $range = (string) $request->query('range', '7d');
+        if (! in_array($range, ['24h', '3d', '7d', '30d', 'all'], true)) {
+            $range = '7d';
+        }
+
+        return response()->json($telemetry->getReport($range));
     }
 }

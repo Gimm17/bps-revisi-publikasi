@@ -1,9 +1,31 @@
 <script setup lang="ts">
 import { Head, useForm, router } from "@inertiajs/vue3";
 import { ref, computed, onUnmounted, watch } from "vue";
-import { Plus, Save, FlaskConical, ShieldCheck, Server, Copy, Check, AlertCircle, RefreshCw } from "lucide-vue-next";
+import {
+    Plus,
+    Save,
+    FlaskConical,
+    ShieldCheck,
+    Server,
+    Copy,
+    Check,
+    AlertCircle,
+    RefreshCw,
+    Activity,
+    Zap,
+    Coins,
+    CheckCircle2,
+    Clock,
+    Bot,
+    TrendingUp,
+    BarChart2,
+    Filter,
+    Layers,
+    Cpu,
+    ArrowUpRight,
+} from "lucide-vue-next";
 import AppLayout from "../Layouts/AppLayout.vue";
-import type { Employee, AiAgentItem } from "../types";
+import type { Employee, AiAgentItem, AiTelemetryData, AiTelemetryTimelinePoint } from "../types";
 
 const props = defineProps<{
     users: Employee[];
@@ -28,6 +50,7 @@ const props = defineProps<{
         created_at: string;
         details: unknown;
     }[];
+    telemetry?: AiTelemetryData;
     health: {
         queue: number;
         failed: number;
@@ -295,6 +318,211 @@ function formatDiskSpace(mb: number): string {
     }
     return `${mb.toLocaleString('id-ID')} MB`;
 }
+
+// Telemetry & Cost Monitoring State
+const currentTelemetry = ref<AiTelemetryData | null>(props.telemetry ?? null);
+const activeRange = ref<'24h' | '3d' | '7d' | '30d' | 'all'>(props.telemetry?.range ?? '7d');
+const activeMetric = ref<'requests' | 'tokens' | 'cost' | 'latency' | 'failures'>('requests');
+const loadingTelemetry = ref(false);
+const hoveredPointIndex = ref<number | null>(null);
+
+async function fetchTelemetry(range: '24h' | '3d' | '7d' | '30d' | 'all') {
+    activeRange.value = range;
+    loadingTelemetry.value = true;
+    hoveredPointIndex.value = null;
+    try {
+        const res = await fetch(`/settings/ai-telemetry?range=${range}`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        });
+        if (res.ok) {
+            currentTelemetry.value = await res.json();
+        }
+    } catch (e) {
+        console.error('Gagal memuat telemetri AI', e);
+    } finally {
+        loadingTelemetry.value = false;
+    }
+}
+
+// Chart configuration
+const chartMetrics: Record<string, {
+    label: string;
+    unit: string;
+    color: string;
+    fillColor: string;
+    getValue: (p: AiTelemetryTimelinePoint) => number;
+    formatValue: (v: number) => string;
+}> = {
+    requests: {
+        label: 'Permintaan AI',
+        unit: 'req',
+        color: '#009B77',
+        fillColor: 'rgba(0, 155, 119, 0.16)',
+        getValue: (p) => p.requests,
+        formatValue: (v) => `${formatNumber(v)} req`,
+    },
+    tokens: {
+        label: 'Konsumsi Token',
+        unit: 'token',
+        color: '#4f46e5',
+        fillColor: 'rgba(79, 70, 229, 0.14)',
+        getValue: (p) => p.tokens,
+        formatValue: (v) => formatTokens(v),
+    },
+    cost: {
+        label: 'Perkiraan Biaya (IDR)',
+        unit: 'IDR',
+        color: '#d97706',
+        fillColor: 'rgba(217, 119, 6, 0.14)',
+        getValue: (p) => p.cost_idr,
+        formatValue: (v) => formatIdr(v),
+    },
+    latency: {
+        label: 'Rata-rata Latensi',
+        unit: 'dtk',
+        color: '#0284c7',
+        fillColor: 'rgba(2, 132, 199, 0.14)',
+        getValue: (p) => (p.avg_duration_ms / 1000),
+        formatValue: (v) => `${v.toFixed(1)} dtk`,
+    },
+    failures: {
+        label: 'Permintaan Gagal',
+        unit: 'gagal',
+        color: '#e11d48',
+        fillColor: 'rgba(225, 29, 72, 0.14)',
+        getValue: (p) => p.failures,
+        formatValue: (v) => `${formatNumber(v)} gagal`,
+    },
+};
+
+const currentMetricConfig = computed(() => chartMetrics[activeMetric.value]);
+
+// SVG dimensions
+const svgWidth = 840;
+const svgHeight = 260;
+const chartPad = { top: 25, right: 35, bottom: 40, left: 60 };
+const chartW = svgWidth - chartPad.left - chartPad.right;
+const chartH = svgHeight - chartPad.top - chartPad.bottom;
+
+const chartPoints = computed(() => {
+    const timeline = currentTelemetry.value?.timeline ?? [];
+    if (!timeline.length) return [];
+
+    const getter = currentMetricConfig.value.getValue;
+    const values = timeline.map(getter);
+    const maxVal = Math.max(...values, activeMetric.value === 'latency' ? 5 : (activeMetric.value === 'failures' ? 3 : 1));
+    const minVal = 0;
+    const range = maxVal - minVal || 1;
+
+    return timeline.map((pt, i) => {
+        const val = getter(pt);
+        const x = chartPad.left + (timeline.length === 1 ? chartW / 2 : (i / (timeline.length - 1)) * chartW);
+        const y = chartPad.top + chartH - ((val - minVal) / range) * chartH;
+        return {
+            x: Math.round(x * 10) / 10,
+            y: Math.round(y * 10) / 10,
+            val,
+            point: pt,
+            index: i,
+        };
+    });
+});
+
+const chartMaxY = computed(() => {
+    const timeline = currentTelemetry.value?.timeline ?? [];
+    if (!timeline.length) return 1;
+    const getter = currentMetricConfig.value.getValue;
+    const values = timeline.map(getter);
+    return Math.max(...values, activeMetric.value === 'latency' ? 5 : (activeMetric.value === 'failures' ? 3 : 1));
+});
+
+const chartYLabels = computed(() => {
+    const max = chartMaxY.value;
+    const steps = 4;
+    const labels = [];
+    for (let i = 0; i <= steps; i++) {
+        const val = (max / steps) * i;
+        const y = chartPad.top + chartH - (i / steps) * chartH;
+        let formatted = '';
+        if (activeMetric.value === 'cost') {
+            formatted = val >= 1000 ? `${Math.round(val / 1000)}k` : `${Math.round(val)}`;
+        } else if (activeMetric.value === 'tokens') {
+            formatted = val >= 1_000_000 ? `${(val / 1_000_000).toFixed(1)}M` : (val >= 1000 ? `${Math.round(val / 1000)}k` : `${Math.round(val)}`);
+        } else if (activeMetric.value === 'latency') {
+            formatted = `${val.toFixed(1)}s`;
+        } else {
+            formatted = val >= 1000 ? `${(val / 1000).toFixed(1)}k` : `${Math.round(val)}`;
+        }
+        labels.push({ val, y, formatted });
+    }
+    return labels;
+});
+
+const chartPaths = computed(() => {
+    const pts = chartPoints.value;
+    if (!pts.length) return { line: '', area: '' };
+    if (pts.length === 1) {
+        const p = pts[0];
+        const line = `M ${p.x - 30} ${p.y} L ${p.x + 30} ${p.y}`;
+        const area = `M ${p.x - 30} ${chartPad.top + chartH} L ${p.x - 30} ${p.y} L ${p.x + 30} ${p.y} L ${p.x + 30} ${chartPad.top + chartH} Z`;
+        return { line, area };
+    }
+
+    let line = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 1; i < pts.length; i++) {
+        const prev = pts[i - 1];
+        const curr = pts[i];
+        const cx1 = prev.x + (curr.x - prev.x) / 2;
+        const cy1 = prev.y;
+        const cx2 = prev.x + (curr.x - prev.x) / 2;
+        const cy2 = curr.y;
+        line += ` C ${cx1.toFixed(1)} ${cy1.toFixed(1)}, ${cx2.toFixed(1)} ${cy2.toFixed(1)}, ${curr.x.toFixed(1)} ${curr.y.toFixed(1)}`;
+    }
+
+    const first = pts[0];
+    const last = pts[pts.length - 1];
+    const baselineY = chartPad.top + chartH;
+    const area = `${line} L ${last.x} ${baselineY} L ${first.x} ${baselineY} Z`;
+
+    return { line, area };
+});
+
+const activeHoveredPoint = computed(() => {
+    if (hoveredPointIndex.value === null) return null;
+    return chartPoints.value[hoveredPointIndex.value] ?? null;
+});
+
+function formatNumber(num: number | undefined | null): string {
+    return (num ?? 0).toLocaleString('id-ID');
+}
+
+function formatTokens(tokens: number | undefined | null): string {
+    if (!tokens) return '0 Token';
+    if (tokens >= 1_000_000) {
+        return (tokens / 1_000_000).toFixed(2) + ' Jt';
+    }
+    if (tokens >= 1_000) {
+        return (tokens / 1_000).toFixed(1) + ' Rb';
+    }
+    return tokens.toLocaleString('id-ID');
+}
+
+function formatIdr(idr: number | undefined | null): string {
+    return 'Rp ' + Math.round(idr ?? 0).toLocaleString('id-ID');
+}
+
+function formatUsd(usd: number | undefined | null): string {
+    return '$' + (usd ?? 0).toFixed(4);
+}
+
+function formatDuration(ms: number | undefined | null): string {
+    if (!ms) return '0 dtk';
+    if (ms < 1000) return `${ms} ms`;
+    return `${(ms / 1000).toFixed(1)} dtk`;
+}
 </script>
 <template>
     <Head title="Pengaturan" /><AppLayout
@@ -307,6 +535,7 @@ function formatDiskSpace(mb: number): string {
                 v-for="(text, key) in {
                     users: 'Pegawai',
                     ai: 'Koneksi AI',
+                    telemetry: 'Pemantauan & Biaya AI',
                     system: 'Sistem',
                 }"
                 :key="key"
@@ -634,6 +863,528 @@ function formatDiskSpace(mb: number): string {
                         </button>
                     </div>
                 </form>
+            </div>
+        </section>
+        <section v-if="tab === 'telemetry'" class="settings-panel telemetry-panel">
+            <!-- Header bar with title, range pills, and refresh button -->
+            <div class="telemetry-header">
+                <div>
+                    <div class="telemetry-badge-live">
+                        <span class="live-dot"></span>
+                        <span>Telemetri Aktivitas & Biaya AI</span>
+                    </div>
+                    <h2>Pemantauan & Penggunaan AI</h2>
+                    <p>
+                        Analisis lengkap beban kerja model, konsumsi token, perkiraan biaya (USD & IDR), serta keandalan respons multi-agen.
+                    </p>
+                </div>
+                <div class="telemetry-actions">
+                    <!-- Range Selector Pills -->
+                    <div class="telemetry-range-group" role="group" aria-label="Rentang Waktu">
+                        <button
+                            v-for="r in [
+                                { id: '24h', label: '24 Jam' },
+                                { id: '3d', label: '3 Hari' },
+                                { id: '7d', label: '7 Hari' },
+                                { id: '30d', label: '30 Hari' },
+                                { id: 'all', label: 'Semua' }
+                            ]"
+                            :key="r.id"
+                            type="button"
+                            class="range-pill-btn"
+                            :class="{ active: activeRange === r.id }"
+                            :disabled="loadingTelemetry"
+                            @click="fetchTelemetry(r.id as any)"
+                        >
+                            {{ r.label }}
+                        </button>
+                    </div>
+                    <button
+                        type="button"
+                        class="button secondary telemetry-refresh-btn"
+                        :disabled="loadingTelemetry"
+                        @click="fetchTelemetry(activeRange)"
+                        title="Muat ulang data telemetri"
+                    >
+                        <RefreshCw :size="15" :class="{ 'spin-anim': loadingTelemetry }" />
+                        <span>{{ loadingTelemetry ? 'Memuat...' : 'Segarkan' }}</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 6 KPI Metric Cards Grid -->
+            <div class="telemetry-kpi-grid">
+                <!-- Card 1: Total Requests -->
+                <div class="telemetry-kpi-card">
+                    <div class="kpi-card-header">
+                        <div class="kpi-icon-wrap emerald">
+                            <Activity :size="20" />
+                        </div>
+                        <span class="kpi-badge emerald" v-if="currentTelemetry?.summary?.success_rate">
+                            {{ currentTelemetry.summary.success_rate }}% Sukses
+                        </span>
+                    </div>
+                    <div class="kpi-body">
+                        <span class="kpi-label">Total Permintaan AI</span>
+                        <strong class="kpi-value">{{ formatNumber(currentTelemetry?.summary?.total_requests) }}</strong>
+                        <div class="kpi-subtext">
+                            <span class="text-emerald">✓ {{ formatNumber(currentTelemetry?.summary?.success_requests) }} Sukses</span>
+                            <span v-if="currentTelemetry?.summary?.failed_requests" class="text-rose">· ✕ {{ formatNumber(currentTelemetry?.summary?.failed_requests) }} Gagal</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Token Consumption -->
+                <div class="telemetry-kpi-card">
+                    <div class="kpi-card-header">
+                        <div class="kpi-icon-wrap indigo">
+                            <Zap :size="20" />
+                        </div>
+                        <span class="kpi-badge neutral">
+                            {{ formatTokens(currentTelemetry?.summary?.total_tokens) }}
+                        </span>
+                    </div>
+                    <div class="kpi-body">
+                        <span class="kpi-label">Total Token Diproses</span>
+                        <strong class="kpi-value">{{ formatNumber(currentTelemetry?.summary?.total_tokens) }}</strong>
+                        <div class="kpi-subtext">
+                            <span>In: {{ formatTokens(currentTelemetry?.summary?.total_prompt_tokens) }}</span>
+                            <span>· Out: {{ formatTokens(currentTelemetry?.summary?.total_completion_tokens) }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Estimated Cost (IDR & USD) -->
+                <div class="telemetry-kpi-card highlight-cost">
+                    <div class="kpi-card-header">
+                        <div class="kpi-icon-wrap amber">
+                            <Coins :size="20" />
+                        </div>
+                        <span class="kpi-badge amber">
+                            {{ formatUsd(currentTelemetry?.summary?.estimated_cost_usd) }}
+                        </span>
+                    </div>
+                    <div class="kpi-body">
+                        <span class="kpi-label">Perkiraan Biaya (IDR)</span>
+                        <strong class="kpi-value cost-value">{{ formatIdr(currentTelemetry?.summary?.estimated_cost_idr) }}</strong>
+                        <div class="kpi-subtext">
+                            <span>USD {{ formatUsd(currentTelemetry?.summary?.estimated_cost_usd) }} · Kurs Rp 16.000</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 4: Avg Tokens Per Req -->
+                <div class="telemetry-kpi-card">
+                    <div class="kpi-card-header">
+                        <div class="kpi-icon-wrap purple">
+                            <Layers :size="20" />
+                        </div>
+                        <span class="kpi-badge neutral">
+                            Efisiensi Prompt
+                        </span>
+                    </div>
+                    <div class="kpi-body">
+                        <span class="kpi-label">Rata-rata Token / Req</span>
+                        <strong class="kpi-value">{{ formatNumber(currentTelemetry?.summary?.avg_tokens_per_request) }}</strong>
+                        <div class="kpi-subtext">
+                            <span>Beban token rata-rata per panggilan</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 5: Avg Latency -->
+                <div class="telemetry-kpi-card">
+                    <div class="kpi-card-header">
+                        <div class="kpi-icon-wrap sky">
+                            <Clock :size="20" />
+                        </div>
+                        <span class="kpi-badge neutral">
+                            Kecepatan
+                        </span>
+                    </div>
+                    <div class="kpi-body">
+                        <span class="kpi-label">Rata-rata Waktu Respons</span>
+                        <strong class="kpi-value">{{ formatDuration(currentTelemetry?.summary?.avg_duration_ms) }}</strong>
+                        <div class="kpi-subtext">
+                            <span>Durasi inferensi & transfer data AI</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 6: Standby / Active Multi-Agent Status -->
+                <div class="telemetry-kpi-card">
+                    <div class="kpi-card-header">
+                        <div class="kpi-icon-wrap ink">
+                            <Bot :size="20" />
+                        </div>
+                        <span class="kpi-badge standby">
+                            Slot 6 Standby
+                        </span>
+                    </div>
+                    <div class="kpi-body">
+                        <span class="kpi-label">Kapasitas Multi-Agen</span>
+                        <strong class="kpi-value">5 Aktif + 1 Cadangan</strong>
+                        <div class="kpi-subtext">
+                            <span>Batas kuota 25 RPM terlindungi</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Trend Chart Section -->
+            <div class="telemetry-chart-container">
+                <div class="chart-header-bar">
+                    <div>
+                        <h3 class="chart-title">Grafik Tren Aktivitas AI</h3>
+                        <span class="chart-subtitle">
+                            {{ activeRange === '24h' ? 'Rincian per jam selama 24 jam terakhir' : `Rincian per hari (${activeRange === 'all' ? 'seluruh waktu' : activeRange})` }}
+                        </span>
+                    </div>
+                    <!-- Metric tabs -->
+                    <div class="chart-metric-tabs">
+                        <button
+                            v-for="(cfg, key) in chartMetrics"
+                            :key="key"
+                            type="button"
+                            class="chart-metric-tab"
+                            :class="{ active: activeMetric === key }"
+                            @click="activeMetric = key as any; hoveredPointIndex = null"
+                        >
+                            <span class="tab-indicator" :style="{ backgroundColor: cfg.color }"></span>
+                            <span>{{ cfg.label }}</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SVG Chart Wrapper -->
+                <div class="chart-svg-wrapper">
+                    <svg
+                        :viewBox="`0 0 ${svgWidth} ${svgHeight}`"
+                        class="telemetry-svg"
+                        preserveAspectRatio="none"
+                        @mouseleave="hoveredPointIndex = null"
+                    >
+                        <defs>
+                            <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" :stop-color="currentMetricConfig.color" stop-opacity="0.32" />
+                                <stop offset="100%" :stop-color="currentMetricConfig.color" stop-opacity="0.01" />
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Horizontal grid lines & Y labels -->
+                        <g class="chart-grid">
+                            <line
+                                v-for="(lbl, idx) in chartYLabels"
+                                :key="idx"
+                                :x1="chartPad.left"
+                                :y1="lbl.y"
+                                :x2="svgWidth - chartPad.right"
+                                :y2="lbl.y"
+                                stroke="#e5e1d8"
+                                stroke-dasharray="3 3"
+                                stroke-width="1"
+                            />
+                            <text
+                                v-for="(lbl, idx) in chartYLabels"
+                                :key="'t-' + idx"
+                                :x="chartPad.left - 10"
+                                :y="lbl.y + 4"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#7c736e"
+                                font-family="monospace"
+                            >
+                                {{ lbl.formatted }}
+                            </text>
+                        </g>
+
+                        <!-- Area fill -->
+                        <path
+                            v-if="chartPaths.area"
+                            :d="chartPaths.area"
+                            fill="url(#chartGradient)"
+                        />
+
+                        <!-- Stroke Line -->
+                        <path
+                            v-if="chartPaths.line"
+                            :d="chartPaths.line"
+                            fill="none"
+                            :stroke="currentMetricConfig.color"
+                            stroke-width="2.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+
+                        <!-- Data point dots -->
+                        <g v-if="chartPoints.length <= 32">
+                            <circle
+                                v-for="(pt, idx) in chartPoints"
+                                :key="idx"
+                                :cx="pt.x"
+                                :cy="pt.y"
+                                :r="hoveredPointIndex === idx ? 6 : 3"
+                                :fill="hoveredPointIndex === idx ? '#ffffff' : currentMetricConfig.color"
+                                :stroke="currentMetricConfig.color"
+                                :stroke-width="hoveredPointIndex === idx ? 3 : 1.5"
+                                class="chart-dot"
+                            />
+                        </g>
+
+                        <!-- Vertical cursor line when hovered -->
+                        <line
+                            v-if="activeHoveredPoint"
+                            :x1="activeHoveredPoint.x"
+                            :y1="chartPad.top"
+                            :x2="activeHoveredPoint.x"
+                            :y2="chartPad.top + chartH"
+                            :stroke="currentMetricConfig.color"
+                            stroke-width="1.5"
+                            stroke-dasharray="4 3"
+                            opacity="0.8"
+                        />
+
+                        <!-- X Axis labels -->
+                        <g class="chart-x-labels">
+                            <text
+                                v-for="(pt, idx) in chartPoints.filter((_, i) => i % Math.max(1, Math.floor(chartPoints.length / 8)) === 0 || i === chartPoints.length - 1)"
+                                :key="'x-' + idx"
+                                :x="pt.x"
+                                :y="svgHeight - 12"
+                                text-anchor="middle"
+                                font-size="11"
+                                fill="#7c736e"
+                                font-family="monospace"
+                            >
+                                {{ pt.point.label }}
+                            </text>
+                        </g>
+
+                        <!-- Invisible full-height hitboxes for smooth hovering -->
+                        <rect
+                            v-for="(pt, idx) in chartPoints"
+                            :key="'hit-' + idx"
+                            :x="idx === 0 ? chartPad.left : pt.x - ((pt.x - chartPoints[idx-1].x) / 2)"
+                            :y="chartPad.top"
+                            :width="chartPoints.length === 1 ? chartW : (idx === chartPoints.length - 1 ? (svgWidth - chartPad.right - pt.x) + ((pt.x - chartPoints[idx-1].x) / 2) : (chartPoints[idx+1].x - pt.x))"
+                            :height="chartH"
+                            fill="transparent"
+                            style="cursor: pointer;"
+                            @mouseenter="hoveredPointIndex = idx"
+                        />
+                    </svg>
+
+                    <!-- Floating Interactive Tooltip -->
+                    <div
+                        v-if="activeHoveredPoint"
+                        class="chart-floating-tooltip"
+                        :style="{
+                            left: `${(activeHoveredPoint.x / svgWidth) * 100}%`,
+                            top: `${(activeHoveredPoint.y / svgHeight) * 100}%`
+                        }"
+                    >
+                        <div class="tooltip-header">
+                            <Clock :size="12" />
+                            <strong>{{ activeHoveredPoint.point.full_date }}</strong>
+                        </div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Permintaan:</span>
+                            <strong class="tooltip-value">{{ formatNumber(activeHoveredPoint.point.requests) }} req</strong>
+                        </div>
+                        <div v-if="activeHoveredPoint.point.failures > 0" class="tooltip-row text-rose">
+                            <span class="tooltip-label">Gagal:</span>
+                            <strong class="tooltip-value">{{ activeHoveredPoint.point.failures }} req</strong>
+                        </div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Token:</span>
+                            <strong class="tooltip-value">{{ formatTokens(activeHoveredPoint.point.tokens) }}</strong>
+                        </div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Biaya:</span>
+                            <strong class="tooltip-value text-amber">{{ formatIdr(activeHoveredPoint.point.cost_idr) }} ({{ formatUsd(activeHoveredPoint.point.cost_usd) }})</strong>
+                        </div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Avg Latensi:</span>
+                            <strong class="tooltip-value">{{ formatDuration(activeHoveredPoint.point.avg_duration_ms) }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two-Column Breakdown: Model & Agent -->
+            <div class="telemetry-breakdown-grid">
+                <!-- Card: Model Breakdown -->
+                <div class="telemetry-subcard">
+                    <div class="subcard-header">
+                        <div>
+                            <h4>Rincian Berdasarkan Model AI</h4>
+                            <p>Pembagian permintaan, token, dan estimasi biaya per arsitektur model.</p>
+                        </div>
+                        <Cpu :size="18" class="text-muted" />
+                    </div>
+
+                    <div class="breakdown-table-wrapper">
+                        <table class="telemetry-table">
+                            <thead>
+                                <tr>
+                                    <th>Model</th>
+                                    <th class="text-right">Permintaan</th>
+                                    <th class="text-right">Token</th>
+                                    <th class="text-right">Biaya (USD / IDR)</th>
+                                    <th class="text-right">Latensi</th>
+                                    <th class="text-right">Tingkat Sukses</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="m in currentTelemetry?.model_breakdown" :key="m.model">
+                                    <td>
+                                        <div class="model-name-cell">
+                                            <span class="model-badge" :class="m.model.includes('claude') ? 'claude' : (m.model.includes('gemma') ? 'gemma' : 'gemini')">
+                                                {{ m.model }}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="text-right font-mono">{{ formatNumber(m.requests) }}</td>
+                                    <td class="text-right font-mono">{{ formatTokens(m.tokens) }}</td>
+                                    <td class="text-right font-mono text-amber">
+                                        <div>{{ formatUsd(m.cost_usd) }}</div>
+                                        <small class="text-muted">~{{ formatIdr(m.cost_idr) }}</small>
+                                    </td>
+                                    <td class="text-right font-mono">{{ formatDuration(m.avg_duration_ms) }}</td>
+                                    <td class="text-right">
+                                        <span class="status-pill" :class="m.success_rate >= 95 ? 'success' : (m.success_rate >= 80 ? 'warning' : 'danger')">
+                                            {{ m.success_rate }}%
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr v-if="!currentTelemetry?.model_breakdown?.length">
+                                    <td colspan="6" class="text-center py-4 text-muted">Belum ada data model pada rentang ini.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Card: Multi-Agent Slot Breakdown -->
+                <div class="telemetry-subcard">
+                    <div class="subcard-header">
+                        <div>
+                            <h4>Rincian Per Slot Agen AI</h4>
+                            <p>Beban kerja terdistribusi pada Slot 1 hingga Slot 6 (Cadangan).</p>
+                        </div>
+                        <Bot :size="18" class="text-muted" />
+                    </div>
+
+                    <div class="breakdown-table-wrapper">
+                        <table class="telemetry-table">
+                            <thead>
+                                <tr>
+                                    <th>Slot & Agen</th>
+                                    <th>Model</th>
+                                    <th class="text-right">Permintaan</th>
+                                    <th class="text-right">Token</th>
+                                    <th class="text-right">Biaya</th>
+                                    <th class="text-right">Sukses</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="ag in currentTelemetry?.agent_breakdown" :key="ag.slot">
+                                    <td>
+                                        <div class="agent-name-cell">
+                                            <span class="slot-badge" :class="ag.slot === 6 ? 'backup' : 'regular'">
+                                                {{ ag.slot === 6 ? 'Slot 6 (Cadangan)' : `Slot ${ag.slot}` }}
+                                            </span>
+                                            <strong class="agent-name-text">{{ ag.name }}</strong>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="model-badge small">{{ ag.model }}</span>
+                                    </td>
+                                    <td class="text-right font-mono">{{ formatNumber(ag.requests) }}</td>
+                                    <td class="text-right font-mono">{{ formatTokens(ag.tokens) }}</td>
+                                    <td class="text-right font-mono text-amber">{{ formatIdr(ag.cost_idr) }}</td>
+                                    <td class="text-right">
+                                        <span class="status-pill" :class="ag.success_rate >= 95 ? 'success' : (ag.success_rate >= 80 ? 'warning' : 'danger')">
+                                            {{ ag.success_rate }}%
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr v-if="!currentTelemetry?.agent_breakdown?.length">
+                                    <td colspan="6" class="text-center py-4 text-muted">Belum ada data agen pada rentang ini.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent 15 Requests Activity Feed Table -->
+            <div class="telemetry-subcard">
+                <div class="subcard-header">
+                    <div>
+                        <h4>Riwayat 15 Permintaan Terakhir</h4>
+                        <p>Log pemanggilan model AI per halaman publikasi secara real-time.</p>
+                    </div>
+                    <Clock :size="18" class="text-muted" />
+                </div>
+
+                <div class="breakdown-table-wrapper">
+                    <table class="telemetry-table">
+                        <thead>
+                            <tr>
+                                <th>Waktu</th>
+                                <th>Agen / Slot</th>
+                                <th>Model AI</th>
+                                <th>Publikasi & Halaman</th>
+                                <th class="text-right">Durasi</th>
+                                <th class="text-right">Token</th>
+                                <th class="text-right">Biaya</th>
+                                <th class="text-right">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="req in currentTelemetry?.recent_requests" :key="req.id">
+                                <td>
+                                    <div class="recent-time-cell">
+                                        <strong>{{ req.created_at_human }}</strong>
+                                        <small class="text-muted">{{ req.created_at_time }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="agent-name-cell">
+                                        <span class="slot-badge" :class="req.agent_slot === 6 ? 'backup' : 'regular'">
+                                            Slot {{ req.agent_slot ?? '-' }}
+                                        </span>
+                                        <span>{{ req.agent_name }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="model-badge small">{{ req.model }}</span>
+                                </td>
+                                <td>
+                                    <div class="pub-page-cell" :title="req.publication_title">
+                                        <span class="pub-title-truncate">{{ req.publication_title }}</span>
+                                        <span v-if="req.physical_page" class="pub-page-badge">Hal {{ req.physical_page }}</span>
+                                    </div>
+                                </td>
+                                <td class="text-right font-mono">{{ formatDuration(req.duration_ms) }}</td>
+                                <td class="text-right font-mono">{{ formatNumber(req.tokens) }}</td>
+                                <td class="text-right font-mono text-amber">
+                                    <span>{{ formatUsd(req.cost_usd) }}</span>
+                                    <small class="text-muted d-block">~{{ formatIdr(req.cost_idr) }}</small>
+                                </td>
+                                <td class="text-right">
+                                    <span class="status-pill" :class="req.is_success ? 'success' : 'danger'">
+                                        {{ req.is_success ? 'Berhasil' : 'Gagal' }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr v-if="!currentTelemetry?.recent_requests?.length">
+                                <td colspan="8" class="text-center py-4 text-muted">Belum ada riwayat permintaan AI.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
         <section v-if="tab === 'system'" class="settings-panel">

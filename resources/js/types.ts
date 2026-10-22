@@ -297,3 +297,83 @@ export interface RuleGuideSummary {
     verification_count: number;
     categories_count: number;
 }
+
+export interface AiTelemetrySummary {
+    total_requests: number;
+    success_requests: number;
+    failed_requests: number;
+    success_rate: number;
+    total_prompt_tokens: number;
+    total_completion_tokens: number;
+    total_tokens: number;
+    avg_tokens_per_request: number;
+    avg_duration_ms: number;
+    estimated_cost_usd: number;
+    estimated_cost_idr: number;
+}
+
+export interface AiTelemetryTimelinePoint {
+    label: string;
+    full_date: string;
+    requests: number;
+    tokens: number;
+    cost_usd: number;
+    cost_idr: number;
+    failures: number;
+    avg_duration_ms: number;
+}
+
+export interface AiTelemetryModelBreakdown {
+    model: string;
+    requests: number;
+    success: number;
+    failed: number;
+    success_rate: number;
+    tokens: number;
+    avg_duration_ms: number;
+    cost_usd: number;
+    cost_idr: number;
+}
+
+export interface AiTelemetryAgentBreakdown {
+    agent_id: number | null;
+    slot: number;
+    name: string;
+    model: string;
+    requests: number;
+    success: number;
+    failed: number;
+    success_rate: number;
+    tokens: number;
+    avg_duration_ms: number;
+    cost_usd: number;
+    cost_idr: number;
+}
+
+export interface AiTelemetryRecentRequest {
+    id: number;
+    publication_id: number | null;
+    publication_title: string;
+    physical_page: number | null;
+    agent_slot: number | null;
+    agent_name: string;
+    model: string;
+    status: string;
+    is_success: boolean;
+    duration_ms: number;
+    tokens: number;
+    cost_usd: number;
+    cost_idr: number;
+    created_at_human: string;
+    created_at_time: string;
+}
+
+export interface AiTelemetryData {
+    range: '24h' | '3d' | '7d' | '30d' | 'all';
+    summary: AiTelemetrySummary;
+    timeline: AiTelemetryTimelinePoint[];
+    model_breakdown: AiTelemetryModelBreakdown[];
+    agent_breakdown: AiTelemetryAgentBreakdown[];
+    recent_requests: AiTelemetryRecentRequest[];
+}
+
