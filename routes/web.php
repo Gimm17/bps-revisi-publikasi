@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\AgentOfficeController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FindingController;
 use App\Http\Controllers\PublicationCheckController;
@@ -14,12 +15,15 @@ Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'create'])->name('login');
     Route::post('/login', [AuthController::class, 'store'])->middleware('throttle:login');
 });
+
+// Publicly accessible rules & guidelines for visitors & search engine indexation (Googlebot)
+Route::get('/rules', [RuleGuideController::class, 'index'])->name('rules');
+Route::get('/guidelines', [RuleGuideController::class, 'index']);
+
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'destroy']);
     Route::get('/', [PublicationController::class, 'index'])->name('dashboard');
     Route::get('/publications', [PublicationController::class, 'index']);
-    Route::get('/rules', [RuleGuideController::class, 'index'])->name('rules');
-    Route::get('/guidelines', [RuleGuideController::class, 'index']);
     Route::get('/publications/create', [PublicationController::class, 'create']);
     Route::post('/publications', [PublicationController::class, 'store'])->middleware('throttle:20,1');
     Route::get('/publications/{publication}', [PublicationController::class, 'show']);
@@ -36,6 +40,9 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/publications/{publication}/exports', [PublicationController::class, 'export']);
     Route::post('/publications/{publication}/exports/partial', [PublicationController::class, 'exportPartial'])->middleware('throttle:5,1');
     Route::get('/publications/{publication}/exports/{export}', [PublicationController::class, 'download']);
+    Route::post('/publications/{publication}/exports/{export}/reviewed', [PublicationController::class, 'uploadReviewedExport']);
+    Route::get('/learnings', [\App\Http\Controllers\LearningController::class, 'index'])->name('learnings');
+    Route::patch('/learnings/{learning}', [\App\Http\Controllers\LearningController::class, 'update']);
     Route::post('/publications/{publication}/assign', [PublicationController::class, 'assign']);
     Route::post('/publications/{publication}/lock', [PublicationController::class, 'lock']);
     Route::post('/publications/{publication}/unlock', [PublicationController::class, 'unlock']);
@@ -54,4 +61,9 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/settings/ai-agents/{slot}', [SettingsController::class, 'saveAiAgent']);
     Route::post('/settings/ai-agents/{agent}/test', [SettingsController::class, 'testAiAgent'])->middleware('throttle:10,1');
     Route::post('/settings/reference-provider', [SettingsController::class, 'saveReferenceProvider']);
+
+    Route::get('/agent-office', [AgentOfficeController::class, 'index'])->name('agent-office.index');
+    Route::get('/api/agent-office/state', [AgentOfficeController::class, 'state'])->name('agent-office.state');
+    Route::post('/agent-office/{agent}/test', [AgentOfficeController::class, 'testAgent'])->name('agent-office.test');
+    Route::post('/agent-office/test-all', [AgentOfficeController::class, 'testAll'])->name('agent-office.test-all');
 });

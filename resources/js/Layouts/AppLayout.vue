@@ -32,6 +32,7 @@ defineProps<{ wide?: boolean }>();
                 :aria-current="page.url === '/' ? 'page' : undefined"
                 >Beranda</Link
             ><Link
+                v-if="page.props.auth?.user"
                 href="/publications"
                 :class="{ active: page.url.startsWith('/publications') }"
                 :aria-current="
@@ -49,50 +50,73 @@ defineProps<{ wide?: boolean }>();
                     page.url.startsWith('/rules') ? 'page' : undefined
                 "
                 >Aturan Periksa</Link
+            ><Link
+                v-if="page.props.auth?.user"
+                href="/learnings"
+                :class="{ active: page.url.startsWith('/learnings') }"
+                :aria-current="
+                    page.url.startsWith('/learnings') ? 'page' : undefined
+                "
+                >Pembelajaran AI</Link
+            ><Link
+                v-if="page.props.auth?.user"
+                href="/agent-office"
+                :class="{ active: page.url.startsWith('/agent-office') }"
+                :aria-current="
+                    page.url.startsWith('/agent-office') ? 'page' : undefined
+                "
+                >Markas Agen</Link
             >
         </nav>
         <div class="header-actions">
-            <Link
-                href="/publications/create"
-                class="button primary new-audit"
-                aria-label="Pemeriksaan baru"
-                ><Plus :size="18" aria-hidden="true" /><span
-                    >Pemeriksaan baru</span
-                ></Link
-            >
-            <div class="account">
-                <button
-                    class="account-trigger"
-                    @click="menu = !menu"
-                    :aria-expanded="menu"
-                    aria-controls="account-menu"
-                    aria-label="Menu akun"
+            <template v-if="page.props.auth?.user">
+                <Link
+                    href="/publications/create"
+                    class="button primary new-audit"
+                    aria-label="Pemeriksaan baru"
+                    ><Plus :size="18" aria-hidden="true" /><span
+                        >Pemeriksaan baru</span
+                    ></Link
                 >
-                    <span class="avatar">{{
-                        page.props.auth.user.name.slice(0, 1)
-                    }}</span
-                    ><span class="account-name">{{
-                        page.props.auth.user.name.split(" ")[0]
-                    }}</span
-                    ><ChevronDown :size="16" />
-                </button>
-                <div
-                    v-if="menu"
-                    id="account-menu"
-                    class="account-menu"
-                    @keydown.esc="menu = false"
-                >
-                    <p>{{ page.props.auth.user.email }}</p>
-                    <Link
-                        v-if="page.props.auth.user.role === 'admin'"
-                        href="/settings"
-                        @click="menu = false"
-                        ><Settings :size="18" />Pengaturan</Link
-                    ><Link href="/logout" method="post" as="button"
-                        ><LogOut :size="18" />Keluar</Link
+                <div class="account">
+                    <button
+                        class="account-trigger"
+                        @click="menu = !menu"
+                        :aria-expanded="menu"
+                        aria-controls="account-menu"
+                        aria-label="Menu akun"
                     >
+                        <span class="avatar">{{
+                            page.props.auth.user.name.slice(0, 1)
+                        }}</span
+                        ><span class="account-name">{{
+                            page.props.auth.user.name.split(" ")[0]
+                        }}</span
+                        ><ChevronDown :size="16" />
+                    </button>
+                    <div
+                        v-if="menu"
+                        id="account-menu"
+                        class="account-menu"
+                        @keydown.esc="menu = false"
+                    >
+                        <p>{{ page.props.auth.user.email }}</p>
+                        <Link
+                            v-if="page.props.auth.user.role === 'admin'"
+                            href="/settings"
+                            @click="menu = false"
+                            ><Settings :size="18" />Pengaturan</Link
+                        ><Link href="/logout" method="post" as="button"
+                            ><LogOut :size="18" />Keluar</Link
+                        >
+                    </div>
                 </div>
-            </div>
+            </template>
+            <template v-else>
+                <Link href="/login" class="button primary" style="min-height: 38px; padding: 8px 16px;">
+                    Masuk
+                </Link>
+            </template>
         </div>
     </header>
     <main id="main-content" :class="['main-container', { wide }]">
