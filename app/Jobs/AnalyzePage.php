@@ -140,7 +140,7 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
                         'status' => 'needs_verification',
                         'error' => 'Halaman tidak dapat dibaca oleh AI (unreadable).',
                     ]);
-                    $publication->update(['status' => 'partial_failure']);
+                    $coordinator->afterPage($publication);
                 }
 
                 return;
@@ -262,8 +262,8 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
         if (! $page || $page->status === 'complete') {
             return;
         }
-        $page->update(['status' => 'failed', 'error' => $this->failureReason($exception).' Pembacaan dihentikan agar tidak terus mengulang. Periksa penyebabnya, coba ulang halaman ini, atau buat Excel sementara.']);
-        $page->publication->update(['status' => 'partial_failure']);
+        $page->update(['status' => 'failed', 'error' => $this->failureReason($exception).' Pembacaan halaman ini gagal setelah mencoba ulang. Halaman lain tetap dilanjutkan.']);
+        app(\App\Audit\AuditCoordinator::class)->afterPage($page->publication);
     }
 
     private function failureReason(?\Throwable $exception): string

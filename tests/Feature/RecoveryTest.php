@@ -49,4 +49,30 @@ class RecoveryTest extends TestCase
         $p->pages()->update(['status' => 'complete']);
         $this->assertFalse(app(AuditCoordinator::class)->canComplete($p));
     }
+
+    public function test_after_page_keeps_processing_status_while_remaining_pages_are_active(): void
+    {
+        $p = $this->pub(5);
+        $p->update(['status' => 'processing']);
+        // Page 1 is failed, Page 2 is complete, Pages 3, 4, 5 are still 'ready'
+        $p->pages()->where('physical_page', 1)->update(['status' => 'failed']);
+        $p->pages()->where('physical_page', 2)->update(['status' => 'complete', 'result' => json_encode($this->pageResult()), 'completed_at' => now()]);
+        $p->pages()->whereIn('physical_page', [3, 4, 5])->update(['status' => 'ready']);
+
+        app(AuditCoordinator::class)->afterPage($p);
+        $p->refresh();
+
+        // Must STAY 'processing' because pages 3, 4, 5 are still ready/pending!
+        $this->assertSame('processing', $p->status);
+
+        // Now suppose pages 3, 4, 5 also finish: pages 3 & 4 complete, page 5 failed
+        $p->pages()->whereIn('physical_page', [3, 4])->update(['status' => 'complete', 'result' => json_encode($this->pageResult()), 'completed_at' => now()]);
+        $p->pages()->where('physical_page', 5)->update(['status' => 'failed']);
+
+        app(AuditCoordinator::class)->afterPage($p);
+        $p->refresh();
+
+        // Now that NO active pages remain, status becomes 'partial_failure' at the end of the batch!
+        $this->assertSame('partial_failure', $p->status);
+    }
 }

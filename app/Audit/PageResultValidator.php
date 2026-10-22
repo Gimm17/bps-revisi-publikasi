@@ -12,6 +12,35 @@ class PageResultValidator
 {
     public function validate(array $data, int $page): array
     {
+        // Pre-sanitize table bboxes
+        if (isset($data['inventory']['tables']) && is_array($data['inventory']['tables'])) {
+            foreach ($data['inventory']['tables'] as $k => $table) {
+                if (is_array($table) && array_key_exists('bbox', $table)) {
+                    $data['inventory']['tables'][$k]['bbox'] = $this->sanitizeBox($table['bbox']);
+                }
+            }
+        }
+
+        // Pre-sanitize finding bboxes (self-healing for AI coordinate variances)
+        if (isset($data['findings']) && is_array($data['findings'])) {
+            foreach ($data['findings'] as $k => $finding) {
+                if (is_array($finding) && array_key_exists('bbox', $finding)) {
+                    $sanitized = $this->sanitizeBox($finding['bbox']);
+                    $quote = trim((string) ($finding['quote'] ?? ''));
+                    if ($sanitized === null && $quote !== '') {
+                        $data['findings'][$k]['bbox'] = null;
+                    } else {
+                        $data['findings'][$k]['bbox'] = $sanitized;
+                    }
+                }
+            }
+        }
+
+        // Pre-sanitize page_type
+        if (isset($data['page_type'])) {
+            $data['page_type'] = $this->sanitizePageType($data['page_type']);
+        }
+
         Validator::make($data, [
             'physical_page' => ['required', 'integer', Rule::in([$page])],
             'page_type' => ['required', Rule::in(['front_cover', 'title', 'catalogue', 'team', 'preface', 'contents', 'table_list', 'figure_list', 'chapter', 'table', 'narrative', 'bibliography', 'blank', 'back_cover'])],
@@ -82,7 +111,13 @@ class PageResultValidator
             if ($bbox) {
                 $this->checkBox($bbox);
             } elseif (! str_contains($this->normalize($data['text']), $this->normalize($quote))) {
-                $this->reject('Kutipan tidak ditemukan pada teks halaman.');
+                $normData = $this->normalize($data['text']);
+                $normQuote = $this->normalize($quote);
+                $cleanData = preg_replace('/[^\p{L}\p{N}]/u', '', $normData);
+                $cleanQuote = preg_replace('/[^\p{L}\p{N}]/u', '', $normQuote);
+                if ($cleanQuote === '' || ! str_contains($cleanData, $cleanQuote)) {
+                    $this->reject('Kutipan tidak ditemukan pada teks halaman.');
+                }
             }
         }
 
@@ -96,17 +131,112 @@ class PageResultValidator
 
     private function checkBox(array $bbox): void
     {
-        if (count($bbox) !== 4 || array_keys($bbox) !== [0, 1, 2, 3]) {
+        $sanitized = $this->sanitizeBox($bbox);
+        if ($sanitized === null) {
             $this->reject('Format koordinat bukti tidak valid.');
         }
-        foreach ($bbox as $value) {
-            if (! is_numeric($value) || $value < 0 || $value > 1) {
-                $this->reject('Koordinat bukti berada di luar halaman.');
+    }
+
+    private function sanitizeBox(mixed $bbox): ?array
+    {
+        if (! is_array($bbox)) {
+            return null;
+        }
+        $vals = array_values($bbox);
+        if (count($vals) !== 4) {
+            return null;
+        }
+        foreach ($vals as $k => $v) {
+            if (! is_numeric($v)) {
+                return null;
             }
+            $vals[$k] = (float) $v;
         }
-        if ($bbox[0] >= $bbox[2] || $bbox[1] >= $bbox[3]) {
-            $this->reject('Koordinat bukti tidak valid.');
+
+        // Handle 0..1000 integer coordinates (standard Gemini API bbox format)
+        $maxVal = max($vals);
+        if ($maxVal > 1.05 && $maxVal <= 1000.0) {
+            $vals = array_map(fn ($v) => $v / 1000.0, $vals);
+        } elseif ($maxVal > 1000.0) {
+            return null;
         }
+
+        $y0 = max(0.0, min(1.0, (float) $vals[0]));
+        $x0 = max(0.0, min(1.0, (float) $vals[1]));
+        $y1 = max(0.0, min(1.0, (float) $vals[2]));
+        $x1 = max(0.0, min(1.0, (float) $vals[3]));
+
+        if ($y0 > $y1) {
+            [$y0, $y1] = [$y1, $y0];
+        }
+        if ($x0 > $x1) {
+            [$x0, $x1] = [$x1, $x0];
+        }
+
+        if (abs($y1 - $y0) < 0.001 || abs($x1 - $x0) < 0.001) {
+            return null;
+        }
+
+        return [round($y0, 4), round($x0, 4), round($y1, 4), round($x1, 4)];
+    }
+
+    private function sanitizePageType(mixed $raw): string
+    {
+        $valid = [
+            'front_cover', 'title', 'catalogue', 'team', 'preface',
+            'contents', 'table_list', 'figure_list', 'chapter',
+            'table', 'narrative', 'bibliography', 'blank', 'back_cover',
+        ];
+
+        if (! is_string($raw) || trim($raw) === '') {
+            return 'narrative';
+        }
+
+        $type = strtolower(trim($raw));
+        $type = str_replace(['-', ' '], '_', $type);
+
+        if (in_array($type, $valid, true)) {
+            return $type;
+        }
+
+        $aliases = [
+            'cover' => 'front_cover',
+            'front' => 'front_cover',
+            'cover_front' => 'front_cover',
+            'back' => 'back_cover',
+            'back_cover_page' => 'back_cover',
+            'title_page' => 'title',
+            'catalog' => 'catalogue',
+            'katalog' => 'catalogue',
+            'editorial' => 'team',
+            'editorial_team' => 'team',
+            'contributors' => 'team',
+            'foreword' => 'preface',
+            'kata_pengantar' => 'preface',
+            'toc' => 'contents',
+            'table_of_contents' => 'contents',
+            'daftar_isi' => 'contents',
+            'tables' => 'table',
+            'tabel' => 'table',
+            'tables_list' => 'table_list',
+            'daftar_tabel' => 'table_list',
+            'figures' => 'figure_list',
+            'figure' => 'figure_list',
+            'daftar_gambar' => 'figure_list',
+            'charts' => 'figure_list',
+            'bab' => 'chapter',
+            'chapter_cover' => 'chapter',
+            'text' => 'narrative',
+            'narasi' => 'narrative',
+            'body' => 'narrative',
+            'content' => 'narrative',
+            'references' => 'bibliography',
+            'daftar_pustaka' => 'bibliography',
+            'empty' => 'blank',
+            'white' => 'blank',
+        ];
+
+        return $aliases[$type] ?? 'narrative';
     }
 
     private function reject(string $message): never

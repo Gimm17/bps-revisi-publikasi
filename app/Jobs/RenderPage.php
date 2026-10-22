@@ -98,7 +98,7 @@ class RenderPage implements ShouldBeUnique, ShouldQueue
         if (! $page || $page->status === 'complete') {
             return;
         }
-        $page->update(['status' => 'failed', 'error' => 'Gambar halaman gagal disiapkan. Jalankan ulang halaman ini.']);
-        $page->publication->update(['status' => 'partial_failure']);
+        $page->update(['status' => 'failed', 'error' => 'Gambar halaman gagal disiapkan. Halaman lain tetap dilanjutkan.']);
+        app(\App\Audit\AuditCoordinator::class)->afterPage($page->publication);
     }
 }

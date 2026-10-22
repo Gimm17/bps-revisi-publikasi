@@ -119,6 +119,39 @@ class AuditCoordinator
     {
         if ($this->canComplete($publication)) {
             FinalizeAudit::dispatch($publication->id);
+
+            return;
+        }
+
+        // Check if any pages or cross-verifications are still actively processing
+        $hasActivePages = $publication->pages()
+            ->whereIn('status', ['pending', 'ready', 'rendering', 'analyzing'])
+            ->exists();
+
+        $hasPendingVerifications = PageVerification::whereIn('publication_page_id', $publication->pages()->select('id'))
+            ->whereIn('status', ['pending', 'running'])
+            ->exists();
+
+        if ($hasActivePages || $hasPendingVerifications) {
+            // Keep status as processing while remaining pages are still in progress
+            if ($publication->status !== 'processing' && ! in_array($publication->status, ['final', 'exporting', 'review_ready'], true)) {
+                $publication->update(['status' => 'processing', 'error' => null]);
+            }
+
+            return;
+        }
+
+        // All pages have completed their runs (no active pages or verifications remaining).
+        // Only now, if there are incomplete or failed pages, set partial_failure at the end of the entire batch!
+        $hasIncomplete = $publication->pages()
+            ->where('status', '!=', 'complete')
+            ->exists();
+
+        if ($hasIncomplete && $publication->status !== 'partial_failure' && ! in_array($publication->status, ['final', 'exporting', 'review_ready'], true)) {
+            $publication->update([
+                'status' => 'partial_failure',
+                'error' => 'Pemeriksaan selesai untuk sebagian besar halaman. Ada halaman yang membutuhkan verifikasi manual.',
+            ]);
         }
     }
 
