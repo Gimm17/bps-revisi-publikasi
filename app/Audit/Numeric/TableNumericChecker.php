@@ -9,6 +9,29 @@ class TableNumericChecker
     public function __construct(protected NumberParser $parser = new NumberParser) {}
 
     /**
+     * Safely stringify a cell or nested header array into a flat string.
+     */
+    public function stringify(mixed $val): string
+    {
+        if (is_array($val)) {
+            $parts = [];
+            foreach ($val as $sub) {
+                $s = $this->stringify($sub);
+                if ($s !== '') {
+                    $parts[] = $s;
+                }
+            }
+
+            return implode(' ', $parts);
+        }
+        if (is_scalar($val) || (is_object($val) && method_exists($val, '__toString'))) {
+            return (string) $val;
+        }
+
+        return '';
+    }
+
+    /**
      * Run deterministic numeric calculations across all pages of a publication.
      *
      * @param  array<int, array<string, mixed>>  $pages
@@ -80,7 +103,7 @@ class TableNumericChecker
 
         // 2. Row totals: look for total row at the end
         $lastRow = end($rows);
-        $firstCell = mb_strtolower(trim((string) ($lastRow[0] ?? '')));
+        $firstCell = mb_strtolower(trim($this->stringify($lastRow[0] ?? '')));
 
         // Check if last row is an aggregate / total row
         $isTotalRow = preg_match('/\b(jumlah|total|kecamatan|kabupaten|kota|provinsi)\b/i', $firstCell) === 1
@@ -92,7 +115,7 @@ class TableNumericChecker
             $numCols = count($headers);
 
             for ($colIdx = 1; $colIdx < $numCols; $colIdx++) {
-                $colHeader = trim((string) ($headers[$colIdx] ?? ''));
+                $colHeader = trim($this->stringify($headers[$colIdx] ?? ''));
 
                 // Skip non-additive columns (codes, IDs, percentages, ratios, averages)
                 if (preg_match('/(kode|code|npsn|\bid\b|nomor|number|tahun|year|persen|%|rasio|ratio|kepadatan|density|rata-rata|average)/i', $colHeader)) {
@@ -174,7 +197,8 @@ class TableNumericChecker
         // Find years or suffixes in headers, e.g. 2024/2025, 2025/2026, 2025
         $periods = [];
         foreach ($headers as $idx => $h) {
-            if (preg_match('/(\b20\d\d(?:\/20\d\d)?\b)/', (string) $h, $m)) {
+            $hStr = $this->stringify($h);
+            if (preg_match('/(\b20\d\d(?:\/20\d\d)?\b)/', $hStr, $m)) {
                 $periods[$m[1]][] = $idx;
             }
         }
@@ -185,7 +209,7 @@ class TableNumericChecker
             $totalCol = null;
 
             foreach ($colIndices as $ci) {
-                $h = mb_strtolower((string) $headers[$ci]);
+                $h = mb_strtolower($this->stringify($headers[$ci] ?? ''));
                 if (str_contains($h, 'negeri') || str_contains($h, 'public')) {
                     $negeriCol = $ci;
                 } elseif (str_contains($h, 'swasta') || str_contains($h, 'private')) {
@@ -197,7 +221,7 @@ class TableNumericChecker
 
             if ($negeriCol !== null && $swastaCol !== null && $totalCol !== null) {
                 foreach ($rows as $row) {
-                    $rowLabel = trim((string) ($row[0] ?? ''));
+                    $rowLabel = trim($this->stringify($row[0] ?? ''));
                     $negeriVal = $this->parser->parse($row[$negeriCol] ?? null);
                     $swastaVal = $this->parser->parse($row[$swastaCol] ?? null);
                     $totalVal = $this->parser->parse($row[$totalCol] ?? null);
@@ -249,7 +273,7 @@ class TableNumericChecker
             $ratioTable = null;
 
             foreach ($instances as $inst) {
-                $hdrs = mb_strtolower(implode(' ', (array) ($inst['table']['headers'] ?? [])));
+                $hdrs = mb_strtolower($this->stringify($inst['table']['headers'] ?? []));
                 if (str_contains($hdrs, 'laki-laki') || str_contains($hdrs, 'male')) {
                     $popTable = $inst;
                 }
@@ -265,7 +289,7 @@ class TableNumericChecker
 
                 $villagePop = [];
                 foreach ($popRows as $r) {
-                    $vName = mb_strtolower(trim((string) ($r[0] ?? '')));
+                    $vName = mb_strtolower(trim($this->stringify($r[0] ?? '')));
                     $l = $this->parser->parse($r[1] ?? null);
                     $p = $this->parser->parse($r[2] ?? null);
                     if ($vName !== '' && $l !== null && $p !== null && $p > 0) {
@@ -277,7 +301,8 @@ class TableNumericChecker
                 $ratioHeaders = $ratioTable['table']['headers'] ?? [];
                 $ratioCol = null;
                 foreach ($ratioHeaders as $idx => $rh) {
-                    if (preg_match('/(rasio|ratio)/i', (string) $rh)) {
+                    $rhStr = $this->stringify($rh);
+                    if (preg_match('/(rasio|ratio)/i', $rhStr)) {
                         $ratioCol = $idx;
                         break;
                     }
@@ -285,7 +310,7 @@ class TableNumericChecker
 
                 if ($ratioCol !== null) {
                     foreach ($ratioRows as $rr) {
-                        $vName = mb_strtolower(trim((string) ($rr[0] ?? '')));
+                        $vName = mb_strtolower(trim($this->stringify($rr[0] ?? '')));
                         $printedRatioRaw = $rr[$ratioCol] ?? null;
                         $printedRatio = $this->parser->parse($printedRatioRaw);
 
@@ -295,7 +320,7 @@ class TableNumericChecker
                             $calcRatio = round(($l / $p) * 100, 2);
 
                             if (abs($calcRatio - $printedRatio) > 0.05) {
-                                $vDisplayName = trim((string) ($rr[0] ?? ''));
+                                $vDisplayName = trim($this->stringify($rr[0] ?? ''));
                                 $findings[] = [
                                     'rule_code' => 'TABLE.CONSISTENCY',
                                     'severity' => 'wajib',

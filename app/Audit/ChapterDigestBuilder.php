@@ -40,7 +40,7 @@ class ChapterDigestBuilder
                 $tablesCount++;
                 $tNum = trim((string) ($t['number'] ?? ''));
                 $tTitle = trim((string) ($t['title'] ?? ''));
-                $headers = implode(' | ', (array) ($t['headers'] ?? []));
+                $headers = $this->formatCells((array) ($t['headers'] ?? []));
 
                 $lines[] = "\n--- Tabel {$tNum} Halaman {$phys}: {$tTitle} ---";
                 $lines[] = "Kolom: {$headers}";
@@ -48,12 +48,12 @@ class ChapterDigestBuilder
                 $rows = $t['rows'] ?? [];
                 $sampleRows = array_slice($rows, 0, 15);
                 foreach ($sampleRows as $r) {
-                    $lines[] = '  '.implode(' | ', (array) $r);
+                    $lines[] = '  '.$this->formatCells((array) $r);
                 }
                 if (count($rows) > 15) {
                     $lines[] = '  ... ('.(count($rows) - 15).' baris berikutnya)';
                     $lastRow = end($rows);
-                    $lines[] = '  '.implode(' | ', (array) $lastRow);
+                    $lines[] = '  '.$this->formatCells((array) $lastRow);
                 }
             }
         }
@@ -65,5 +65,22 @@ class ChapterDigestBuilder
             'table_count' => $tablesCount,
             'narrative_count' => $narrativesCount,
         ];
+    }
+
+    /**
+     * Safely format cells handling potential nested arrays.
+     */
+    protected function formatCells(array $cells): string
+    {
+        $flat = array_map(function ($c) {
+            if (is_array($c)) {
+                return json_encode($c, JSON_UNESCAPED_UNICODE);
+            }
+
+            return (string) $c;
+        }, $cells);
+
+        return implode(' | ', $flat);
+    }
     }
 }

@@ -11,6 +11,29 @@ class NarrativeClaimExtractor
     public function __construct(protected NumberParser $parser = new NumberParser) {}
 
     /**
+     * Safely flatten arrays or scalar values into a string.
+     */
+    public function stringify(mixed $val): string
+    {
+        if (is_array($val)) {
+            $parts = [];
+            foreach ($val as $sub) {
+                $s = $this->stringify($sub);
+                if ($s !== '') {
+                    $parts[] = $s;
+                }
+            }
+
+            return implode(' ', $parts);
+        }
+        if (is_scalar($val) || (is_object($val) && method_exists($val, '__toString'))) {
+            return (string) $val;
+        }
+
+        return '';
+    }
+
+    /**
      * Extract factual claims from narrative pages in a chapter and evaluate against chapter tables.
      *
      * @param  array<int, array<string, mixed>>  $chapterPages
@@ -86,8 +109,8 @@ class NarrativeClaimExtractor
         // Find Table 1.1 or area table
         $areaTable = null;
         foreach ($tables as $t) {
-            $hdrs = mb_strtolower(implode(' ', (array) $t['headers']));
-            $title = mb_strtolower($t['title']);
+            $hdrs = mb_strtolower($this->stringify($t['headers'] ?? []));
+            $title = mb_strtolower((string) ($t['title'] ?? ''));
             if (str_contains($title, 'luas') || str_contains($hdrs, 'luas')) {
                 $areaTable = $t;
                 break;
@@ -181,7 +204,7 @@ class NarrativeClaimExtractor
         // Find Table 1.2 distance table
         $distTable = null;
         foreach ($tables as $t) {
-            $hdrs = mb_strtolower(implode(' ', (array) $t['headers']));
+            $hdrs = mb_strtolower($this->stringify($t['headers'] ?? []));
             if (str_contains($hdrs, 'jarak ke ibukota kecamatan') || (str_contains($hdrs, 'kecamatan') && str_contains($hdrs, 'kabupaten'))) {
                 $distTable = $t;
                 break;
