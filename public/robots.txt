@@ -1,2 +1,13 @@
 User-agent: *
-Disallow:
+Allow: /
+Allow: /rules
+Allow: /guidelines
+Allow: /login
+Allow: /build/
+Allow: /images/
+Disallow: /publications/*/pdf
+Disallow: /publications/*/pages/*/image
+Disallow: /publications/*/exports/*
+Disallow: /settings
+
+Sitemap: https://bps-cek-publikasi.pinnhost.my.id/sitemap.xml
