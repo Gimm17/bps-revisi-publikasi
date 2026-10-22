@@ -24,6 +24,15 @@ class PromptBuilder
         $schema = $disk->get('publications/'.$pub->id.'/prompt.md');
         $schema .= "\nPenegasan kontrak daftar: judul kelompok yang memang tidak memiliki nomor halaman menggunakan type heading dan target_page null. Entri tabel/gambar/bab yang memiliki nomor halaman diisi string nomor tersebut. Jika ada entri yang nomor halamannya belum tercantum/terpotong di halaman ini, gunakan target_page null dan readability uncertain. Field target_page tetap wajib hadir.\n";
         $schema .= "\nPenegasan teks narasi/kata pengantar/preface: pada field 'text', tuliskan judul, tanggal, nama penandatangan, dan intisari poin per paragraf. Jangan menyalin teks kalimat secara verbatim panjang penuh agar tidak memicu pemotongan filter keamanan/recitation model AI.\n";
+        $schema .= "\nPenegasan pemeriksaan silang narasi ulasan bab dan tabel data:\n"
+            ."1. Ulasan narasi yang memuat perbandingan atau kata superlatif (terluas, tersempit, terbesar, terkecil, terbanyak, paling sedikit, terjauh, terdekat) WAJIB diperiksa silang dengan angka pada tabel-tabel bab terkait. Jika narasi menyebut wilayah/kategori A tertinggi/terluas padahal data tabel menunjukkan wilayah B lebih tinggi/luas, catat temuan [VERIFIKASI · NARRATIVE.TABLE_MISMATCH atau TABLE.CONSISTENCY].\n"
+            ."2. Angka spesifik pada narasi (jarak km, luas ha, persentase %, jumlah unit) harus konsisten dengan data tabel. Jika terdapat selisih nyata (misal: narasi menyebut jarak ke kecamatan 12 km, padahal di tabel 6 km ke kecamatan dan 12 km ke kabupaten), catat sebagai temuan ketidakcocokan narasi dan tabel.\n"
+            ."3. Konsistensi istilah bilingual: periksa agar nama komoditas/kategori pada narasi bahasa Indonesia konsisten dengan terjemahan bahasa Inggris (misal: teks Indonesia menyebut tomat dua kali, pastikan versi Inggris tidak keliru menerjemahkan salah satunya menjadi terung/eggplant).\n";
+        $schema .= "\nPenegasan kecerdasan kontekstual dan penanganan artefak PDF:\n"
+            ."1. Jangan menyalahkan kata yang terpisah spasi dalam teks layer (seperti Hor ticulture, Transpor tasi, Jakar ta, Per tanian, memberik an) jika secara visual pada gambar huruf-huruf tersebut tercetak utuh dan menyatu.\n"
+            ."2. Istilah 'Layouters' pada Halaman Tim Penyusun KCDA adalah nomenklatur resmi Template KCDA BPS dan TIDAK BOLEH disalahkan.\n"
+            ."3. Sumber data berkala (seperti Podes 2024 pada buku tahun 2026) adalah sah dan tidak boleh dianggap usang.\n"
+            ."4. Paragraf narasi adalah ringkasan sorotan (highlight), bukan kewajiban mengulang 100% seluruh baris data tabel.\n";
         if (str_contains($page->error ?? '', 'recitation') || str_contains($page->error ?? '', 'dibatasi oleh filter')) {
             $schema .= "\nKoreksi respons sebelumnya: respons terpotong filter keamanan/recitation. Pada field 'text', JANGAN menyalin teks narasi kata-per-kata. Tuliskan ringkasan intisari poin per paragraf saja dan fokus pada metadata serta temuan.\n";
         }
@@ -32,8 +41,15 @@ class PromptBuilder
             $schema .= "\nKoreksi respons sebelumnya: kolom ".mb_substr(trim($fields), 0, 250)." belum valid. Baca ulang gambar dan isi JSON sesuai kontrak. Jangan menebak teks/angka agar lolos validasi; jika belum terbaca, gunakan uncertain.\n";
         }
 
+        $userPromptText = 'Publikasi: '.$pub->title.'. Wilayah: '.$pub->region.'. Tahun: '.$pub->year.'. HALAMAN FISIK PDF '.$page->physical_page.' DARI '.$pub->page_count.". physical_page wajib tepat {$page->physical_page}.\n".$schema;
+
+        if (! empty($page->text_layer) && config('audit.text_layer_enabled', true)) {
+            $snippet = mb_substr(trim((string) $page->text_layer), 0, 6000);
+            $userPromptText .= "\n\nTEKS LAPISAN PDF (rujukan ejaan & angka, perhatikan gambar tetap sumber visual utama):\n```text\n".$snippet."\n```";
+        }
+
         return [['role' => 'system', 'content' => $system], ['role' => 'user', 'content' => [
-            ['type' => 'text', 'text' => 'Publikasi: '.$pub->title.'. Wilayah: '.$pub->region.'. Tahun: '.$pub->year.'. HALAMAN FISIK PDF '.$page->physical_page.' DARI '.$pub->page_count.". physical_page wajib tepat {$page->physical_page}.\n".$schema],
+            ['type' => 'text', 'text' => $userPromptText],
             ['type' => 'image_url', 'image_url' => ['url' => 'data:image/jpeg;base64,'.base64_encode(file_get_contents($imagePath))]],
         ]]];
     }

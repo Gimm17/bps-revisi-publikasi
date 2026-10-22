@@ -6,7 +6,7 @@ export interface Employee {
     is_active: boolean;
 }
 export interface Shared {
-    auth: { user: Employee };
+    auth: { user: Employee | null };
     flash: { success?: string; error?: string };
     errors: Record<string, string>;
     [key: string]: unknown;

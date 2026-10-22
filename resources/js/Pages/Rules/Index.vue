@@ -1553,4 +1553,114 @@ const getModeLabel = (mode: string) => {
     margin: 0;
     font-size: 13px;
 }
+
+/* Mobile Responsive Refinements */
+@media (max-width: 768px) {
+    .rules-card-section {
+        padding: 18px 16px;
+        border-radius: 12px;
+    }
+    .section-heading {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .section-heading h2 {
+        font-size: 19px;
+    }
+    .rules-metrics {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    .rules-metrics > div {
+        padding: 12px 14px;
+    }
+    .rules-metrics > div strong {
+        font-size: 20px;
+    }
+    .pipeline-grid {
+        grid-template-columns: 1fr;
+    }
+    .visual-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 8px;
+        margin-bottom: 16px;
+    }
+    .visual-tab-btn {
+        flex-shrink: 0;
+        white-space: nowrap;
+        padding: 8px 14px;
+        font-size: 13px;
+    }
+    .rules-filter-row {
+        flex-direction: column;
+        gap: 12px;
+    }
+    .filter-group {
+        min-width: 100%;
+        width: 100%;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    .filter-group select {
+        width: 100%;
+    }
+    .rules-footer-help {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 20px;
+        gap: 16px;
+        text-align: left;
+    }
+    .rules-footer-help .button {
+        width: 100%;
+        justify-content: center;
+    }
+    .mockup-book-cover {
+        width: 100%;
+        max-width: 280px;
+    }
+    .book-spread-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        max-width: 100%;
+        padding: 8px;
+    }
+    .book-page {
+        width: 145px;
+        height: 210px;
+        padding: 10px 8px;
+    }
+    .rule-card-header {
+        padding: 16px;
+    }
+    .rule-card-body {
+        padding: 16px;
+    }
+    .rule-title {
+        font-size: 15px;
+    }
+    .rule-header-top {
+        gap: 6px;
+    }
+    .rule-badges-group {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 480px) {
+    .rules-metrics {
+        grid-template-columns: 1fr;
+    }
+    .hero-actions {
+        flex-direction: column;
+    }
+    .hero-actions .button {
+        width: 100%;
+        justify-content: center;
+    }
+}
 </style>

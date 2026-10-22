@@ -29,6 +29,9 @@
 /storage/*.key
 /storage/pail
 /vendor
+tests/Fixtures/**/*.pdf
+/scratch
+/storage/temp
 _ide_helper.php
 Homestead.json
 Homestead.yaml

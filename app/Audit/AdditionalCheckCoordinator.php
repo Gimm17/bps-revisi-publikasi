@@ -119,7 +119,11 @@ class AdditionalCheckCoordinator
 
             $pub = $run->publication->fresh();
             if ($pub && in_array($pub->status, ['exporting', 'review_ready'], true)) {
-                app(AuditCoordinator::class)->export($pub);
+                try {
+                    app(AuditCoordinator::class)->export($pub);
+                } catch (\Throwable) {
+                    // Do not fail supplemental check run if publication export cannot proceed
+                }
             }
         }
     }

@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PublicationPage extends Model
 {
-    protected $fillable = ['publication_id', 'ai_agent_id', 'physical_page', 'status', 'image_path', 'thumbnail_path', 'image_checksum', 'dpi', 'attempts', 'page_type', 'printed_page', 'result', 'error', 'completed_at'];
+    protected $fillable = ['publication_id', 'ai_agent_id', 'physical_page', 'status', 'image_path', 'thumbnail_path', 'image_checksum', 'dpi', 'attempts', 'page_type', 'printed_page', 'result', 'text_layer', 'text_layer_status', 'error', 'completed_at'];
 
     protected function casts(): array
     {

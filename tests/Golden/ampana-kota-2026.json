@@ -1,0 +1,2628 @@
+{
+  "publication": "Kecamatan Ampana Kota Dalam Angka 2026",
+  "description": "Benchmark golden dataset compiled from Codex examination and verified Web findings",
+  "version": "1.0",
+  "items_count": 111,
+  "must_find_count": 104,
+  "must_not_find_count": 5,
+  "items": [
+    {
+      "id": "G001",
+      "chapter": "Kover depan",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        1,
+        3
+      ],
+      "rule_codes": [
+        "CATALOGUE.COMPONENTS",
+        "CATALOGUE.LABELS"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Rapikan",
+        "label",
+        "katalog"
+      ],
+      "text": "[Terkonfirmasi] Rapikan label katalog pada kover menjadi Katalog/Catalogue: 1102001.7209050, tanpa spasi sebelum titik dua; Catalogue dibuat italic. Halaman judul utama PDF 3 sudah memakai format rapat dan italic sehingga tidak perlu dikoreksi bagian tersebut (PDF hlm. 1 dan 3).",
+      "source": "codex"
+    },
+    {
+      "id": "G002",
+      "chapter": "Kover depan",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        1,
+        3,
+        4,
+        5
+      ],
+      "rule_codes": [
+        "VOLUME.HISTORY",
+        "CATALOGUE.LABELS",
+        "IDENTITY.CONSISTENCY",
+        "TITLE.COVER_MATCH",
+        "CATALOGUE.COMPONENTS"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "Volume",
+        "kover",
+        "berbeda"
+      ],
+      "text": "[Perlu verifikasi] Volume kover 31 berbeda dengan Volume 17 pada halaman judul, katalog, dan Tim Penyusun. Cocokkan volume resmi penerbit, lalu seragamkan; jangan langsung menganggap Volume 17 pasti benar (PDF hlm. 1, 3–5).",
+      "source": "codex"
+    },
+    {
+      "id": "G003",
+      "chapter": "Kover depan",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        1
+      ],
+      "rule_codes": [
+        "VISUAL.TYPOGRAPHY",
+        "COVER.COMPONENTS"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Judul",
+        "Kecamatan",
+        "huruf"
+      ],
+      "text": "[Terkonfirmasi] Judul Kecamatan menggunakan huruf dekoratif; gunakan jenis huruf yang mudah dibaca sesuai larangan huruf dekoratif pada instrumen pemeriksaan (PDF hlm. 1).",
+      "source": "codex"
+    },
+    {
+      "id": "G004",
+      "chapter": "Kover depan",
+      "kind": "must_find",
+      "weight": 0.5,
+      "pages": [
+        1
+      ],
+      "rule_codes": [
+        "VOLUME.HISTORY",
+        "TITLE.COVER_MATCH",
+        "IDENTITY.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Saran",
+        "opsional",
+        "Dekatkan",
+        "tahun"
+      ],
+      "text": "[Saran opsional] Dekatkan tahun/volume dengan blok judul agar menjadi satu kelompok informasi. Ini saran komposisi, bukan kesalahan data (PDF hlm. 1).",
+      "source": "codex"
+    },
+    {
+      "id": "G005",
+      "chapter": "Kover depan",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        1,
+        3,
+        4,
+        10,
+        118
+      ],
+      "rule_codes": [
+        "BPS.FULL_NAME",
+        "CATALOGUE.COMPONENTS",
+        "LANGUAGE.BILINGUAL",
+        "CATALOGUE.LABELS"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Samakan",
+        "penerbit",
+        "Inggris"
+      ],
+      "text": "[Terkonfirmasi] Samakan penerbit Inggris dengan Template KCDA: BPS-STATISTICS TOJO UNA-UNA REGENCY, tanpa OF. Terapkan konsisten pada kover, halaman judul, katalog, Preface, dan kover belakang; singkatan BPS tetap boleh pada teks Inggris (PDF hlm. 1, 3–4, 10, 118).",
+      "source": "codex"
+    },
+    {
+      "id": "G006",
+      "chapter": "Kover depan",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        1
+      ],
+      "rule_codes": [
+        "ISSN.COLON",
+        "BACK.BARCODE",
+        "ISSN.CHECKSUM"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "terbaca",
+        "kover",
+        "0852-0865"
+      ],
+      "text": "[Perlu verifikasi] Nomor terbaca pada kover 0852-0865 tidak lolos pemeriksaan digit kontrol ISSN modulus 11 (digit terakhir tercetak 5, hasil kontrol dari tujuh digit awal 0). Verifikasi seluruh nomor terhadap sertifikat/master ISSN; jangan mengganti digit terakhir sendiri atau meneruskan nomor ini ke barcode sebelum valid. Dasar: Library of Congre",
+      "source": "codex"
+    },
+    {
+      "id": "G007",
+      "chapter": "Kover depan",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        1
+      ],
+      "rule_codes": [
+        "BACK.BARCODE",
+        "CATALOGUE.LABELS",
+        "ISSN.CHECKSUM",
+        "ISSN.COLON",
+        "CATALOGUE.COMPONENTS"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Label",
+        "ISSN",
+        "kover"
+      ],
+      "text": "[Terkonfirmasi] Label ISSN pada kover masih memakai titik dua; hapus titik dua. Pemisah dua kelompok angka harus tanda hubung, bukan titik. Setelah nomor resmi diverifikasi, pakai ISSN XXXX-XXXX di luar katalog; hanya katalog memakai ISSN: XXXX-XXXX (PDF hlm. 1).",
+      "source": "codex"
+    },
+    {
+      "id": "G008",
+      "chapter": "Halaman Judul Utama",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        3
+      ],
+      "rule_codes": [
+        "BACK.BARCODE",
+        "CATALOGUE.LABELS",
+        "ISSN.CHECKSUM",
+        "ISSN.COLON",
+        "CATALOGUE.COMPONENTS"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "Setelah",
+        "resmi",
+        "ISSN"
+      ],
+      "text": "[Perlu verifikasi] Setelah nomor resmi ISSN dikonfirmasi, cantumkan ISSN XXXX-XXXX tanpa titik dua dan samakan dengan nomor resmi pada kover/katalog. Jangan menyalin nomor kover yang belum tervalidasi (PDF hlm. 3).",
+      "source": "codex"
+    },
+    {
+      "id": "G009",
+      "chapter": "Halaman katalog",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        4
+      ],
+      "rule_codes": [
+        "BACK.BARCODE",
+        "CATALOGUE.LABELS",
+        "ISSN.CHECKSUM",
+        "ISSN.COLON",
+        "CATALOGUE.COMPONENTS"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "ISSN",
+        "belum",
+        "dicantumkan"
+      ],
+      "text": "[Perlu verifikasi] ISSN belum dicantumkan. Setelah nomor resmi diverifikasi, tambahkan ISSN: XXXX-XXXX dengan titik dua. Aturan ini khusus ISSN pada halaman katalog (PDF hlm. 4).",
+      "source": "codex"
+    },
+    {
+      "id": "G010",
+      "chapter": "Halaman katalog",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        4
+      ],
+      "rule_codes": [
+        "CATALOGUE.COMPONENTS",
+        "CATALOGUE.LABELS"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Katalog",
+        "Catalogue",
+        "menjadi"
+      ],
+      "text": "[Terkonfirmasi] Perbaiki Katalog /Catalogue menjadi Katalog/Catalogue tanpa spasi di sekitar garis miring (PDF hlm. 4).",
+      "source": "codex"
+    },
+    {
+      "id": "G011",
+      "chapter": "Halaman katalog",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        4,
+        115,
+        116,
+        117,
+        118
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "jumlah",
+        "menjadi",
+        "Jumlah"
+      ],
+      "text": "[Terkonfirmasi] Perbaiki jumlah halaman menjadi Jumlah Halaman/Number of Pages: xxii+91 halaman/pages. Konten terakhir adalah Daftar Pustaka pada PDF 115, halaman tercetak 91. PDF 116–117 kosong dan PDF 118 kover belakang, tidak dihitung sebagai halaman isi (PDF hlm. 4, 115–118).",
+      "source": "codex"
+    },
+    {
+      "id": "G012",
+      "chapter": "Halaman katalog",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        4
+      ],
+      "rule_codes": [
+        "BPS.FULL_NAME",
+        "LANGUAGE.BILINGUAL"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Penyusun",
+        "Naskah",
+        "Penyunting"
+      ],
+      "text": "[Terkonfirmasi] Pada Penyusun Naskah, Penyunting, Pembuat Kover, dan Penerbit, ganti singkatan BPS dalam bahasa Indonesia dengan Badan Pusat Statistik Kabupaten Tojo Una-Una. Singkatan pada terjemahan Inggris boleh tetap BPS-Statistics (PDF hlm. 4).",
+      "source": "codex"
+    },
+    {
+      "id": "G013",
+      "chapter": "Halaman katalog",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        4
+      ],
+      "rule_codes": [
+        "BACK.BARCODE",
+        "CATALOGUE.LABELS",
+        "ISSN.CHECKSUM",
+        "ISSN.COLON",
+        "CATALOGUE.COMPONENTS"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Tambahkan",
+        "titik",
+        "label"
+      ],
+      "text": "[Terkonfirmasi] Tambahkan titik dua pada label Penerbit/Publisher: dan rapikan simbol hak cipta menjadi © tepat sebelum nama lengkap penerbit tanpa spasi. Aturan larangan titik dua di luar katalog berlaku pada label ISSN, bukan pada semua label lain (PDF hlm. 4).",
+      "source": "codex"
+    },
+    {
+      "id": "G014",
+      "chapter": "Halaman katalog",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        4
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Komponen",
+        "Dicetak",
+        "oleh"
+      ],
+      "text": "[Terkonfirmasi] Komponen Dicetak oleh/Printed by: belum ada. Isi nama lengkap unit pencetak bila dicetak internal atau nama perusahaan pencetak jika dicetak eksternal; jangan mengarang identitas pencetak (PDF hlm. 4).",
+      "source": "codex"
+    },
+    {
+      "id": "G015",
+      "chapter": "Halaman katalog",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        4
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Komponen",
+        "Sumber",
+        "Ilustrasi"
+      ],
+      "text": "[Terkonfirmasi] Komponen Sumber Ilustrasi/Illustration Source: belum ada. Cantumkan sumber foto/ilustrasi kover berupa URL atau nama lengkap unit kerja pembuatnya (PDF hlm. 4).",
+      "source": "codex"
+    },
+    {
+      "id": "G016",
+      "chapter": "Halaman katalog",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        3,
+        4
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Hilangkan",
+        "spasi",
+        "titik"
+      ],
+      "text": "[Terkonfirmasi] Hilangkan spasi sebelum titik dua pada label Jumlah Halaman/Number of Pages: dan label lain yang masih terpisah. Jangan menerapkan koreksi ini pada PDF 3 yang sudah benar (PDF hlm. 4).",
+      "source": "codex"
+    },
+    {
+      "id": "G017",
+      "chapter": "Halaman Tim Penyusun",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        5
+      ],
+      "rule_codes": [
+        "BACK.BARCODE",
+        "CATALOGUE.LABELS",
+        "ISSN.CHECKSUM",
+        "ISSN.COLON",
+        "CATALOGUE.COMPONENTS"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "Setelah",
+        "resmi",
+        "ISSN"
+      ],
+      "text": "[Perlu verifikasi] Setelah nomor resmi ISSN dikonfirmasi, cantumkan ISSN XXXX-XXXX tanpa titik dua dan samakan dengan nomor resmi pada kover/katalog. Jangan menyalin nomor kover yang belum tervalidasi (PDF hlm. 5).",
+      "source": "codex"
+    },
+    {
+      "id": "G018",
+      "chapter": "Halaman Tim Penyusun",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        5
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Penanggung",
+        "Jawab",
+        "Penyunting"
+      ],
+      "text": "[Terkonfirmasi] Penanggung Jawab dan Penyunting masing-masing memuat satu orang; gunakan Person in Charge dan Editor, bukan bentuk jamak. Layouters tidak dinyatakan salah karena juga digunakan oleh Template KCDA 2026 (PDF hlm. 5).",
+      "source": "codex"
+    },
+    {
+      "id": "G019",
+      "chapter": "Kontributor Data",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        7,
+        13,
+        41
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "LANGUAGE.BILINGUAL",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Ministry",
+        "Religious",
+        "Affair"
+      ],
+      "text": "[Terkonfirmasi] Perbaiki Ministry of Religious Affair menjadi Ministry of Religious Affairs; samakan Ministry of Internal Affairs/Ministry of Internal Affair dengan padanan Kementerian Dalam Negeri, Ministry of Home Affairs. Gunakan nama lembaga Inggris konsisten pada sumber tabel (PDF hlm. 7, 13, 41).",
+      "source": "codex"
+    },
+    {
+      "id": "G020",
+      "chapter": "Kontributor Data",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        7
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "Regional",
+        "Office",
+        "Revenue"
+      ],
+      "text": "[Perlu verifikasi] Regional Office Revenue dan Administration Office of Village and Subdistrict belum tepat menyatakan Badan Pendapatan Daerah dan Kantor Desa/Kelurahan. Cocokkan nama resmi lembaga dan gunakan padanan yang membedakan kelurahan dari kecamatan (PDF hlm. 7 dan sumber tabel).",
+      "source": "codex"
+    },
+    {
+      "id": "G021",
+      "chapter": "Kata Pengantar dan Preface",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        9
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Jabatan",
+        "Indonesia",
+        "masih"
+      ],
+      "text": "[Terkonfirmasi] Jabatan Indonesia masih Kepala BPS Kabupaten Tojo Una-Una; tulis Kepala Badan Pusat Statistik Kabupaten Tojo Una-Una (PDF hlm. 9).",
+      "source": "codex"
+    },
+    {
+      "id": "G022",
+      "chapter": "Kata Pengantar dan Preface",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        9
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Rapikan",
+        "Ampana",
+        "September"
+      ],
+      "text": "[Terkonfirmasi] Rapikan Ampana , September 2026 menjadi Ampana, September 2026; spasi sebelum koma di baris penanggalan harus dihilangkan (PDF hlm. 9).",
+      "source": "codex"
+    },
+    {
+      "id": "G023",
+      "chapter": "Kata Pengantar dan Preface",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        9
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Kalimat",
+        "pertama",
+        "berakhir"
+      ],
+      "text": "[Terkonfirmasi] Kalimat pertama berakhir perdagangan tanpa titik. Tambahkan titik serta koma pada daftar pertanian, pariwisata, transportasi dan komunikasi dan perbankan, koperasi, dan perdagangan. Rapikan masa- masa menjadi masa-masa; pemisahan semu memberik an/ditingk atkan tidak dianggap kesalahan (PDF hlm. 9).",
+      "source": "codex"
+    },
+    {
+      "id": "G024",
+      "chapter": "Kata Pengantar dan Preface",
+      "kind": "must_find",
+      "weight": 0.5,
+      "pages": [
+        10
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Saran",
+        "opsional",
+        "Sunting",
+        "konstruksi"
+      ],
+      "text": "[Saran opsional] Sunting konstruksi Preface yang tidak lengkap, antara lain presenting population statistics, Statistical data which presented, is expected to provide yang tidak jelas subjeknya, dan Although ..., but .... Pertahankan makna, cakupan, dan data (PDF hlm. 10).",
+      "source": "codex"
+    },
+    {
+      "id": "G025",
+      "chapter": "Daftar Isi",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        11
+      ],
+      "rule_codes": [
+        "BACK.BARCODE",
+        "CATALOGUE.LABELS",
+        "ISSN.CHECKSUM",
+        "ISSN.COLON",
+        "CATALOGUE.COMPONENTS"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "Setelah",
+        "resmi",
+        "ISSN"
+      ],
+      "text": "[Perlu verifikasi] Setelah nomor resmi ISSN dikonfirmasi, cantumkan ISSN XXXX-XXXX tanpa titik dua dan samakan dengan nomor resmi pada kover/katalog. Jangan menyalin nomor kover yang belum tervalidasi (PDF hlm. 11).",
+      "source": "codex"
+    },
+    {
+      "id": "G026",
+      "chapter": "Daftar Isi",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        11,
+        19
+      ],
+      "rule_codes": [
+        "CONTENTS.MATCH"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Daftar",
+        "Gambar",
+        "List"
+      ],
+      "text": "[Terkonfirmasi] Daftar Gambar/List of Figures dirujuk ke xvi, padahal halaman pembukanya bernomor xvii. Ubah rujukan menjadi xvii; heading DAFTAR ISI/CONTENTS sendiri sudah rapat (PDF hlm. 11 dan 19).",
+      "source": "codex"
+    },
+    {
+      "id": "G027",
+      "chapter": "Daftar Isi",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        11,
+        23
+      ],
+      "rule_codes": [
+        "CONTENTS.MATCH"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "List",
+        "Abbreviation",
+        "LIST"
+      ],
+      "text": "[Terkonfirmasi] List of Abbreviation/LIST OF ABBREVIATION masih tunggal untuk daftar berisi banyak singkatan. Gunakan List of Abbreviations/LIST OF ABBREVIATIONS dan samakan antara daftar isi dan halaman daftar singkatan (PDF hlm. 11 dan 23).",
+      "source": "codex"
+    },
+    {
+      "id": "G028",
+      "chapter": "Daftar Isi",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        11,
+        105
+      ],
+      "rule_codes": [
+        "RUNNING.TITLE",
+        "CONTENTS.MATCH",
+        "LANGUAGE.BILINGUAL"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Seragamkan",
+        "nama",
+        "Inggris"
+      ],
+      "text": "[Terkonfirmasi] Seragamkan nama Inggris Bab 7 antara daftar isi, pembatas bab, dan running title, misalnya Banking, Cooperatives, and Trade. Perbedaan Finance/Financial/Banking jangan dibiarkan mengubah cakupan judul (PDF hlm. 11 dan 105).",
+      "source": "codex"
+    },
+    {
+      "id": "G029",
+      "chapter": "Daftar Tabel dan Daftar Gambar",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        13,
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "CONTENTS.MATCH",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Daftar",
+        "Tabel",
+        "sedangkan"
+      ],
+      "text": "[Terkonfirmasi] Daftar Tabel Bab 2 memakai nomor 2.1–2.5, sedangkan tabel isi memakai 2.1.1–2.1.5. Sesuaikan daftar dengan nomor tabel isi. Nomor Gambar 2.1 dan 2.2 merupakan seri berbeda, tidak wajib diubah menjadi nomor tabel (PDF hlm. 13 dan 41–45).",
+      "source": "codex"
+    },
+    {
+      "id": "G030",
+      "chapter": "Daftar Tabel dan Daftar Gambar",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        20,
+        110
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Gambar",
+        "tertulis",
+        "Daftar"
+      ],
+      "text": "[Terkonfirmasi] Nomor halaman Gambar 7.1 tertulis 76 pada Daftar Gambar, tetapi gambar terdapat pada halaman tercetak 86. Ubah menjadi 86 (PDF hlm. 20 dan 110).",
+      "source": "codex"
+    },
+    {
+      "id": "G031",
+      "chapter": "Daftar Tabel dan Daftar Gambar",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        30,
+        39,
+        40,
+        52,
+        53,
+        69,
+        86,
+        87,
+        100,
+        110
+      ],
+      "rule_codes": [
+        "LANGUAGE.BILINGUAL"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Judul",
+        "gambar",
+        "belum"
+      ],
+      "text": "[Terkonfirmasi] Judul gambar belum menjelaskan lokasi Kecamatan AMPANA KOTA: 2.1 (PDF 39), 2.2 (PDF 40), 3.1 (PDF 52), 3.2 (PDF 53), 4.1 (PDF 69), 5.1 (PDF 86), 5.2 (PDF 87), 6.1 (PDF 100), 7.1 (PDF 110). Tambahkan lokasi pada judul Indonesia/Inggris dan daftar gambar. Gambar 1.2 PDF 30 sudah memuat lokasi, sehingga tidak perlu ditambahkan ulang.",
+      "source": "codex"
+    },
+    {
+      "id": "G032",
+      "chapter": "Penjelasan Umum dan Daftar Singkatan",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        21
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Tanda",
+        "decimal",
+        "menjadi"
+      ],
+      "text": "[Terkonfirmasi] Perbaiki Tanda decimal menjadi Tanda desimal dan KWh menjadi kWh (termasuk 1.000 KWh). Rapikan nol /Null menjadi nol/Null. Jangan mengubah MWh yang sudah benar (PDF hlm. 21).",
+      "source": "codex"
+    },
+    {
+      "id": "G033",
+      "chapter": "Penjelasan Umum dan Daftar Singkatan",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        23
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Muncipality",
+        "menjadi",
+        "Municipality"
+      ],
+      "text": "[Terkonfirmasi] Perbaiki Muncipality menjadi Municipality, Pharmacy Whole-seller menjadi Pharmaceutical Wholesaler, Stasiun Meterologi menjadi Stasiun Meteorologi, dan Surat Ijin menjadi Surat Izin (PDF hlm. 23).",
+      "source": "codex"
+    },
+    {
+      "id": "G034",
+      "chapter": "Layout dan running title",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        5,
+        10,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115
+      ],
+      "rule_codes": [
+        "RUNNING.TITLE"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Running",
+        "title",
+        "judul"
+      ],
+      "text": "[Terkonfirmasi] Running title judul bab pada halaman ganjil isi belum ditampilkan. Terapkan ganjil = judul bab, genap = judul publikasi, berdasarkan nomor halaman tercetak. Jangan tampilkan running title isi pada halaman romawi seperti PDF 5 dan 10, halaman kosong, atau pembatas bab (PDF hlm. 5, 10, 27–115).",
+      "source": "codex"
+    },
+    {
+      "id": "G035",
+      "chapter": "Layout dan running title",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        43,
+        45,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Nilai",
+        "strip",
+        "pendek"
+      ],
+      "text": "[Terkonfirmasi] Nilai tidak ada/nol menggunakan strip pendek pada tabel; seragamkan dengan simbol en dash (–) sesuai instrumen. Jangan menghapus superskrip yang berdiri di samping simbol nol dan jangan mengganti titik-titik yang berarti data tidak tersedia menjadi nol (contoh PDF hlm. 43, 45, 70–79, 88–94, 101–113).",
+      "source": "codex"
+    },
+    {
+      "id": "G036",
+      "chapter": "Layout dan running title",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        29,
+        39,
+        40
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Sumber",
+        "Source",
+        "masih"
+      ],
+      "text": "[Terkonfirmasi] Sumber/Source : masih memakai spasi sebelum titik dua pada PDF 29, 39, dan 40. Ubah menjadi Sumber/Source:. Label Catatan/Note: pada tabel yang diperiksa sudah rapat, sehingga tidak dikoreksi secara umum.",
+      "source": "codex"
+    },
+    {
+      "id": "G037",
+      "chapter": "Layout dan running title",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        31,
+        55
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "LANGUAGE.BILINGUAL",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Label",
+        "nama",
+        "kecamatan"
+      ],
+      "text": "[Terkonfirmasi] Label nama kecamatan pada baris total tabel masih bold italic, misalnya Tabel 1.1 dan lanjutan Tabel 3.1. Sesuai aturan yang disepakati, gunakan bold tanpa italic untuk baris total; pertahankan italic pada padanan Inggris, bukan menghapus semua italic di tabel (PDF hlm. 31 dan 55).",
+      "source": "codex"
+    },
+    {
+      "id": "G038",
+      "chapter": "Layout dan running title",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        55,
+        56,
+        71,
+        72,
+        73
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Banyak",
+        "angka",
+        "tabel"
+      ],
+      "text": "[Terkonfirmasi] Banyak angka tabel masih rata tengah. Terapkan perataan kanan dengan indent/margin sel sesuai instrumen, dengan perataan yang konsisten antartahun; jangan memaksakan nomor kolom atau simbol superskrip menjadi angka data (contoh PDF hlm. 55–56, 71–73).",
+      "source": "codex"
+    },
+    {
+      "id": "G039",
+      "chapter": "Bab 1 Geografi",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        28
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Perlu",
+        "Rentang",
+        "koordinat",
+        "sekitar"
+      ],
+      "text": "[Perlu verifikasi] Rentang koordinat sekitar 120–123 derajat adalah bujur, tetapi diberi label lintang. Pisahkan Bujur Timur/East Longitude dari Lintang Selatan/South Latitude; koordinat negatif jangan dilabeli Lintang Utara. Verifikasi nilai dan urutan batas terhadap sumber peta resmi, bukan mengganti angka dari perkiraan (PDF hlm. 28).",
+      "source": "codex"
+    },
+    {
+      "id": "G040",
+      "chapter": "Bab 1 Geografi",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        28,
+        31,
+        32,
+        41,
+        42,
+        43,
+        44,
+        45,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Village",
+        "Subdistrict",
+        "padanan"
+      ],
+      "text": "[Terkonfirmasi] Village/Subdistrict pada padanan Desa/Kelurahan mencampur kelurahan dan kecamatan. Gunakan Village/Urban Village untuk Desa/Kelurahan dan District untuk Kecamatan, konsisten pada narasi, daftar, gambar, tabel, dan sumber (contoh PDF hlm. 28, 31–32, 41–45, 70–79).",
+      "source": "codex"
+    },
+    {
+      "id": "G041",
+      "chapter": "Bab 1 Geografi",
+      "kind": "must_find",
+      "weight": 0.5,
+      "pages": [
+        32
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Saran",
+        "opsional",
+        "Sesuaikan",
+        "header"
+      ],
+      "text": "[Saran opsional] Sesuaikan header generik Kabupaten/Kota dan Regency/Municipal menjadi Kabupaten dan Regency bila penyunting menghendaki nomenklatur spesifik Tojo Una-Una. Header generik tidak dianggap salah data (PDF hlm. 32).",
+      "source": "codex"
+    },
+    {
+      "id": "G042",
+      "chapter": "Bab 1 Geografi",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        32
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "BPS.FULL_NAME",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "LANGUAGE.BILINGUAL",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Sumber",
+        "Tabel",
+        "masih"
+      ],
+      "text": "[Terkonfirmasi] Sumber Tabel 1.2 masih menyingkat lembaga Indonesia menjadi BPS-Pendataan. Tulis Badan Pusat Statistik, Pendataan Potensi Desa/Kelurahan; singkatan BPS pada terjemahan Inggris diperbolehkan. Verifikasi padanan nama kegiatan Inggris dengan nomenklatur sumber, bukan menyebutnya Monography Census tanpa dasar (PDF hlm. 32).",
+      "source": "codex"
+    },
+    {
+      "id": "G043",
+      "chapter": "Bab 1 Geografi",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        28,
+        31
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "Desa",
+        "kelurahan",
+        "terluas"
+      ],
+      "text": "[Perlu verifikasi] Desa/kelurahan terluas pada narasi adalah Sansarino 31,54%, tetapi Tabel 1.1 menunjukkan Malotong 66,50 km²/37,26% lebih luas daripada Sansarino 56,29 km²/31,54%. Verifikasi angka dasar, lalu perbaiki nama wilayah terluas pada kedua bahasa (PDF hlm. 28 dan 31).",
+      "source": "codex"
+    },
+    {
+      "id": "G044",
+      "chapter": "Bab 1 Geografi",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        28,
+        32
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "Narasi",
+        "menyebut",
+        "Malotong"
+      ],
+      "text": "[Perlu verifikasi] Narasi menyebut Malotong terjauh 12 km ke pusat kecamatan. Pada Tabel 1.2, Malotong 6 km ke kecamatan dan 12 km ke kabupaten; Padang Tumbuo 9 km merupakan jarak kecamatan terbesar. Perbaiki cakupan jarak, nama, dan angka setelah verifikasi (PDF hlm. 28 dan 32).",
+      "source": "codex"
+    },
+    {
+      "id": "G045",
+      "chapter": "Bab 1 Geografi",
+      "kind": "must_find",
+      "weight": 0.5,
+      "pages": [
+        28
+      ],
+      "rule_codes": [
+        "LANGUAGE.BILINGUAL"
+      ],
+      "keywords_any": [
+        "Saran",
+        "opsional",
+        "Sunting",
+        "bahasa"
+      ],
+      "text": "[Saran opsional] Sunting bahasa Inggris pada frasa yang benar-benar ditemukan: As written by geography fact → Geographically. Sesuaikan kalimat utuh dan pertahankan makna/data, tidak memakai penggantian massal tanpa konteks (PDF hlm. 28).",
+      "source": "codex"
+    },
+    {
+      "id": "G046",
+      "chapter": "Bab 2 Pemerintahan",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        35,
+        36
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Penjelasan",
+        "teknis",
+        "memuat"
+      ],
+      "text": "[Terkonfirmasi] Penjelasan teknis memuat terkcil dan kelrurahan; perbaiki menjadi terkecil dan kelurahan. Pada definisi akses, perbaiki keberadaa/akses menjadi keberadaan/akses (PDF hlm. 35–36).",
+      "source": "codex"
+    },
+    {
+      "id": "G047",
+      "chapter": "Bab 2 Pemerintahan",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        36
+      ],
+      "rule_codes": [
+        "LANGUAGE.BILINGUAL"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Definisi",
+        "desa",
+        "perkotaan"
+      ],
+      "text": "[Terkonfirmasi] Definisi desa perkotaan/perdesaan pada butir 8 versi Inggris terbalik: memenuhi skor 9 dikaitkan dengan rural dan tidak memenuhi dengan urban. Selaraskan urban = perkotaan dan rural = perdesaan sesuai versi Indonesia serta metodologi sumber (PDF hlm. 36).",
+      "source": "codex"
+    },
+    {
+      "id": "G048",
+      "chapter": "Bab 2 Pemerintahan",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        37,
+        38,
+        44
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "Penjelasan",
+        "teknis",
+        "membahas"
+      ],
+      "text": "[Perlu verifikasi] Penjelasan teknis membahas Pajak Penghasilan, sedangkan ulasan menyebut pajak bumi dan bangunan dan tabel menampilkan objek/penerimaan pajak. Verifikasi jenis pajak pada data sumber dan berikan definisi teknis yang sesuai; jangan memindahkan definisi PPh ke PBB tanpa pemeriksaan sumber (PDF hlm. 37–38 dan 44).",
+      "source": "codex"
+    },
+    {
+      "id": "G049",
+      "chapter": "Bab 2 Pemerintahan",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        13,
+        19,
+        40,
+        44
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Penerima",
+        "Pajak",
+        "daftar"
+      ],
+      "text": "[Terkonfirmasi] Penerima Pajak pada daftar, judul Gambar 2.2, dan judul Tabel 2.1.4 tidak sesuai makna nilai penerimaan pajak. Perbaiki menjadi Penerimaan Pajak; judul gambar juga perlu Desa/Kelurahan, bukan Desa Kelurahan (PDF hlm. 13, 19, 40, 44).",
+      "source": "codex"
+    },
+    {
+      "id": "G050",
+      "chapter": "Bab 2 Pemerintahan",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        41
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "LANGUAGE.BILINGUAL",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Sumber",
+        "Tabel",
+        "2.1.1"
+      ],
+      "text": "[Terkonfirmasi] Sumber Tabel 2.1.1 menulis Kementrian Dalam Negeri dan BPS; gunakan Kementerian Dalam Negeri dan Badan Pusat Statistik. Padanan Inggris Ministry of Internal affair perlu diseragamkan menjadi Ministry of Home Affairs (PDF hlm. 41).",
+      "source": "codex"
+    },
+    {
+      "id": "G051",
+      "chapter": "Bab 2 Pemerintahan",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        38
+      ],
+      "rule_codes": [
+        "LANGUAGE.BILINGUAL"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Rapikan",
+        "format",
+        "mata"
+      ],
+      "text": "[Terkonfirmasi] Rapikan format mata uang narasi menjadi Rp305.789.264,00 dan Inggris IDR 305,789,264; hindari Rp., IDR., dan akhiran ,- atau .-. Perbaikan format tidak mengubah nilai statistik (PDF hlm. 38).",
+      "source": "codex"
+    },
+    {
+      "id": "G052",
+      "chapter": "Bab 2 Pemerintahan",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        38,
+        42
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "Jumlah",
+        "dari",
+        "baris"
+      ],
+      "text": "[Perlu verifikasi] Jumlah SLS dari 10 baris desa/kelurahan Tabel 2.1.2 = 81, tetapi jumlah tercetak dan narasi = 72. Verifikasi komponen SLS dan total terhadap sumber; jangan langsung mengganti total saja (PDF hlm. 38 dan 42).",
+      "source": "codex"
+    },
+    {
+      "id": "G053",
+      "chapter": "Bab 2 Pemerintahan",
+      "kind": "must_find",
+      "weight": 0.5,
+      "pages": [
+        38
+      ],
+      "rule_codes": [
+        "LANGUAGE.BILINGUAL"
+      ],
+      "keywords_any": [
+        "Saran",
+        "opsional",
+        "Sunting",
+        "bahasa"
+      ],
+      "text": "[Saran opsional] Sunting bahasa Inggris pada frasa yang benar-benar ditemukan: this region has their → this region have their; number of tax object → number of tax objects. Sesuaikan kalimat utuh dan pertahankan makna/data, tidak memakai penggantian massal tanpa konteks (PDF hlm. 38).",
+      "source": "codex"
+    },
+    {
+      "id": "G054",
+      "chapter": "Bab 3 Penduduk",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        56
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Rentang",
+        "umur",
+        "tanda"
+      ],
+      "text": "[Terkonfirmasi] Rentang umur menggunakan tanda hubung dengan spasi (0 - 4 dan seterusnya). Gunakan en dash rapat, misalnya 0–4, 5–9, dan 10–14 (PDF hlm. 56).",
+      "source": "codex"
+    },
+    {
+      "id": "G055",
+      "chapter": "Bab 3 Penduduk",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        4,
+        31,
+        54,
+        55,
+        97
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "Indikator",
+        "Saluaba",
+        "lanjutan"
+      ],
+      "text": "[Perlu verifikasi] Indikator Saluaba pada lanjutan Tabel 3.1 tidak cocok dengan angka dasar: rasio tercetak 114,24, hitung ulang 114,65. Dasar PDF 54: laki-laki 681, perempuan 594; luas PDF 31 4,97 km². Rumus rasio = L/P×100, persentase = penduduk/jumlah kecamatan×100, kepadatan = penduduk/luas. Verifikasi kesamaan tahun/sumber dan presisi luas seb",
+      "source": "codex"
+    },
+    {
+      "id": "G056",
+      "chapter": "Bab 3 Penduduk",
+      "kind": "must_find",
+      "weight": 0.5,
+      "pages": [
+        51
+      ],
+      "rule_codes": [
+        "LANGUAGE.BILINGUAL"
+      ],
+      "keywords_any": [
+        "Saran",
+        "opsional",
+        "Sunting",
+        "bahasa"
+      ],
+      "text": "[Saran opsional] Sunting bahasa Inggris pada frasa yang benar-benar ditemukan: has population → has a population; Males population → The male population; females population → the female population. Sesuaikan kalimat utuh dan pertahankan makna/data, tidak memakai penggantian massal tanpa konteks (PDF hlm. 51).",
+      "source": "codex"
+    },
+    {
+      "id": "G057",
+      "chapter": "Bab 4 Sosial dan Kesejahteraan Rakyat",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        61
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Madrasah",
+        "Ibdtidaiyah",
+        "penjelasan"
+      ],
+      "text": "[Terkonfirmasi] Madrasah Ibdtidaiyah pada penjelasan teknis perlu diperbaiki menjadi Madrasah Ibtidaiyah (PDF hlm. 61).",
+      "source": "codex"
+    },
+    {
+      "id": "G058",
+      "chapter": "Bab 4 Sosial dan Kesejahteraan Rakyat",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        68,
+        70,
+        71,
+        72,
+        73
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Kalimat",
+        "tentang",
+        "keberadaan"
+      ],
+      "text": "[Terkonfirmasi] Kalimat tentang keberadaan jenjang/sekolah merujuk Tabel 4.1.3–4.1.4 (guru/murid). Untuk jumlah sekolah/keberadaan jenjang, rujuk Tabel 4.1.1–4.1.2; pertahankan rujukan 4.1.4 bila kalimat membahas murid (PDF hlm. 68, 70–73).",
+      "source": "codex"
+    },
+    {
+      "id": "G059",
+      "chapter": "Bab 4 Sosial dan Kesejahteraan Rakyat",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        69,
+        74,
+        75
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Gambar",
+        "berjudul",
+        "sarana"
+      ],
+      "text": "[Terkonfirmasi] Gambar 4.1 berjudul sarana kesehatan menurut desa/kelurahan, tetapi kategori grafik adalah jenis sarana. Tetapkan indikator: jumlah unit menurut jenis menggunakan Tabel 4.2.2, atau banyaknya desa/kelurahan yang memiliki sarana menurut jenis menggunakan Tabel 4.2.1. Jangan menukar jumlah desa dengan jumlah unit; perbaiki judul/angka ",
+      "source": "codex"
+    },
+    {
+      "id": "G060",
+      "chapter": "Bab 4 Sosial dan Kesejahteraan Rakyat",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        71
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "Catatan",
+        "tentang",
+        "seluruh"
+      ],
+      "text": "[Perlu verifikasi] Catatan 3 tentang seluruh RA swasta pada Tabel 4.1.2 tidak mempunyai penanda 3 yang jelas pada data. Superskrip 2 pada stub adalah rujukan sumber EMIS, bukan penanda catatan 3; pertahankan 2 dan tambahkan 3 pada sel yang tepat bila relevan, atau hapus catatan yang tidak dipakai apabila semua RA nol (PDF hlm. 71).",
+      "source": "codex"
+    },
+    {
+      "id": "G061",
+      "chapter": "Bab 4 Sosial dan Kesejahteraan Rakyat",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        71,
+        72,
+        73
+      ],
+      "rule_codes": [
+        "LANGUAGE.BILINGUAL"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Sumber",
+        "EMIS",
+        "versi"
+      ],
+      "text": "[Terkonfirmasi] Sumber EMIS versi Indonesia menyebut data semester genap, tetapi versi Inggris first semester report data. Selaraskan menjadi even/second semester report data; ini tidak berlaku pada semua nomor superskrip (PDF hlm. 71–73).",
+      "source": "codex"
+    },
+    {
+      "id": "G062",
+      "chapter": "Bab 4 Sosial dan Kesejahteraan Rakyat",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        75
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "kolom",
+        "Tabel",
+        "4.2.2"
+      ],
+      "text": "[Terkonfirmasi] Nomor kolom Tabel 4.2.2 adalah (1), (2), (3), (3), (3); ubah menjadi (1), (2), (3), (4), (5). Judul kolom harus konsisten dicetak tebal (PDF hlm. 75).",
+      "source": "codex"
+    },
+    {
+      "id": "G063",
+      "chapter": "Bab 4 Sosial dan Kesejahteraan Rakyat",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        70,
+        76
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "kolom",
+        "Tabel",
+        "4.3.1"
+      ],
+      "text": "[Terkonfirmasi] Nomor kolom Tabel 4.3.1 adalah (1), (3), (4); ubah menjadi (1), (2), (3). Perbaiki Subdistricsts Main Street Illumination dengan padanan kelurahan yang tepat, misalnya Villages/Urban Villages Main Street Illumination (PDF hlm. 76, bukan PDF 70).",
+      "source": "codex"
+    },
+    {
+      "id": "G064",
+      "chapter": "Bab 4 Sosial dan Kesejahteraan Rakyat",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        65,
+        78
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "Penjelasan",
+        "teknis",
+        "bencana"
+      ],
+      "text": "[Perlu verifikasi] Penjelasan teknis bencana masih menyatakan periode Januari 2023–April 2024, sedangkan tabel kejadian berjudul 2025. Periksa periode pengumpulan dan periode kejadian sumber Podes; samakan definisi, judul, dan catatan berdasarkan cakupan aktual, bukan otomatis mengganti seluruh tahun menjadi 2025 (PDF hlm. 65 dan 78).",
+      "source": "codex"
+    },
+    {
+      "id": "G065",
+      "chapter": "Bab 4 Sosial dan Kesejahteraan Rakyat",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        72
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Perlu",
+        "Guru",
+        "2025",
+        "2026"
+      ],
+      "text": "[Perlu verifikasi] Guru TK 2025/2026: negeri 4 + swasta 59 = 63, tetapi jumlah tercetak 59. Verifikasi ketiga sel; selisih bukan akibat pembulatan (PDF hlm. 72).",
+      "source": "codex"
+    },
+    {
+      "id": "G066",
+      "chapter": "Bab 4 Sosial dan Kesejahteraan Rakyat",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        68,
+        73
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Narasi",
+        "menyebut",
+        "sedangkan"
+      ],
+      "text": "[Terkonfirmasi] Narasi menyebut TK 744, SMP 820, SMK 833, sedangkan Tabel 4.1.4 tahun 2025/2026 adalah TK 516, SMP 1.372, SMK 985. Total semua jenjang 6.419 sudah cocok; koreksi angka jenjang yang tidak konsisten, bukan totalnya (PDF hlm. 68 dan 73).",
+      "source": "codex"
+    },
+    {
+      "id": "G067",
+      "chapter": "Bab 4 Sosial dan Kesejahteraan Rakyat",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        69,
+        74,
+        75
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "Grafik",
+        "kesehatan",
+        "menampilkan"
+      ],
+      "text": "[Perlu verifikasi] Grafik kesehatan menampilkan apotek 4, cocok dengan jumlah desa/kelurahan pada Tabel 4.2.1, bukan jumlah unit 7 pada Tabel 4.2.2. Ubah judul menjadi banyaknya desa/kelurahan yang memiliki sarana menurut jenis bila tetap memakai 4; bila memakai indikator unit, sesuaikan angka menjadi 7 setelah sumber diverifikasi (PDF hlm. 69, 74–",
+      "source": "codex"
+    },
+    {
+      "id": "G068",
+      "chapter": "Bab 4 Sosial dan Kesejahteraan Rakyat",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        68
+      ],
+      "rule_codes": [
+        "LANGUAGE.EJAAN"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "salah",
+        "ketik",
+        "literal"
+      ],
+      "text": "[Terkonfirmasi] Perbaiki salah ketik literal Tekait menjadi Terkait pada PDF hlm. 68. Temuan ini didasarkan pada teks bersih; pemisahan huruf karena tracking tidak dihitung sebagai salah eja.",
+      "source": "codex"
+    },
+    {
+      "id": "G069",
+      "chapter": "Bab 4 Sosial dan Kesejahteraan Rakyat",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        68
+      ],
+      "rule_codes": [
+        "LANGUAGE.EJAAN"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "salah",
+        "ketik",
+        "literal"
+      ],
+      "text": "[Terkonfirmasi] Perbaiki salah ketik literal Distrcit menjadi District pada PDF hlm. 68. Temuan ini didasarkan pada teks bersih; pemisahan huruf karena tracking tidak dihitung sebagai salah eja.",
+      "source": "codex"
+    },
+    {
+      "id": "G070",
+      "chapter": "Bab 4 Sosial dan Kesejahteraan Rakyat",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        64
+      ],
+      "rule_codes": [
+        "LANGUAGE.EJAAN"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "salah",
+        "ketik",
+        "literal"
+      ],
+      "text": "[Terkonfirmasi] Perbaiki salah ketik literal pharmautical menjadi pharmaceutical pada PDF hlm. 64. Temuan ini didasarkan pada teks bersih; pemisahan huruf karena tracking tidak dihitung sebagai salah eja.",
+      "source": "codex"
+    },
+    {
+      "id": "G071",
+      "chapter": "Bab 4 Sosial dan Kesejahteraan Rakyat",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        59
+      ],
+      "rule_codes": [
+        "LANGUAGE.EJAAN"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "salah",
+        "ketik",
+        "literal"
+      ],
+      "text": "[Terkonfirmasi] Perbaiki salah ketik literal utamamendidik menjadi utama mendidik pada PDF hlm. 59. Temuan ini didasarkan pada teks bersih; pemisahan huruf karena tracking tidak dihitung sebagai salah eja.",
+      "source": "codex"
+    },
+    {
+      "id": "G072",
+      "chapter": "Bab 4 Sosial dan Kesejahteraan Rakyat",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        59
+      ],
+      "rule_codes": [
+        "LANGUAGE.EJAAN"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "salah",
+        "ketik",
+        "literal"
+      ],
+      "text": "[Terkonfirmasi] Perbaiki salah ketik literal dirimelalui menjadi diri melalui pada PDF hlm. 59. Temuan ini didasarkan pada teks bersih; pemisahan huruf karena tracking tidak dihitung sebagai salah eja.",
+      "source": "codex"
+    },
+    {
+      "id": "G073",
+      "chapter": "Bab 4 Sosial dan Kesejahteraan Rakyat",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        63
+      ],
+      "rule_codes": [
+        "LANGUAGE.EJAAN"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "salah",
+        "ketik",
+        "literal"
+      ],
+      "text": "[Terkonfirmasi] Perbaiki salah ketik literal ataulanjutan menjadi atau lanjutan pada PDF hlm. 63. Temuan ini didasarkan pada teks bersih; pemisahan huruf karena tracking tidak dihitung sebagai salah eja.",
+      "source": "codex"
+    },
+    {
+      "id": "G074",
+      "chapter": "Bab 4 Sosial dan Kesejahteraan Rakyat",
+      "kind": "must_find",
+      "weight": 0.5,
+      "pages": [
+        68
+      ],
+      "rule_codes": [
+        "LANGUAGE.BILINGUAL"
+      ],
+      "keywords_any": [
+        "Saran",
+        "opsional",
+        "Sunting",
+        "bahasa"
+      ],
+      "text": "[Saran opsional] Sunting bahasa Inggris pada frasa yang benar-benar ditemukan: communitys → community’s. Sesuaikan kalimat utuh dan pertahankan makna/data, tidak memakai penggantian massal tanpa konteks (PDF hlm. 68).",
+      "source": "codex"
+    },
+    {
+      "id": "G075",
+      "chapter": "Bab 5 Pertanian",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        86,
+        89,
+        94
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "Tabel",
+        "produksi",
+        "tanaman"
+      ],
+      "text": "[Perlu verifikasi] Tabel produksi tanaman semusim 5.2 memuat buah tahunan, sementara Tabel 5.7 buah/sayuran tahunan memuat cabai rawit dan tomat/terung yang termasuk tanaman semusim. Verifikasi klasifikasi SPH-SBS/SPH-BST dan seri sumber; susun ulang komoditas pada kelompok yang tepat dan sesuaikan Gambar 5.1. Jangan menghapus angka sebelum memasti",
+      "source": "codex"
+    },
+    {
+      "id": "G076",
+      "chapter": "Bab 5 Pertanian",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        90,
+        91,
+        92,
+        93
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Aloevera",
+        "menjadi",
+        "Aloe"
+      ],
+      "text": "[Terkonfirmasi] Perbaiki Aloevera menjadi Aloe vera pada Tabel 5.3–5.4, Chrysantemum menjadi Chrysanthemum, dan Agricultural Statistik menjadi Agricultural Statistics pada sumber Tabel 5.5–5.6. Horticulture yang hanya tampak terpisah saat ekstraksi tidak perlu dikoreksi (PDF hlm. 90–93).",
+      "source": "codex"
+    },
+    {
+      "id": "G077",
+      "chapter": "Bab 5 Pertanian",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        91
+      ],
+      "rule_codes": [
+        "LANGUAGE.BILINGUAL"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Tambahkan",
+        "spasi",
+        "setelah"
+      ],
+      "text": "[Terkonfirmasi] Tambahkan spasi setelah koma pada periode judul Inggris yang masih (kg),2022–2025; gunakan (kg), 2022–2025. Pertahankan m² yang sudah superskrip, bukan menganggap hasil ekstraksi m2 pasti salah (PDF hlm. 91).",
+      "source": "codex"
+    },
+    {
+      "id": "G078",
+      "chapter": "Bab 5 Pertanian",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        85,
+        88
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "Narasi",
+        "menyebut",
+        "luas"
+      ],
+      "text": "[Perlu verifikasi] Narasi menyebut luas panen tomat 0,10 ha pada kalimat kedua, tetapi Tabel 5.1 menunjukkan angka 0,10 ha untuk terung. Verifikasi komoditas dan perbaiki kalimat; pada tahun 2025 semangka tertulis 0.,20, sehingga format angka juga perlu dikonfirmasi/diperbaiki (PDF hlm. 85 dan 88).",
+      "source": "codex"
+    },
+    {
+      "id": "G079",
+      "chapter": "Bab 5 Pertanian",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        83
+      ],
+      "rule_codes": [
+        "LANGUAGE.EJAAN"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "salah",
+        "ketik",
+        "literal"
+      ],
+      "text": "[Terkonfirmasi] Perbaiki salah ketik literal bagianbagian menjadi bagian-bagian pada PDF hlm. 83. Temuan ini didasarkan pada teks bersih; pemisahan huruf karena tracking tidak dihitung sebagai salah eja.",
+      "source": "codex"
+    },
+    {
+      "id": "G080",
+      "chapter": "Bab 5 Pertanian",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        84
+      ],
+      "rule_codes": [
+        "LANGUAGE.EJAAN"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "salah",
+        "ketik",
+        "literal"
+      ],
+      "text": "[Terkonfirmasi] Perbaiki salah ketik literal buahbuahan menjadi buah-buahan pada PDF hlm. 84. Temuan ini didasarkan pada teks bersih; pemisahan huruf karena tracking tidak dihitung sebagai salah eja.",
+      "source": "codex"
+    },
+    {
+      "id": "G081",
+      "chapter": "Bab 5 Pertanian",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        85
+      ],
+      "rule_codes": [
+        "LANGUAGE.EJAAN"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "salah",
+        "ketik",
+        "literal"
+      ],
+      "text": "[Terkonfirmasi] Perbaiki salah ketik literal di dominasi menjadi didominasi pada PDF hlm. 85. Temuan ini didasarkan pada teks bersih; pemisahan huruf karena tracking tidak dihitung sebagai salah eja.",
+      "source": "codex"
+    },
+    {
+      "id": "G082",
+      "chapter": "Bab 5 Pertanian",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        85
+      ],
+      "rule_codes": [
+        "LANGUAGE.EJAAN"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "salah",
+        "ketik",
+        "literal"
+      ],
+      "text": "[Terkonfirmasi] Perbaiki salah ketik literal komoditi menjadi komoditas pada PDF hlm. 85. Temuan ini didasarkan pada teks bersih; pemisahan huruf karena tracking tidak dihitung sebagai salah eja.",
+      "source": "codex"
+    },
+    {
+      "id": "G083",
+      "chapter": "Bab 5 Pertanian",
+      "kind": "must_find",
+      "weight": 0.5,
+      "pages": [
+        85
+      ],
+      "rule_codes": [
+        "LANGUAGE.BILINGUAL"
+      ],
+      "keywords_any": [
+        "Saran",
+        "opsional",
+        "Sunting",
+        "bahasa"
+      ],
+      "text": "[Saran opsional] Sunting bahasa Inggris pada frasa yang benar-benar ditemukan: stoped produced → ceased production; comodity → commodity. Sesuaikan kalimat utuh dan pertahankan makna/data, tidak memakai penggantian massal tanpa konteks (PDF hlm. 85).",
+      "source": "codex"
+    },
+    {
+      "id": "G084",
+      "chapter": "Bab 6 Pariwisata, Transportasi, dan Komunikasi",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        97,
+        98
+      ],
+      "rule_codes": [
+        "LANGUAGE.BILINGUAL"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Penjelasan",
+        "teknis",
+        "Inggris"
+      ],
+      "text": "[Terkonfirmasi] Penjelasan teknis Inggris memuat partor dan Mobile Postal Service is tnomadic; perbaiki menjadi part or dan Mobile Postal Service is a mobile/itinerant postal service tanpa mengubah definisi Pos Keliling (PDF hlm. 97–98).",
+      "source": "codex"
+    },
+    {
+      "id": "G085",
+      "chapter": "Bab 6 Pariwisata, Transportasi, dan Komunikasi",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        17,
+        101,
+        103
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "CONTENTS.MATCH",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Accomodation",
+        "menjadi",
+        "Accommodation"
+      ],
+      "text": "[Terkonfirmasi] Perbaiki Accomodation menjadi Accommodation pada daftar tabel dan Tabel 6.1.1, serta Mobile Portal Service menjadi Mobile Postal Service pada Tabel 6.3.1 (PDF hlm. 17, 101, 103).",
+      "source": "codex"
+    },
+    {
+      "id": "G086",
+      "chapter": "Bab 6 Pariwisata, Transportasi, dan Komunikasi",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        95
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "gambar",
+        "pembatas",
+        "judul"
+      ],
+      "text": "[Terkonfirmasi] Pada gambar pembatas Bab 6, judul besar dan kalimat penjelas memakai PARAWISATA/parawisata. Perbaiki menjadi PARIWISATA/pariwisata dan rapikan judul menjadi PARIWISATA, TRANSPORTASI, DAN KOMUNIKASI. Salah eja ini terlihat pada gambar halaman, meskipun tidak masuk ekstraksi teks (PDF hlm. 95).",
+      "source": "codex"
+    },
+    {
+      "id": "G087",
+      "chapter": "Bab 6 Pariwisata, Transportasi, dan Komunikasi",
+      "kind": "must_find",
+      "weight": 0.5,
+      "pages": [
+        99
+      ],
+      "rule_codes": [
+        "LANGUAGE.BILINGUAL"
+      ],
+      "keywords_any": [
+        "Saran",
+        "opsional",
+        "Sunting",
+        "bahasa"
+      ],
+      "text": "[Saran opsional] Sunting bahasa Inggris pada frasa yang benar-benar ditemukan: a communication facilities → communication facilities. Sesuaikan kalimat utuh dan pertahankan makna/data, tidak memakai penggantian massal tanpa konteks (PDF hlm. 99).",
+      "source": "codex"
+    },
+    {
+      "id": "G088",
+      "chapter": "Bab 7 Perbankan, Koperasi, dan Perdagangan",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        107,
+        108
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Renumeration",
+        "menjadi",
+        "Remuneration"
+      ],
+      "text": "[Terkonfirmasi] Perbaiki Renumeration menjadi Remuneration pada definisi bank dan azas menjadi asas pada definisi koperasi (PDF hlm. 107–108).",
+      "source": "codex"
+    },
+    {
+      "id": "G089",
+      "chapter": "Bab 7 Perbankan, Koperasi, dan Perdagangan",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        113
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Shopping",
+        "complexs",
+        "menjadi"
+      ],
+      "text": "[Terkonfirmasi] Perbaiki Shopping complexs menjadi Shopping complexes pada Tabel 7.3; indikator tabel tetap banyaknya desa/kelurahan yang memiliki sarana, bukan otomatis jumlah unit (PDF hlm. 113).",
+      "source": "codex"
+    },
+    {
+      "id": "G090",
+      "chapter": "Bab 7 Perbankan, Koperasi, dan Perdagangan",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        109,
+        111
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.TOTAL",
+        "TABLE.FORMAT",
+        "TABLE.TITLE",
+        "TABLE.NUMBER",
+        "LANGUAGE.BILINGUAL",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Narasi",
+        "Inggris",
+        "menyebut"
+      ],
+      "text": "[Terkonfirmasi] Narasi Inggris menyebut bank pemerintah pada tiga desa/kelurahan, sedangkan Indonesia dan Tabel 7.1 menunjukkan satu. Samakan indikator jumlah desa/kelurahan, bukan jumlah bank (PDF hlm. 109 dan 111).",
+      "source": "codex"
+    },
+    {
+      "id": "G091",
+      "chapter": "Bab 7 Perbankan, Koperasi, dan Perdagangan",
+      "kind": "must_find",
+      "weight": 0.5,
+      "pages": [
+        109
+      ],
+      "rule_codes": [
+        "LANGUAGE.BILINGUAL"
+      ],
+      "keywords_any": [
+        "Saran",
+        "opsional",
+        "Sunting",
+        "bahasa"
+      ],
+      "text": "[Saran opsional] Sunting bahasa Inggris pada frasa yang benar-benar ditemukan: 1 villages → 1 village; banking facilities is → banking facilities, namely. Sesuaikan kalimat utuh dan pertahankan makna/data, tidak memakai penggantian massal tanpa konteks (PDF hlm. 109).",
+      "source": "codex"
+    },
+    {
+      "id": "G092",
+      "chapter": "Daftar Pustaka",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        115
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Urutkan",
+        "entri",
+        "berdasarkan"
+      ],
+      "text": "[Terkonfirmasi] Urutkan entri berdasarkan penulis/lembaga secara alfabetis; susunan saat ini dimulai Undang-Undang, Kementerian, lalu Badan Pusat Statistik. Perbaiki Kementrian menjadi Kementerian. Hanging indent dan italic judul yang sudah diterapkan tidak perlu diperintahkan ulang sebagai kesalahan (PDF hlm. 115, halaman tercetak 91).",
+      "source": "codex"
+    },
+    {
+      "id": "G093",
+      "chapter": "Kover belakang",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        118
+      ],
+      "rule_codes": [
+        "BACK.BARCODE",
+        "CATALOGUE.LABELS",
+        "ISSN.CHECKSUM",
+        "ISSN.COLON",
+        "CATALOGUE.COMPONENTS"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "Barcode",
+        "ISSN",
+        "belum"
+      ],
+      "text": "[Perlu verifikasi] Barcode ISSN belum terlihat. Sesudah nomor resmi ISSN diverifikasi, cantumkan barcode sesuai nomor resmi; tulisan ISSN di luar katalog tanpa titik dua. Jangan membuat barcode dari nomor kover yang gagal digit kontrol (PDF hlm. 118).",
+      "source": "codex"
+    },
+    {
+      "id": "G094",
+      "chapter": "Kover belakang",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        118
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Rapikan",
+        "label",
+        "Website"
+      ],
+      "text": "[Terkonfirmasi] Rapikan label Website : menjadi Website: tanpa spasi sebelum titik dua. Teks kontak lainnya harus dipertahankan kecuali terbukti salah (PDF hlm. 118).",
+      "source": "codex"
+    },
+    {
+      "id": "G095",
+      "chapter": "Kover belakang",
+      "kind": "must_find",
+      "weight": 0.5,
+      "pages": [
+        118
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Saran",
+        "opsional",
+        "Unsur",
+        "oranye"
+      ],
+      "text": "[Saran opsional] Unsur oranye logo kurang kontras terhadap latar oranye. Pertimbangkan latar/varian logo resmi yang lebih terbaca tanpa mengubah bentuk logo. Tidak dinyatakan bahwa seluruh warna kover pasti melanggar pedoman (PDF hlm. 118).",
+      "source": "codex"
+    },
+    {
+      "id": "G096",
+      "chapter": "Pembatalan dan pembatasan temuan lama — bukan kesalahan publikasi",
+      "kind": "must_not_find",
+      "weight": 1.0,
+      "pages": [
+        3
+      ],
+      "rule_codes": [
+        "CATALOGUE.COMPONENTS",
+        "CONTENTS.MATCH",
+        "CATALOGUE.LABELS"
+      ],
+      "keywords_any": [
+        "spasi setelah garis miring",
+        "spasi garis miring"
+      ],
+      "text": "[Pembatalan temuan lama] Dibatalkan: Catalogue halaman judul utama PDF 3 sudah italic dan label Katalog/Catalogue: sudah rapat; judul DAFTAR ISI/CONTENTS dan DAFTAR PUSTAKA/BIBLIOGRAPHY juga sudah tanpa spasi setelah garis miring. Koreksi kover/katalog tidak boleh diperluas ke bagian yang sudah benar.",
+      "source": "codex"
+    },
+    {
+      "id": "G097",
+      "chapter": "Pembatalan dan pembatasan temuan lama — bukan kesalahan publikasi",
+      "kind": "must_not_find",
+      "weight": 1.0,
+      "pages": [
+        4,
+        5
+      ],
+      "rule_codes": [
+        "TEAM.COMPONENTS",
+        "TEAM.FORMAT"
+      ],
+      "keywords_any": [
+        "layouters",
+        "bullet",
+        "outline logo",
+        "shadow logo"
+      ],
+      "text": "[Pembatalan temuan lama] Dibatalkan: Layouters ada dalam Template KCDA; pemisah nama berupa bullet sudah benar. Efek shadow/outline logo dan kesalahan penempatan nama lembaga tidak dinyatakan terkonfirmasi tanpa bukti aset. Susunan nama di kanan logo sudah diterapkan.",
+      "source": "codex"
+    },
+    {
+      "id": "G098",
+      "chapter": "Pembatalan dan pembatasan temuan lama — bukan kesalahan publikasi",
+      "kind": "must_not_find",
+      "weight": 1.0,
+      "pages": [
+        77
+      ],
+      "rule_codes": [
+        "LANGUAGE.EJAAN",
+        "TYPO.WORD_SPLIT"
+      ],
+      "keywords_any": [
+        "hor ticulture",
+        "transpor tasi",
+        "jakar ta",
+        "per tanian",
+        "memberik an",
+        "ditingk atkan"
+      ],
+      "text": "[Pembatalan temuan lama] Dibatalkan: kata Hor ticulture, Transpor tasi, Jakar ta, Per tanian, memberik an, ditingk atkan dan nama kecamatan yang tampak menyatu akibat ekstraksi tidak dianggap otomatis salah. Tahun 2025 pada kepala kolom Tabel 4.3.2 PDF 77 terlihat utuh.",
+      "source": "codex"
+    },
+    {
+      "id": "G099",
+      "chapter": "Pembatalan dan pembatasan temuan lama — bukan kesalahan publikasi",
+      "kind": "must_not_find",
+      "weight": 1.0,
+      "pages": [
+        71,
+        93
+      ],
+      "rule_codes": [
+        "TABLE.SYMBOL",
+        "TABLE.UNIT"
+      ],
+      "keywords_any": [
+        "satuan anggrek pot",
+        "negatif tiga",
+        "minus tiga",
+        "-³ bukan"
+      ],
+      "text": "[Pembatalan temuan lama] Dibatalkan: pengecualian satuan Anggrek Pot pada Tabel 5.6 sudah tersedia melalui superskrip 1 dan catatan satuan pohon. Superskrip sumber harus dibedakan dari superskrip catatan; simbol -³ bukan angka negatif tiga (PDF hlm. 71 dan 93).",
+      "source": "codex"
+    },
+    {
+      "id": "G100",
+      "chapter": "Pembatalan dan pembatasan temuan lama — bukan kesalahan publikasi",
+      "kind": "must_not_find",
+      "weight": 1.0,
+      "pages": [],
+      "rule_codes": [
+        "NARRATIVE.COVERAGE",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "podes 2024 usang",
+        "sumber podes 2024",
+        "narasi tidak menyebut semua jenjang"
+      ],
+      "text": "[Pembatalan temuan lama] Dibatalkan/dibatasi: total murid tidak dianggap salah hanya karena paragraf rincian tidak menyebut semua jenjang. Narasi tidak wajib mengulang seluruh isi tabel. Sumber Podes 2024 tidak otomatis salah pada publikasi 2026; periksa tahun observasi, pengumpulan, dan rujukan datanya.",
+      "source": "codex"
+    },
+    {
+      "id": "G101",
+      "chapter": "Audit khusus kesamaan kover dan halaman judul — 18 Oktober 2026",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        1,
+        3
+      ],
+      "rule_codes": [],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Pemeriksaan",
+        "khusus",
+        "Oktober"
+      ],
+      "text": "[Terkonfirmasi] Pemeriksaan khusus 18 Oktober 2026: layout halaman judul utama belum sama dengan kover. Pada kover, Kecamatan terpisah di atas nama wilayah berukuran besar dan Dalam Angka di samping secara vertikal; pada halaman 3, Kecamatan dan nama wilayah menjadi judul atas dengan Dalam Angka horizontal di bawah. Samakan posisi, pemenggalan bari",
+      "source": "codex"
+    },
+    {
+      "id": "G102",
+      "chapter": "Audit khusus kesamaan kover dan halaman judul — 18 Oktober 2026",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        1,
+        3
+      ],
+      "rule_codes": [
+        "VISUAL.TYPOGRAPHY",
+        "COVER.COMPONENTS",
+        "LANGUAGE.BILINGUAL"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Tipografi",
+        "Indonesia",
+        "Inggris"
+      ],
+      "text": "[Terkonfirmasi] Tipografi Indonesia/Inggris belum sama: halaman 3 memakai judul hitam tebal dan judul Inggris bold italic, sedangkan kover memakai nama wilayah jauh lebih besar serta judul Inggris dengan susunan dan jarak huruf berbeda. Tentukan font nondekoratif yang sesuai pedoman pada kover, lalu gunakan desain teks yang sama pada halaman 3. Jan",
+      "source": "codex"
+    },
+    {
+      "id": "G103",
+      "chapter": "Audit khusus kesamaan kover dan halaman judul — 18 Oktober 2026",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        1,
+        3
+      ],
+      "rule_codes": [
+        "VOLUME.HISTORY",
+        "TITLE.COVER_MATCH",
+        "IDENTITY.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Tahun",
+        "2026",
+        "kover"
+      ],
+      "text": "[Terkonfirmasi] Tahun 2026 pada kover berada di bagian bawah-tengah bersama volume dan garis pemisah; pada halaman 3 tahun dipindahkan ke lingkaran kuning di kanan-atas/tengah dan volume terpisah dekat judul. Hapus lingkaran kuning tersebut dan samakan posisi, ukuran, susunan, serta jarak tahun-volume dengan kover yang sudah diperbaiki (PDF hlm. 1 ",
+      "source": "codex"
+    },
+    {
+      "id": "G104",
+      "chapter": "Audit khusus kesamaan kover dan halaman judul — 18 Oktober 2026",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        1,
+        3
+      ],
+      "rule_codes": [
+        "LANGUAGE.BILINGUAL"
+      ],
+      "keywords_any": [
+        "Terkonfirmasi",
+        "Ukuran",
+        "serta",
+        "komposisi"
+      ],
+      "text": "[Terkonfirmasi] Ukuran serta komposisi logo dan blok nama penerbit di bagian bawah halaman 3 berbeda dari kover. Samakan skala, posisi relatif, perataan, dan jarak logo dengan nama penerbit pada kedua halaman. Logo tetap berwarna dan nama resmi Inggris diseragamkan sesuai catatan sebelumnya; teks putih di kover perlu warna kontras pada latar putih ",
+      "source": "codex"
+    },
+    {
+      "id": "G105",
+      "chapter": "Audit khusus kesamaan kover dan halaman judul — 18 Oktober 2026",
+      "kind": "informational",
+      "weight": 0.0,
+      "pages": [
+        1,
+        3
+      ],
+      "rule_codes": [
+        "CATALOGUE.COMPONENTS",
+        "CATALOGUE.LABELS"
+      ],
+      "keywords_any": [
+        "sebagian",
+        "katalog",
+        "sama",
+        "Catalogue"
+      ],
+      "text": "[Sudah sesuai sebagian] Nomor katalog halaman 1 dan 3 sama. Pada halaman 3, Catalogue sudah italic dan label Katalog/Catalogue: sudah rapat; pertahankan format yang benar ini. Namun, ukuran teks, posisi, dan margin blok katalog harus diselaraskan dengan kover yang sudah dikoreksi. Catatan lama bahwa format label sudah benar tidak berarti seluruh la",
+      "source": "codex"
+    },
+    {
+      "id": "G106",
+      "chapter": "Audit khusus kesamaan kover dan halaman judul — 18 Oktober 2026",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        1,
+        3
+      ],
+      "rule_codes": [
+        "VOLUME.HISTORY",
+        "CATALOGUE.LABELS",
+        "IDENTITY.CONSISTENCY",
+        "TITLE.COVER_MATCH",
+        "CATALOGUE.COMPONENTS"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "identitas",
+        "Kover",
+        "memuat"
+      ],
+      "text": "[Perlu verifikasi identitas] Kover memuat Volume 31, 2026, tetapi halaman 3 Volume 17, 2026. Perbedaan ini ada selain masalah layout. Verifikasi volume resmi, kemudian samakan pada kover, judul utama, katalog, dan Tim Penyusun; jangan menetapkan salah satunya benar hanya karena menjadi contoh desain (PDF hlm. 1 dan 3).",
+      "source": "codex"
+    },
+    {
+      "id": "G107",
+      "chapter": "Audit khusus kesamaan kover dan halaman judul — 18 Oktober 2026",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        1,
+        3
+      ],
+      "rule_codes": [
+        "BACK.BARCODE",
+        "CATALOGUE.LABELS",
+        "ISSN.CHECKSUM",
+        "ISSN.COLON",
+        "CATALOGUE.COMPONENTS"
+      ],
+      "keywords_any": [
+        "Perlu",
+        "identitas",
+        "Kover",
+        "memuat"
+      ],
+      "text": "[Perlu verifikasi identitas] Kover memuat ISSN, tetapi halaman 3 belum memuat ISSN. Setelah nomor resmi dikonfirmasi terhadap sertifikat/master sesuai catatan digit kontrol sebelumnya, cantumkan nomor yang sama di bawah katalog pada kedua halaman, tanpa titik dua. Jangan menyalin nomor belum valid hanya untuk menyamakan tampilan (PDF hlm. 1 dan 3).",
+      "source": "codex"
+    },
+    {
+      "id": "G108",
+      "chapter": "Audit khusus kesamaan kover dan halaman judul — 18 Oktober 2026",
+      "kind": "informational",
+      "weight": 0.0,
+      "pages": [
+        3
+      ],
+      "rule_codes": [
+        "RUNNING.TITLE"
+      ],
+      "keywords_any": [
+        "sebagian",
+        "berlatar",
+        "putih",
+        "menyalin"
+      ],
+      "text": "[Sudah sesuai sebagian] Halaman 3 sudah berlatar putih, tidak menyalin foto latar kover, dan tetap menampilkan logo serta nama penerbit. Pertahankan kondisi ini. Kekurangan yang ditemukan adalah kesamaan layout/desain teks, bukan ketiadaan foto. Halaman judul tetap tanpa nomor halaman dan running title (PDF hlm. 3).",
+      "source": "codex"
+    },
+    {
+      "id": "G109",
+      "chapter": "Bab 4 Sosial dan Kesejahteraan Rakyat",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        71,
+        72
+      ],
+      "rule_codes": [
+        "TABLE.TOTAL"
+      ],
+      "keywords_any": [
+        "Taman Kanak-Kanak",
+        "Negeri 4",
+        "Swasta 59",
+        "Jumlah 59",
+        "seharusnya 63"
+      ],
+      "text": "Tabel Guru TK 2025/2026: Negeri 4 + Swasta 59 = 63, tetapi jumlah tertulis 59",
+      "source": "web"
+    },
+    {
+      "id": "G110",
+      "chapter": "Bab 2 Pemerintahan",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        37
+      ],
+      "rule_codes": [
+        "TABLE.TOTAL"
+      ],
+      "keywords_any": [
+        "Total SLS",
+        "72",
+        "81",
+        "penjumlahan rincian"
+      ],
+      "text": "Total SLS tercatat 72 tetapi jumlah komponen per desa adalah 81",
+      "source": "web"
+    },
+    {
+      "id": "G111",
+      "chapter": "Bab 1 Geografi",
+      "kind": "must_find",
+      "weight": 1.0,
+      "pages": [
+        17
+      ],
+      "rule_codes": [
+        "MANUAL.REVIEW",
+        "TABLE.CONSISTENCY"
+      ],
+      "keywords_any": [
+        "121.4680",
+        "121.5948",
+        "Lintang Selatan",
+        "Bujur Timur"
+      ],
+      "text": "Koordinat bujur dan lintang tertukar (121 derajat adalah Bujur Timur, bukan Lintang Selatan)",
+      "source": "web"
+    }
+  ]
+}

@@ -268,4 +268,23 @@ class PublicationController extends Controller
 
         return back()->with('success', 'Hasil dibuka untuk penyuntingan.');
     }
+
+    public function uploadReviewedExport(\Illuminate\Http\Request $request, Publication $publication, \App\Models\PublicationExport $export, \App\Audit\ReviewedWorkbookImporter $importer): RedirectResponse
+    {
+        Gate::authorize('review', $publication);
+        abort_unless($export->publication_id === $publication->id, 404);
+
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx', 'max:51200'],
+        ]);
+
+        $file = $request->file('file');
+        $result = $importer->import($file->getRealPath(), $publication, $request->user());
+
+        AuditLogger::record('publication.reviewed_workbook_imported', $publication, $result);
+
+        $msg = "Excel pemeriksa berhasil disinkronkan: {$result['deleted']} temuan dihapus pemeriksa (dicatat sebagai bahan belajar AI), {$result['kept']} temuan dipertahankan.";
+
+        return back()->with('success', $msg);
+    }
 }

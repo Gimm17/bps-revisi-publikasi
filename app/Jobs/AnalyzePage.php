@@ -163,7 +163,12 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
                 if ($current->status === 'complete') {
                     return;
                 }
+                $suppressor = app(\App\Audit\Text\ArtifactSuppressor::class);
+                $learningSuppressor = app(\App\Audit\LearningSuppressor::class);
                 foreach ($result['findings'] as $candidate) {
+                    if ($suppressor->shouldSuppress($candidate, $page->text_layer) || $learningSuppressor->shouldSuppress($candidate)) {
+                        continue;
+                    }
                     $candidate['source'] = 'ai_visual';
                     $candidate['section'] = $result['page_type'];
                     $candidate['evidences'] = [['page' => $page->physical_page, 'quote' => $candidate['quote'] ?? '', 'bbox' => $candidate['bbox'] ?? null]];
@@ -173,7 +178,19 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
                     $writer->store($publication, $candidate);
                 }
                 foreach (app(RuleEvaluator::class)->evaluate($result) as $candidate) {
+                    if ($suppressor->shouldSuppress($candidate, $page->text_layer) || $learningSuppressor->shouldSuppress($candidate)) {
+                        continue;
+                    }
                     $writer->store($publication, $candidate);
+                }
+
+                if (config('audit.spellcheck_enabled', true) && ! empty($page->text_layer)) {
+                    $spellChecker = app(\App\Audit\Text\SpellChecker::class);
+                    $spellFinding = $spellChecker->checkPage((string) $page->text_layer, $page->physical_page);
+                    if ($spellFinding !== null && ! $suppressor->shouldSuppress($spellFinding, $page->text_layer)) {
+                        $spellFinding['section'] = $result['page_type'];
+                        $writer->store($publication, $spellFinding);
+                    }
                 }
                 $current->update([
                     'result' => $result,

@@ -64,7 +64,34 @@ class CrossChecker
                     continue;
                 }
                 $haystack = implode(' ', array_column($targets, 'text'));
-                if (! str_contains($this->normalize($haystack), $this->normalize($entry['title']))) {
+
+                $titleParts = explode('/', (string) $entry['title']);
+                $idTitle = trim($titleParts[0]);
+                $enTitle = isset($titleParts[1]) ? trim($titleParts[1]) : '';
+
+                $normHaystack = $this->normalizeAdvanced($haystack);
+                $normId = $this->normalizeAdvanced($idTitle);
+                $normEn = $enTitle !== '' ? $this->normalizeAdvanced($enTitle) : '';
+
+                $matches = false;
+                if ($normId !== '' && str_contains($normHaystack, $normId)) {
+                    $matches = true;
+                } elseif ($normEn !== '' && str_contains($normHaystack, $normEn)) {
+                    $matches = true;
+                } else {
+                    foreach ($targets as $tPage) {
+                        foreach ($tPage['inventory']['tables'] ?? [] as $tbl) {
+                            $tblTitle = $this->normalizeAdvanced($tbl['title'] ?? '');
+                            similar_text($normId, $tblTitle, $pct);
+                            if ($pct >= 80.0) {
+                                $matches = true;
+                                break 2;
+                            }
+                        }
+                    }
+                }
+
+                if (! $matches) {
                     $findings[] = $this->make('CONTENTS.MATCH', 'Judul daftar “'.$entry['title'].'” belum cocok dengan isi halaman tercetak '.$entry['target_page'].'.', 'Judul dan halaman daftar identik dengan judul pada isi.', 'Periksa judul dan nomor halaman pada daftar serta isi; pastikan bukan artefak pembacaan AI.', [['page' => $page['physical_page'], 'quote' => $entry['title'], 'bbox' => null], ['page' => $targets[0]['physical_page'], 'quote' => mb_substr($targets[0]['text'], 0, 300), 'bbox' => null]], 'verifikasi');
                 }
             }
@@ -96,6 +123,15 @@ class CrossChecker
     private function normalize(string $value): string
     {
         return mb_strtolower(preg_replace('/[^\pL\pN]+/u', ' ', trim($value)));
+    }
+
+    private function normalizeAdvanced(string $value): string
+    {
+        $v = mb_strtolower(trim($value));
+        $v = str_replace(['ibukota', 'ibu-kota'], 'ibu kota', $v);
+        $v = preg_replace('/\b20\d\d\b/u', '', $v);
+
+        return trim(preg_replace('/[^\pL\pN]+/u', ' ', (string) $v));
     }
 
     private function make(string $rule, string $observed, string $expected, string $recommendation, array $evidence, string $severity = 'wajib'): array

@@ -63,7 +63,32 @@ class RenderPage implements ShouldBeUnique, ShouldQueue
         if (! $disk->exists($thumb)) {
             $pdf->render($disk->path($pub->pdf_path), $page->physical_page, $disk->path($thumb), 60);
         }
-        $page->update(['image_path' => $path, 'thumbnail_path' => $thumb, 'image_checksum' => hash_file('sha256', $disk->path($path)), 'status' => 'ready']);
+
+        $textLayer = null;
+        $textLayerStatus = 'empty';
+        if (config('audit.text_layer_enabled', true)) {
+            try {
+                $rawText = $pdf->extractText($disk->path($pub->pdf_path), $page->physical_page, true);
+                if (trim($rawText) !== '') {
+                    $normalizer = new \App\Audit\Text\TextLayerNormalizer;
+                    $normalized = $normalizer->normalize($rawText);
+                    $textLayer = $normalized['normalized_text'];
+                    $textLayerStatus = 'ok';
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Gagal ekstraksi teks halaman {$page->physical_page}: {$e->getMessage()}");
+                $textLayerStatus = 'failed';
+            }
+        }
+
+        $page->update([
+            'image_path' => $path,
+            'thumbnail_path' => $thumb,
+            'image_checksum' => hash_file('sha256', $disk->path($path)),
+            'text_layer' => $textLayer,
+            'text_layer_status' => $textLayerStatus,
+            'status' => 'ready',
+        ]);
         AnalyzePage::dispatch($page->id, $page->dpi)->onQueue('ai');
     }
 

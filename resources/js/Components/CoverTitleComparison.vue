@@ -11,8 +11,8 @@ const props = defineProps<{
 
 const swapped = ref(false);
 
-const getCoverNum = () => swapped.value ? (props.titlePage ?? 2) : (props.coverPage ?? 1);
-const getTitleNum = () => swapped.value ? (props.coverPage ?? 1) : (props.titlePage ?? 2);
+const getCoverNum = () => swapped.value ? (props.titlePage ?? 3) : (props.coverPage ?? 1);
+const getTitleNum = () => swapped.value ? (props.coverPage ?? 1) : (props.titlePage ?? 3);
 const getCoverLabel = () => swapped.value ? "Halaman Judul" : "Halaman Kover";
 const getTitleLabel = () => swapped.value ? "Halaman Kover" : "Halaman Judul";
 

@@ -39,8 +39,45 @@ class FinalizeAudit implements ShouldBeUnique, ShouldQueue
                 return;
             }
             $pub->update(['status' => 'cross_checking']);
+            if (config('audit.chapter_map_enabled', true)) {
+                $rawPages = $pub->pages()->orderBy('physical_page')->get()->toArray();
+                $chapterMap = app(\App\Audit\ChapterMapBuilder::class)->build($rawPages);
+                $manifest = $pub->manifest ?? [];
+                $manifest['chapter_map'] = $chapterMap;
+                $pub->update(['manifest' => $manifest]);
+            }
             foreach ($checks->run($pub->pages()->get()->pluck('result')->all()) as $finding) {
                 $writer->store($pub, $finding);
+            }
+            if (config('audit.numeric_checks_enabled', true)) {
+                $rawPagesForNumeric = $pub->pages()->orderBy('physical_page')->get()->toArray();
+                $numericChecker = app(\App\Audit\Numeric\TableNumericChecker::class);
+                foreach ($numericChecker->run($rawPagesForNumeric) as $numericFinding) {
+                    $writer->store($pub, $numericFinding);
+                }
+            }
+            if (config('audit.chapter_crosscheck_enabled', true)) {
+                $allRawPages = $pub->pages()->orderBy('physical_page')->get()->toArray();
+                $manifest = $pub->manifest ?? [];
+                $chapterMap = $manifest['chapter_map'] ?? null;
+                $claimExtractor = app(\App\Audit\Claims\NarrativeClaimExtractor::class);
+
+                if (! empty($chapterMap['chapters'])) {
+                    foreach ($chapterMap['chapters'] as $ch) {
+                        $start = $ch['physical_start'] ?? null;
+                        $end = $ch['physical_end'] ?? null;
+                        if ($start !== null && $end !== null) {
+                            $chPages = array_filter($allRawPages, fn ($p) => ($p['physical_page'] >= $start && $p['physical_page'] <= $end));
+                            foreach ($claimExtractor->evaluate($chPages) as $crossFinding) {
+                                $writer->store($pub, $crossFinding);
+                            }
+                        }
+                    }
+                } else {
+                    foreach ($claimExtractor->evaluate($allRawPages) as $crossFinding) {
+                        $writer->store($pub, $crossFinding);
+                    }
+                }
             }
             $pub->update(['status' => 'exporting', 'completed_at' => now()]);
             if (! $pub->exports()->whereIn('status', ['pending', 'processing', 'complete'])->where(fn ($q) => $q->whereNull('validation->mode')->orWhere('validation->mode', '!=', 'partial'))->exists()) {

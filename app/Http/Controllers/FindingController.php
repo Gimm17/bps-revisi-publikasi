@@ -75,6 +75,8 @@ class FindingController extends Controller
 
             if ($data['review_status'] === 'rejected' && ! empty(trim($data['review_note'] ?? ''))) {
                 app(\App\Audit\ExaminerLearningService::class)->recordRejection($f, $data['review_note'], $request->user());
+            } elseif ($data['review_status'] === 'accepted') {
+                app(\App\Audit\ExaminerLearningService::class)->recordAcceptance($f, $request->user());
             }
         });
         AuditLogger::record('finding.updated', $publication, ['finding_id' => $finding->id]);

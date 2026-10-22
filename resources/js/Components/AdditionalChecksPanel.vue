@@ -263,6 +263,8 @@ function handleKeydown(e: KeyboardEvent) {
         <div v-if="showPairModal" class="pair-modal-container">
             <CoverTitleComparison
                 :publication-id="publicationId"
+                :cover-page="getCheckRecord('cover_title')?.result?.cover_page ?? 1"
+                :title-page="getCheckRecord('cover_title')?.result?.title_page ?? 3"
                 :result="getCheckRecord('cover_title')?.result"
             />
         </div>

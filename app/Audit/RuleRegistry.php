@@ -22,6 +22,7 @@ class RuleRegistry
             'TABLE.FORMAT' => 'Format, alignment, dan garis tabel', 'TABLE.SYMBOL' => 'Simbol, superskrip, catatan, dan sumber',
             'TABLE.TOTAL' => 'Konsistensi total dan komponen', 'TABLE.CONSISTENCY' => 'Konsistensi data antartabel',
             'FIGURE.FORMAT' => 'Nomor, judul, sumber, dan satuan gambar', 'FIGURE.DATA' => 'Kesesuaian grafik dan data',
+            'NARRATIVE.TABLE_MISMATCH' => 'Kesesuaian klaim narasi ulasan dengan data tabel',
             'LANGUAGE.BILINGUAL' => 'Tata letak dan terjemahan dwibahasa', 'LANGUAGE.EJAAN' => 'Ejaan dan penulisan',
             'BIBLIOGRAPHY.FORMAT' => 'Daftar pustaka dan penutup', 'VISUAL.LAYOUT' => 'Detail layout dan keterbacaan',
             'VISUAL.TYPOGRAPHY' => 'Konsistensi tipografi', 'MANUAL.REVIEW' => 'Temuan manual pemeriksa',

@@ -42,7 +42,7 @@ class CoverageService
         $allAdditionalComplete = true;
         $hasLimitations = false;
 
-        $latestRun = $publication->checkRuns()->first();
+        $latestRun = $publication->checkRuns()->latest()->first();
         if ($latestRun) {
             foreach ($latestRun->checks as $check) {
                 $additionalChecks[] = [

@@ -51,4 +51,32 @@ class PdfPreparer
             throw new RuntimeException('Gambar halaman '.$page.' gagal dibuat.');
         }
     }
+
+    public function extractText(string $pdfPath, int $page, bool $layout = true): string
+    {
+        if ($page < 1) {
+            throw new RuntimeException('Nomor halaman tidak valid.');
+        }
+        $cmd = [
+            config('audit.pdftotext', 'pdftotext'),
+            '-f', (string) $page,
+            '-l', (string) $page,
+            '-enc', 'UTF-8',
+        ];
+        if ($layout) {
+            $cmd[] = '-layout';
+        }
+        $cmd[] = $pdfPath;
+        $cmd[] = '-';
+
+        $process = new Process($cmd);
+        $process->setTimeout(30);
+        $process->run();
+
+        if (! $process->isSuccessful()) {
+            throw new RuntimeException('Gagal mengekstrak teks halaman '.$page.': '.$process->getErrorOutput());
+        }
+
+        return $process->getOutput();
+    }
 }

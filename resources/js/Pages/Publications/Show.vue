@@ -9,6 +9,7 @@ import {
     ChevronLeft,
     ChevronRight,
     Download,
+    Upload,
     Plus,
     Lock,
     Unlock,
@@ -233,6 +234,19 @@ async function confirmFinal(lock: boolean) {
     )
         action(lock ? "/lock" : "/unlock");
 }
+function uploadReviewed(exp: ExportRecord, ev: Event) {
+    const target = ev.target as HTMLInputElement;
+    const file = target?.files?.[0];
+    if (!file) return;
+    const form = new FormData();
+    form.append("file", file);
+    router.post(`${root.value}/exports/${exp.id}/reviewed`, form, {
+        onSuccess: () => {
+            if (target) target.value = "";
+        },
+    });
+}
+
 let timer: ReturnType<typeof setInterval>;
 let removeNavigationGuard: (() => void) | undefined;
 let navigationApproved = false;
@@ -881,12 +895,29 @@ onUnmounted(() => {
                         <code>{{ e.checksum }}</code>
                     </details>
                 </div>
-                <StatusBadge :status="e.status" /><a
-                    v-if="e.status === 'complete'"
-                    :href="`${root}/exports/${e.id}`"
-                    class="button secondary"
-                    ><Download :size="17" />Unduh</a
-                >
+                <StatusBadge :status="e.status" />
+                <div class="export-actions" style="display: flex; gap: 8px; align-items: center;">
+                    <a
+                        v-if="e.status === 'complete'"
+                        :href="`${root}/exports/${e.id}`"
+                        class="button secondary"
+                        ><Download :size="17" />Unduh</a
+                    >
+                    <label
+                        v-if="e.status === 'complete' && canReview"
+                        class="button secondary"
+                        style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"
+                        title="Unggah Excel yang telah Anda sunting/hapus temuan yang tidak valid"
+                    >
+                        <Upload :size="17" />Unggah Balik Review
+                        <input
+                            type="file"
+                            accept=".xlsx"
+                            style="display: none;"
+                            @change="(ev) => uploadReviewed(e, ev)"
+                        />
+                    </label>
+                </div>
             </article>
         </section>
         <section v-if="section === 'manage'" class="manage-panel">

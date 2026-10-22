@@ -13,13 +13,13 @@ class RuleGuideTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_guests_are_redirected_to_login(): void
+    public function test_guests_can_view_rules_guide_page(): void
     {
         $response = $this->get('/rules');
-        $response->assertRedirect('/login');
+        $response->assertOk();
 
         $responseAlias = $this->get('/guidelines');
-        $responseAlias->assertRedirect('/login');
+        $responseAlias->assertOk();
     }
 
     public function test_authenticated_user_can_view_rules_guide_page(): void
@@ -36,15 +36,15 @@ class RuleGuideTest extends TestCase
             ->has('version')
             ->has('target_version')
             ->has('summary', fn (Assert $summary) => $summary
-                ->where('total_rules', 38)
+                ->where('total_rules', 39)
                 ->where('categories_count', 6)
                 ->has('mandatory_count')
                 ->has('advisory_count')
                 ->has('verification_count')
             )
             ->has('categories', 6)
-            ->has('stages', 6)
-            ->has('rules', 38)
+            ->has('stages', 11)
+            ->has('rules', 39)
             ->where('rules.0.code', 'COVER.COMPONENTS')
         );
     }
