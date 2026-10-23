@@ -75,8 +75,8 @@ function updateStatus(learning: Learning, newStatus: "active" | "pending" | "dis
             </div>
 
             <!-- Filters -->
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6 flex flex-wrap gap-4 items-center justify-between">
-                <div class="flex-1 min-w-[280px] relative">
+            <div class="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-200 mb-6 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+                <div class="flex-1 min-w-0 relative">
                     <Search class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                         v-model="searchInput"
@@ -86,11 +86,11 @@ function updateStatus(learning: Learning, newStatus: "active" | "pending" | "dis
                         class="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     />
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:flex items-center gap-2 sm:gap-3 w-full md:w-auto">
                     <select
                         v-model="selectedStatus"
                         @change="applyFilters"
-                        class="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-indigo-500 focus:border-indigo-500"
+                        class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-indigo-500 focus:border-indigo-500"
                     >
                         <option value="">Semua Status</option>
                         <option value="active">Aktif</option>
@@ -100,7 +100,7 @@ function updateStatus(learning: Learning, newStatus: "active" | "pending" | "dis
                     <select
                         v-model="selectedKind"
                         @change="applyFilters"
-                        class="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-indigo-500 focus:border-indigo-500"
+                        class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-indigo-500 focus:border-indigo-500"
                     >
                         <option value="">Semua Jenis</option>
                         <option value="false_positive">Pengecualian Temuan (False Positive)</option>
@@ -114,10 +114,10 @@ function updateStatus(learning: Learning, newStatus: "active" | "pending" | "dis
                 <div
                     v-for="item in learnings.data"
                     :key="item.id"
-                    class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:border-gray-300 transition-all"
+                    class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5 hover:border-gray-300 transition-all"
                 >
-                    <div class="flex items-start justify-between gap-4">
-                        <div class="space-y-2 flex-1">
+                    <div class="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-4">
+                        <div class="space-y-2 flex-1 min-w-0 w-full">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
                                     {{ item.rule_code }}
@@ -145,35 +145,35 @@ function updateStatus(learning: Learning, newStatus: "active" | "pending" | "dis
                                 </span>
                             </div>
 
-                            <h3 class="text-base font-semibold text-gray-900">{{ item.topic || item.instruction }}</h3>
+                            <h3 class="text-base font-semibold text-gray-900 break-words">{{ item.topic || item.instruction }}</h3>
 
-                            <div v-if="item.observed_example" class="text-sm bg-gray-50 border border-gray-100 rounded-lg p-3 text-gray-700 font-mono text-xs">
+                            <div v-if="item.observed_example" class="text-sm bg-gray-50 border border-gray-100 rounded-lg p-3 text-gray-700 font-mono text-xs break-words">
                                 <span class="font-semibold text-gray-500 font-sans block mb-1">Contoh Temuan yang Dibatalkan:</span>
                                 "{{ item.observed_example }}"
                             </div>
 
-                            <div v-if="item.reason" class="text-sm text-gray-600">
+                            <div v-if="item.reason" class="text-sm text-gray-600 break-words">
                                 <span class="font-medium text-gray-700">Alasan Pemeriksa:</span> {{ item.reason }}
                             </div>
 
-                            <div class="text-sm text-indigo-900 bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-100">
+                            <div class="text-sm text-indigo-900 bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-100 break-words">
                                 <span class="font-semibold text-indigo-700">Instruksi AI:</span> {{ item.instruction }}
                             </div>
                         </div>
 
                         <!-- Actions -->
-                        <div class="flex flex-col gap-2 shrink-0">
+                        <div class="flex flex-row sm:flex-col gap-2 shrink-0 self-stretch sm:self-start justify-end w-full sm:w-auto">
                             <button
                                 v-if="item.status !== 'active'"
                                 @click="updateStatus(item, 'active')"
-                                class="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition"
+                                class="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition flex-1 sm:flex-initial text-center"
                             >
                                 Aktifkan
                             </button>
                             <button
                                 v-if="item.status === 'active'"
                                 @click="updateStatus(item, 'disabled')"
-                                class="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
+                                class="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition flex-1 sm:flex-initial text-center"
                             >
                                 Nonaktifkan
                             </button>

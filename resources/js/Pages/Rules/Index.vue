@@ -296,7 +296,8 @@ const getModeLabel = (mode: string) => {
                     @click="activeVisualTab = 'cover'"
                 >
                     <BookMarked :size="18" />
-                    <span>Anatomi Kover & Halaman Judul</span>
+                    <span class="hidden sm:inline">Anatomi Kover & Halaman Judul</span>
+                    <span class="inline sm:hidden">Kover & Judul</span>
                 </button>
                 <button
                     type="button"
@@ -304,7 +305,8 @@ const getModeLabel = (mode: string) => {
                     @click="activeVisualTab = 'table'"
                 >
                     <TableIcon :size="18" />
-                    <span>Format Tabel Terbuka BPS</span>
+                    <span class="hidden sm:inline">Format Tabel Terbuka BPS</span>
+                    <span class="inline sm:hidden">Format Tabel</span>
                 </button>
                 <button
                     type="button"
@@ -312,7 +314,8 @@ const getModeLabel = (mode: string) => {
                     @click="activeVisualTab = 'spread'"
                 >
                     <Columns2 :size="18" />
-                    <span>Tata Letak Cetak 2-Up & Halaman Romawi</span>
+                    <span class="hidden sm:inline">Tata Letak Cetak 2-Up & Halaman Romawi</span>
+                    <span class="inline sm:hidden">Tata Letak 2-Up</span>
                 </button>
             </div>
 
@@ -1582,17 +1585,25 @@ const getModeLabel = (mode: string) => {
         grid-template-columns: 1fr;
     }
     .visual-tabs {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        padding-bottom: 8px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+        overflow-x: visible;
+        padding-bottom: 10px;
         margin-bottom: 16px;
     }
     .visual-tab-btn {
-        flex-shrink: 0;
-        white-space: nowrap;
-        padding: 8px 14px;
-        font-size: 13px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 8px 4px;
+        font-size: 11px;
+        border-radius: 10px;
+        gap: 4px;
+        white-space: normal;
     }
     .rules-filter-row {
         flex-direction: column;

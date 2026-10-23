@@ -530,20 +530,67 @@ function formatDuration(ms: number | undefined | null): string {
             <h1>Pengaturan ruang kerja</h1>
             <p>Akun pegawai, koneksi AI, dan kesehatan pemeriksaan.</p>
         </div>
-        <nav class="section-tabs" aria-label="Bagian pengaturan">
-            <button
-                v-for="(text, key) in {
-                    users: 'Pegawai',
-                    ai: 'Koneksi AI',
-                    telemetry: 'Pemantauan & Biaya AI',
-                    system: 'Sistem',
-                }"
-                :key="key"
-                :class="{ selected: tab === key }"
-                @click="tab = key"
-            >
-                {{ text }}
-            </button>
+        <nav aria-label="Bagian pengaturan">
+            <!-- Desktop Tabs -->
+            <div class="settings-tabs-desktop hidden sm:flex">
+                <button
+                    v-for="(text, key) in {
+                        users: 'Pegawai',
+                        ai: 'Koneksi AI',
+                        telemetry: 'Pemantauan & Biaya AI',
+                        system: 'Sistem',
+                    }"
+                    :key="key"
+                    :class="['settings-tab-btn', { selected: tab === key }]"
+                    @click="tab = key"
+                >
+                    {{ text }}
+                </button>
+            </div>
+
+            <!-- Mobile 2x2 Segmented Grid -->
+            <div class="grid grid-cols-2 gap-2 sm:hidden mb-6">
+                <button
+                    type="button"
+                    class="mobile-tab-btn"
+                    :class="{ active: tab === 'users' }"
+                    @click="tab = 'users'"
+                >
+                    <span class="mobile-tab-icon">👥</span>
+                    <span class="mobile-tab-text">Pegawai</span>
+                    <span class="mobile-tab-badge" v-if="users?.length">{{ users.length }}</span>
+                </button>
+                <button
+                    type="button"
+                    class="mobile-tab-btn"
+                    :class="{ active: tab === 'ai' }"
+                    @click="tab = 'ai'"
+                >
+                    <span class="mobile-tab-icon">🤖</span>
+                    <span class="mobile-tab-text">Koneksi AI</span>
+                    <span class="mobile-tab-badge">6 Slot</span>
+                </button>
+                <button
+                    type="button"
+                    class="mobile-tab-btn"
+                    :class="{ active: tab === 'telemetry' }"
+                    @click="tab = 'telemetry'"
+                >
+                    <span class="mobile-tab-icon">📊</span>
+                    <span class="mobile-tab-text">Telemetri</span>
+                    <span class="mobile-tab-badge" style="background: #badfdb; color: #1e3a36;">Live</span>
+                </button>
+                <button
+                    type="button"
+                    class="mobile-tab-btn"
+                    :class="{ active: tab === 'system' }"
+                    @click="tab = 'system'"
+                >
+                    <span class="mobile-tab-icon">⚙️</span>
+                    <span class="mobile-tab-text">Sistem</span>
+                    <span class="mobile-tab-badge" :style="health?.failed > 0 ? 'background: #fed7aa; color: #9a3412;' : 'background: #e2e8f0; color: #334155;'">OK</span>
+                </button>
+            </div>
         </nav>
         <section v-if="tab === 'users'" class="settings-panel">
             <div class="section-heading">
@@ -692,8 +739,13 @@ function formatDuration(ms: number | undefined | null): string {
                     :class="['agent-slot-btn', { active: activeSlot === ag.slot }]"
                     @click="activeSlot = ag.slot"
                 >
-                    <span :class="['agent-slot-dot', ag.status]"></span>
-                    <strong>Slot {{ ag.slot }}: {{ ag.name }}</strong>
+                    <div class="agent-slot-title-group">
+                        <span :class="['agent-slot-dot', ag.status]"></span>
+                        <strong>
+                            <span class="hidden sm:inline">Slot {{ ag.slot }}: {{ ag.name }}</span>
+                            <span class="inline sm:hidden">Slot {{ ag.slot }}</span>
+                        </strong>
+                    </div>
                     <span :class="['badge', ag.enabled ? 'complete' : 'neutral']" style="padding: 2px 7px; font-size: 10px;">
                         {{ ag.enabled ? 'ON' : 'OFF' }}
                     </span>
@@ -706,10 +758,16 @@ function formatDuration(ms: number | undefined | null): string {
                     :class="['agent-slot-btn', 'agent-backup-btn', { active: activeSlot === 6 }]"
                     @click="activeSlot = 6"
                 >
-                    <span :class="['agent-slot-dot', backupAgentItem.status]"></span>
-                    <strong>🛡️ {{ backupAgentItem.name }}</strong>
-                    <span :class="['badge', backupAgentItem.enabled ? 'complete' : 'neutral']" style="padding: 2px 7px; font-size: 10px;">
-                        {{ backupAgentItem.enabled ? 'STANDBY' : 'OFF' }}
+                    <div class="agent-slot-title-group">
+                        <span :class="['agent-slot-dot', backupAgentItem.status]"></span>
+                        <strong>
+                            <span class="hidden sm:inline">🛡️ {{ backupAgentItem.name }}</span>
+                            <span class="inline sm:hidden">🛡️ Cadangan</span>
+                        </strong>
+                    </div>
+                    <span :class="['badge', backupAgentItem.enabled ? 'complete' : 'neutral']" style="padding: 2px 5px; font-size: 9.5px;">
+                        <span class="hidden sm:inline">{{ backupAgentItem.enabled ? 'STANDBY' : 'OFF' }}</span>
+                        <span class="inline sm:hidden">{{ backupAgentItem.enabled ? 'STBY' : 'OFF' }}</span>
                     </span>
                 </button>
             </div>
@@ -883,11 +941,11 @@ function formatDuration(ms: number | undefined | null): string {
                     <div class="telemetry-range-group" role="group" aria-label="Rentang Waktu">
                         <button
                             v-for="r in [
-                                { id: '24h', label: '24 Jam' },
-                                { id: '3d', label: '3 Hari' },
-                                { id: '7d', label: '7 Hari' },
-                                { id: '30d', label: '30 Hari' },
-                                { id: 'all', label: 'Semua' }
+                                { id: '24h', label: '24 Jam', short: '24 Jam' },
+                                { id: '3d', label: '3 Hari', short: '3 Hari' },
+                                { id: '7d', label: '7 Hari', short: '7 Hari' },
+                                { id: '30d', label: '30 Hari', short: '30 Hari' },
+                                { id: 'all', label: 'Semua', short: 'Semua' }
                             ]"
                             :key="r.id"
                             type="button"
@@ -896,7 +954,8 @@ function formatDuration(ms: number | undefined | null): string {
                             :disabled="loadingTelemetry"
                             @click="fetchTelemetry(r.id as any)"
                         >
-                            {{ r.label }}
+                            <span class="hidden sm:inline">{{ r.label }}</span>
+                            <span class="inline sm:hidden">{{ r.short }}</span>
                         </button>
                     </div>
                     <button

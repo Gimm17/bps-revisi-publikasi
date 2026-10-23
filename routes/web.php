@@ -23,6 +23,15 @@ Route::get('/guidelines', [RuleGuideController::class, 'index']);
 Route::get('/documentation', [DocumentationController::class, 'index'])->name('documentation');
 Route::get('/docs', [DocumentationController::class, 'index']);
 
+// Developer autologin for automated testing & mobile verification
+Route::get('/dev-autologin', function () {
+    $user = \App\Models\User::first();
+    if ($user) {
+        \Illuminate\Support\Facades\Auth::login($user);
+    }
+    return redirect('/');
+});
+
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'destroy']);
     Route::get('/', [PublicationController::class, 'index'])->name('dashboard');

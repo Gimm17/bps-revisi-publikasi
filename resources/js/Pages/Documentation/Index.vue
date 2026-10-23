@@ -172,8 +172,29 @@ const matchesSearch = (text: string) => {
                 </div>
             </header>
 
-            <!-- Navigation Tabs -->
-            <nav class="docs-nav-tabs" aria-label="Navigasi Dokumentasi">
+            <!-- Mobile Section Dropdown Selector -->
+            <div class="docs-mobile-nav md:hidden">
+                <label class="docs-mobile-label">Pilih Bagian Dokumentasi:</label>
+                <div class="docs-mobile-select-wrapper">
+                    <select
+                        v-model="activeTab"
+                        class="docs-mobile-select"
+                        aria-label="Pilih Bagian Dokumentasi"
+                    >
+                        <option value="guide">📖 1. Cara Penggunaan Web</option>
+                        <option value="settings">⚙️ 2. Cara Settings & Agen</option>
+                        <option value="workflow">🔄 3. Alur Kerja (Workflow)</option>
+                        <option value="logic">🧠 4. Flow Logic & Validator</option>
+                        <option value="parallel">🤖 5. AI Paralel (5 Agen)</option>
+                        <option value="speedup">⚡ 6. Optimasi Kecepatan</option>
+                        <option value="faq">❓ 7. FAQ & Solusi Kendala</option>
+                    </select>
+                    <ChevronDown :size="18" class="docs-select-arrow" />
+                </div>
+            </div>
+
+            <!-- Desktop Navigation Tabs -->
+            <nav class="docs-nav-tabs hidden md:flex" aria-label="Navigasi Dokumentasi">
                 <button
                     class="nav-tab"
                     :class="{ active: activeTab === 'guide' }"
@@ -1098,6 +1119,53 @@ AUDIT_TEXT_LAYER_ENABLED=true</code></pre>
     color: #9ca3af;
 }
 
+/* Mobile Navigation Select */
+.docs-mobile-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 24px;
+}
+.docs-mobile-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    text-transform: uppercase;
+}
+.docs-mobile-select-wrapper {
+    position: relative;
+    width: 100%;
+}
+.docs-mobile-select {
+    width: 100%;
+    padding: 12px 38px 12px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    appearance: none;
+    -webkit-appearance: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.docs-mobile-select:focus {
+    outline: none;
+    border-color: #305e58;
+    box-shadow: 0 0 0 3px rgba(48, 94, 88, 0.15);
+}
+.docs-select-arrow {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #6b7280;
+}
+
 /* Navigation Tabs */
 .docs-nav-tabs {
     display: flex;
@@ -1889,6 +1957,9 @@ AUDIT_TEXT_LAYER_ENABLED=true</code></pre>
 }
 
 @media (max-width: 768px) {
+    .docs-nav-tabs {
+        display: none !important;
+    }
     .docs-container {
         padding: 20px 16px 60px;
     }
