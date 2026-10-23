@@ -1964,10 +1964,40 @@ AUDIT_TEXT_LAYER_ENABLED=true</code></pre>
         padding: 20px 16px 60px;
     }
     .docs-hero {
-        padding: 24px;
+        padding: 20px 16px;
     }
     .docs-title {
-        font-size: 24px;
+        font-size: 22px;
+    }
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+    }
+    .stat-card {
+        padding: 10px 10px !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 6px !important;
+        border-radius: 10px !important;
+    }
+    .stat-icon-wrapper {
+        width: 28px !important;
+        height: 28px !important;
+        border-radius: 8px !important;
+    }
+    .stat-icon-wrapper svg {
+        width: 15px !important;
+        height: 15px !important;
+    }
+    .stat-value {
+        font-size: 13px !important;
+        font-weight: 700 !important;
+    }
+    .stat-label {
+        font-size: 10.5px !important;
+    }
+    .stat-sub {
+        display: none !important;
     }
     .settings-grid, .logic-grid {
         grid-template-columns: 1fr;

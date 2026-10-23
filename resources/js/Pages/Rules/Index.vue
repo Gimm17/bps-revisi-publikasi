@@ -1572,14 +1572,33 @@ const getModeLabel = (mode: string) => {
         font-size: 19px;
     }
     .rules-metrics {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+        margin-bottom: 22px;
     }
     .rules-metrics > div {
-        padding: 12px 14px;
+        padding: 12px 10px !important;
+        border-radius: 14px !important;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        gap: 3px;
+        min-height: 82px;
+    }
+    .rules-metrics > div svg {
+        width: 20px;
+        height: 20px;
     }
     .rules-metrics > div strong {
-        font-size: 20px;
+        font-size: 22px !important;
+        line-height: 1.1;
+    }
+    .rules-metrics > div span {
+        font-size: 11px !important;
+        line-height: 1.25;
+        color: var(--muted);
     }
     .pipeline-grid {
         grid-template-columns: 1fr;
@@ -1664,7 +1683,17 @@ const getModeLabel = (mode: string) => {
 
 @media (max-width: 480px) {
     .rules-metrics {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 6px !important;
+    }
+    .rules-metrics > div {
+        padding: 10px 8px !important;
+    }
+    .rules-metrics > div strong {
+        font-size: 20px !important;
+    }
+    .rules-metrics > div span {
+        font-size: 10.5px !important;
     }
     .hero-actions {
         flex-direction: column;
