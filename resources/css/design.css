@@ -31,8 +31,20 @@
 * {
     box-sizing: border-box;
 }
+html,
 body {
     margin: 0;
+    padding: 0;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    position: relative;
+    -webkit-text-size-adjust: 100%;
+}
+#app {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: clip;
 }
 button,
 input,
@@ -675,10 +687,16 @@ progress::-webkit-progress-value {
     max-width: 1240px;
     margin: 0 auto;
     padding: 34px 40px 70px;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
 }
 .main-container.wide {
     max-width: 1800px;
     padding: 25px 32px 45px;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
 }
 .app-footer {
     padding: 20px 24px;
@@ -1827,7 +1845,12 @@ progress::-webkit-progress-value {
     }
     .main-container,
     .main-container.wide {
-        padding: 20px 16px 45px;
+        padding: 20px 14px 45px;
+        width: 100%;
+        max-width: 100vw;
+        box-sizing: border-box;
+        overflow-x: clip;
+        min-width: 0;
     }
     .welcome-band {
         padding: 29px 27px;

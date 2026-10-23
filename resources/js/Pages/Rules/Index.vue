@@ -329,28 +329,40 @@ const getModeLabel = (mode: string) => {
                     </p>
                     <ul class="visual-checklist">
                         <li>
-                            <CheckCircle2 :size="16" class="text-success" />
-                            <strong>Nomor Katalog:</strong> Pojok kanan atas, format satu bahasa: <code>Katalog: 1102001.72</code>, dwibahasa: <code>Katalog/<em>Catalogue</em>: 1102001.72</code>.
+                            <CheckCircle2 :size="16" class="text-success checklist-icon" />
+                            <div class="checklist-text">
+                                <strong>Nomor Katalog:</strong> Pojok kanan atas, format satu bahasa: <code>Katalog: 1102001.72</code>, dwibahasa: <code>Katalog/<em>Catalogue</em>: 1102001.72</code>.
+                            </div>
                         </li>
                         <li>
-                            <CheckCircle2 :size="16" class="text-success" />
-                            <strong>ISSN Kover:</strong> Di bawah katalog, <strong>wajib tanpa titik dua</strong>: <code>ISSN 0215-6768</code>.
+                            <CheckCircle2 :size="16" class="text-success checklist-icon" />
+                            <div class="checklist-text">
+                                <strong>ISSN Kover:</strong> Di bawah katalog, <strong>wajib tanpa titik dua</strong>: <code>ISSN 0215-6768</code>.
+                            </div>
                         </li>
                         <li>
-                            <CheckCircle2 :size="16" class="text-success" />
-                            <strong>Judul Dwibahasa:</strong> Judul Indonesia dan Inggris kontras jelas terhadap foto kover, font non-dekoratif.
+                            <CheckCircle2 :size="16" class="text-success checklist-icon" />
+                            <div class="checklist-text">
+                                <strong>Judul Dwibahasa:</strong> Judul Indonesia dan Inggris kontras jelas terhadap foto kover, font non-dekoratif.
+                            </div>
                         </li>
                         <li>
-                            <CheckCircle2 :size="16" class="text-success" />
-                            <strong>Logo BPS:</strong> Ditempatkan di bagian bawah, <strong>bebas efek digital</strong> (dilarang ada drop-shadow, emboss, atau outline).
+                            <CheckCircle2 :size="16" class="text-success checklist-icon" />
+                            <div class="checklist-text">
+                                <strong>Logo BPS:</strong> Ditempatkan di bagian bawah, <strong>bebas efek digital</strong> (dilarang ada drop-shadow, emboss, atau outline).
+                            </div>
                         </li>
                         <li>
-                            <CheckCircle2 :size="16" class="text-success" />
-                            <strong>Halaman Judul:</strong> Berlatar <strong>putih bersih</strong> (#FFFFFF) tanpa foto/gambar kover yang ikut terbawa.
+                            <CheckCircle2 :size="16" class="text-success checklist-icon" />
+                            <div class="checklist-text">
+                                <strong>Halaman Judul:</strong> Berlatar <strong>putih bersih</strong> (#FFFFFF) tanpa foto/gambar kover yang ikut terbawa.
+                            </div>
                         </li>
                         <li>
-                            <CheckCircle2 :size="16" class="text-success" />
-                            <strong>Barcode Kover Belakang:</strong> Barcode resmi ISSN terletak di kover belakang dengan teks angka terbaca.
+                            <CheckCircle2 :size="16" class="text-success checklist-icon" />
+                            <div class="checklist-text">
+                                <strong>Barcode Kover Belakang:</strong> Barcode resmi ISSN terletak di kover belakang dengan teks angka terbaca.
+                            </div>
                         </li>
                     </ul>
                 </div>
@@ -391,24 +403,34 @@ const getModeLabel = (mode: string) => {
                     </p>
                     <ul class="visual-checklist">
                         <li>
-                            <CheckCircle2 :size="16" class="text-success" />
-                            <strong>3 Garis Horizontal Utama:</strong> (1) Garis atas header, (2) Garis bawah header, dan (3) Garis bawah tabel (penutup Total).
+                            <CheckCircle2 :size="16" class="text-success checklist-icon" />
+                            <div class="checklist-text">
+                                <strong>3 Garis Horizontal Utama:</strong> (1) Garis atas header, (2) Garis bawah header, dan (3) Garis bawah tabel (penutup Total).
+                            </div>
                         </li>
                         <li>
-                            <CheckCircle2 :size="16" class="text-success" />
-                            <strong>Tanpa Garis Vertikal:</strong> Sama sekali tidak diperbolehkan ada garis vertikal pemisah kolom (tabel terbuka).
+                            <CheckCircle2 :size="16" class="text-success checklist-icon" />
+                            <div class="checklist-text">
+                                <strong>Tanpa Garis Vertikal:</strong> Sama sekali tidak diperbolehkan ada garis vertikal pemisah kolom (tabel terbuka).
+                            </div>
                         </li>
                         <li>
-                            <CheckCircle2 :size="16" class="text-success" />
-                            <strong>Judul & Satuan:</strong> Mencantumkan Apa, Di mana, Satuan Unit dalam kurung (ha, jiwa, ton), dan Tahun Data.
+                            <CheckCircle2 :size="16" class="text-success checklist-icon" />
+                            <div class="checklist-text">
+                                <strong>Judul & Satuan:</strong> Mencantumkan Apa, Di mana, Satuan Unit dalam kurung (ha, jiwa, ton), dan Tahun Data.
+                            </div>
                         </li>
                         <li>
-                            <CheckCircle2 :size="16" class="text-success" />
-                            <strong>Konsistensi Baris Total:</strong> Nilai pada baris Total wajib sama dengan jumlahan baris komponen (|sum - total| &le; 0.01).
+                            <CheckCircle2 :size="16" class="text-success checklist-icon" />
+                            <div class="checklist-text">
+                                <strong>Konsistensi Baris Total:</strong> Nilai pada baris Total wajib sama dengan jumlahan baris komponen (|sum - total| &le; 0.01).
+                            </div>
                         </li>
                         <li>
-                            <CheckCircle2 :size="16" class="text-success" />
-                            <strong>Simbol Statistik:</strong> Sel kosong wajib diisi tanda minus (-) bila nol, atau titik-titik (...) bila belum tersedia.
+                            <CheckCircle2 :size="16" class="text-success checklist-icon" />
+                            <div class="checklist-text">
+                                <strong>Simbol Statistik:</strong> Sel kosong wajib diisi tanda minus (-) bila nol, atau titik-titik (...) bila belum tersedia.
+                            </div>
                         </li>
                     </ul>
                 </div>
@@ -484,20 +506,28 @@ const getModeLabel = (mode: string) => {
                     </p>
                     <ul class="visual-checklist">
                         <li>
-                            <CheckCircle2 :size="16" class="text-success" />
-                            <strong>Pendahuluan Berakhir Genap:</strong> Bagian romawi wajib berakhir genap (misal: xxiv). Jika berakhir ganjil, Bab 1 akan jatuh di halaman kiri (salah).
+                            <CheckCircle2 :size="16" class="text-success checklist-icon" />
+                            <div class="checklist-text">
+                                <strong>Pendahuluan Berakhir Genap:</strong> Bagian romawi wajib berakhir genap (misal: xxiv). Jika berakhir ganjil, Bab 1 akan jatuh di halaman kiri (salah).
+                            </div>
                         </li>
                         <li>
-                            <CheckCircle2 :size="16" class="text-success" />
-                            <strong>Awal Bab Selalu di Kanan (Ganjil):</strong> Bab 1, Bab 2, dan halaman pembatas bab wajib selalu dimulai pada halaman ganjil (sisi kanan).
+                            <CheckCircle2 :size="16" class="text-success checklist-icon" />
+                            <div class="checklist-text">
+                                <strong>Awal Bab Selalu di Kanan (Ganjil):</strong> Bab 1, Bab 2, dan halaman pembatas bab wajib selalu dimulai pada halaman ganjil (sisi kanan).
+                            </div>
                         </li>
                         <li>
-                            <CheckCircle2 :size="16" class="text-success" />
-                            <strong>Running Title:</strong> Halaman genap (kiri) = Judul Buku; Halaman ganjil (kanan) = Judul Bab aktif.
+                            <CheckCircle2 :size="16" class="text-success checklist-icon" />
+                            <div class="checklist-text">
+                                <strong>Running Title:</strong> Halaman genap (kiri) = Judul Buku; Halaman ganjil (kanan) = Judul Bab aktif.
+                            </div>
                         </li>
                         <li>
-                            <CheckCircle2 :size="16" class="text-success" />
-                            <strong>Halaman Kosong Penyeimbang:</strong> Halaman kosong (blank page) penyeimbang cetak <strong>dilarang memiliki running title atau nomor halaman</strong>.
+                            <CheckCircle2 :size="16" class="text-success checklist-icon" />
+                            <div class="checklist-text">
+                                <strong>Halaman Kosong Penyeimbang:</strong> Halaman kosong (blank page) penyeimbang cetak <strong>dilarang memiliki running title atau nomor halaman</strong>.
+                            </div>
                         </li>
                     </ul>
                 </div>
@@ -949,18 +979,35 @@ const getModeLabel = (mode: string) => {
 
 .visual-mockup-wrapper {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 30px;
     align-items: start;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 @media (max-width: 900px) {
     .visual-mockup-wrapper {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 20px;
     }
+}
+.mockup-explanation {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 .mockup-explanation h3 {
     font-size: 19px;
     margin-bottom: 10px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+.mockup-explanation p {
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 .visual-checklist {
     list-style: none;
@@ -969,6 +1016,9 @@ const getModeLabel = (mode: string) => {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 .visual-checklist li {
     display: flex;
@@ -976,12 +1026,30 @@ const getModeLabel = (mode: string) => {
     gap: 10px;
     font-size: 13px;
     line-height: 1.5;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
+.checklist-icon {
+    flex-shrink: 0;
+    margin-top: 3px;
+}
+.checklist-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+.checklist-text code,
 .visual-checklist code {
     background: #f1ede6;
     padding: 2px 6px;
     border-radius: 4px;
     font-size: 12px;
+    display: inline;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    white-space: normal;
 }
 .text-success {
     color: #15803d;
@@ -996,9 +1064,15 @@ const getModeLabel = (mode: string) => {
     padding: 24px;
     display: flex;
     justify-content: center;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 .mockup-book-cover {
-    width: 280px;
+    width: 100%;
+    max-width: 280px;
     background: #ffffff;
     border: 1px solid #c5bea8;
     border-radius: 6px;
@@ -1008,6 +1082,7 @@ const getModeLabel = (mode: string) => {
     flex-direction: column;
     position: relative;
     min-height: 380px;
+    box-sizing: border-box;
 }
 .diagram-tag {
     display: block;
@@ -1560,8 +1635,12 @@ const getModeLabel = (mode: string) => {
 /* Mobile Responsive Refinements */
 @media (max-width: 768px) {
     .rules-card-section {
-        padding: 18px 16px;
+        padding: 16px 12px;
         border-radius: 12px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow-x: clip;
     }
     .section-heading {
         flex-direction: column;
@@ -1623,6 +1702,8 @@ const getModeLabel = (mode: string) => {
         border-radius: 10px;
         gap: 4px;
         white-space: normal;
+        min-width: 0;
+        word-break: break-word;
     }
     .rules-filter-row {
         flex-direction: column;
@@ -1649,20 +1730,56 @@ const getModeLabel = (mode: string) => {
         width: 100%;
         justify-content: center;
     }
+    .mockup-diagram {
+        padding: 12px 6px;
+        width: 100%;
+        max-width: 100%;
+    }
     .mockup-book-cover {
         width: 100%;
-        max-width: 280px;
+        max-width: 270px;
+        padding: 16px 10px;
+    }
+    .mockup-katalog-box {
+        margin-bottom: 14px;
+    }
+    .mockup-meta-line {
+        font-size: 8.5px;
+        word-break: break-all;
+    }
+    .mockup-title-box {
+        margin-bottom: 14px;
+    }
+    .mockup-main-title {
+        font-size: 12px;
+    }
+    .mockup-sub-title {
+        font-size: 9.5px;
+    }
+    .mockup-bps-table {
+        padding: 10px 6px;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        box-sizing: border-box;
+    }
+    .bps-sample-table th,
+    .bps-sample-table td {
+        padding: 5px 6px;
+        font-size: 10px;
     }
     .book-spread-container {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         max-width: 100%;
-        padding: 8px;
+        padding: 6px;
     }
     .book-page {
-        width: 145px;
-        height: 210px;
-        padding: 10px 8px;
+        width: 130px;
+        height: 190px;
+        padding: 8px 6px;
+        flex-shrink: 0;
     }
     .rule-card-header {
         padding: 16px;
