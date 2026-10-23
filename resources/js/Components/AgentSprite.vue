@@ -359,12 +359,53 @@ onUnmounted(() => {
             </div>
         </div>
 
-        <!-- Floating Speech Bubble (Interactive click target to select agent) -->
+        <!-- Floating Speech Bubble & Mobile Micro-Badge -->
+        <!-- 1. MOBILE UNSELECTED: Compact Micro-Pill to eliminate overlapping on mobile screens -->
         <div
-            class="speech-bubble pointer-events-auto cursor-pointer absolute left-1/2 -translate-x-1/2 w-max max-w-[164px] bg-[#FFFFFF]/95 border rounded-xl px-2.5 py-1 shadow-xs transition-colors duration-150"
+            v-if="!isSelected"
+            class="agent-micro-badge sm:hidden pointer-events-auto cursor-pointer absolute left-1/2 -translate-x-1/2 flex items-center gap-1 bg-[#FFFFFF]/95 border border-[#D7D1C8] hover:border-[#302B2A] rounded-full px-1.5 py-0.5 shadow-xs transition-transform active:scale-95 z-20"
+            :title="`${agent.name || 'Agent ' + slotNumber}: ${statusText}`"
+            @pointerdown.stop="emit('select', props.agent)"
+        >
+            <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="statusDotClass"></span>
+            <span class="font-mono text-[9px] font-bold text-[#302B2A] leading-none">#{{ slotNumber }}</span>
+        </div>
+
+        <!-- 2. MOBILE SELECTED: Expanded Active Speech Bubble -->
+        <div
+            v-if="isSelected"
+            class="speech-bubble sm:hidden pointer-events-auto cursor-pointer absolute left-1/2 -translate-x-1/2 w-max max-w-[126px] bg-[#FFFFFF]/95 border border-[#302B2A] ring-2 ring-[#FFA4A4] rounded-xl px-2 py-1 shadow-md z-30 transition-colors duration-150"
+            @pointerdown.stop="emit('select', props.agent)"
+        >
+            <div class="flex items-center justify-between gap-1">
+                <div class="flex items-center gap-1 min-w-0">
+                    <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="statusDotClass"></span>
+                    <span class="bubble-name text-[9.5px] font-bold text-[#302B2A] truncate leading-tight">
+                        {{ agent.name || `Agent ${slotNumber}` }}
+                    </span>
+                </div>
+                <span
+                    class="font-mono tabular-nums text-[8px] font-semibold px-1 py-0.2 rounded shrink-0 bg-[#BADFDB] text-[#245F59]"
+                >
+                    #{{ slotNumber }}
+                </span>
+            </div>
+
+            <p class="bubble-text text-[8px] text-[#5A5150] truncate leading-tight font-medium mt-0.5">
+                {{ statusText }}
+            </p>
+
+            <div
+                class="absolute left-1/2 -bottom-[4px] -translate-x-1/2 w-2 h-2 bg-[#FFFFFF] border-r border-b rotate-45 border-[#302B2A]"
+            ></div>
+        </div>
+
+        <!-- 3. DESKTOP VIEW: Full Speech Bubble on all agents -->
+        <div
+            class="speech-bubble hidden sm:block pointer-events-auto cursor-pointer absolute left-1/2 -translate-x-1/2 w-max max-w-[164px] bg-[#FFFFFF]/95 border rounded-xl px-2.5 py-1 shadow-xs transition-colors duration-150"
             :class="
                 isSelected
-                    ? 'border-[#302B2A] ring-2 ring-[#FFA4A4] shadow-md'
+                    ? 'border-[#302B2A] ring-2 ring-[#FFA4A4] shadow-md z-30'
                     : 'border-[#D7D1C8] hover:border-[#302B2A]'
             "
             @pointerdown.stop="emit('select', props.agent)"
@@ -443,6 +484,12 @@ onUnmounted(() => {
 
 .speech-bubble {
     bottom: calc(100% - 4%);
+}
+
+.agent-micro-badge {
+    bottom: calc(100% - 2px);
+    white-space: nowrap;
+    z-index: 25;
 }
 
 .bubble-text {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from "@inertiajs/vue3";
-import { ref } from "vue";
+import { ref, onMounted, nextTick, watch } from "vue";
 import {
     BookOpenCheck,
     Plus,
@@ -11,7 +11,26 @@ import {
 import type { Shared } from "../types";
 const page = usePage<Shared>();
 const menu = ref(false);
+const navRef = ref<HTMLElement | null>(null);
 defineProps<{ wide?: boolean }>();
+
+function scrollActiveNavIntoView() {
+    nextTick(() => {
+        if (!navRef.value) return;
+        const activeLink = navRef.value.querySelector('.active') as HTMLElement | null;
+        if (activeLink) {
+            activeLink.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+    });
+}
+
+onMounted(() => {
+    scrollActiveNavIntoView();
+});
+
+watch(() => page.url, () => {
+    scrollActiveNavIntoView();
+});
 </script>
 <template>
     <a class="skip-link" href="#main-content">Langsung ke konten</a>
@@ -25,7 +44,7 @@ defineProps<{ wide?: boolean }>();
                 ></span
             ></Link
         >
-        <nav aria-label="Navigasi utama" class="main-nav">
+        <nav ref="navRef" aria-label="Navigasi utama" class="main-nav">
             <Link
                 href="/"
                 :class="{ active: page.url === '/' }"

@@ -76,6 +76,7 @@ for (let s = 1; s <= 5; s++) {
     Object.assign(typingCalibration[s], JSON.parse(JSON.stringify(DEFAULT_TYPING_CALIBRATION[s])));
 }
 const calibrationTab = ref('typing'); // 'typing' | 'desk'
+const activeMobileTab = ref('office'); // 'office' | 'agents' | 'logs' (for mobile viewport navigation)
 
 const SERVER_POSITION = { top: 49.5, left: 48.4 };
 const SERVER_LANDMARK = { top: 40.5, left: 48.4 };
@@ -1021,12 +1022,47 @@ onUnmounted(() => {
                 </div>
             </transition>
 
+            <!-- Mobile Segment Switcher (visible only on mobile lg:hidden) -->
+            <div class="mobile-section-nav lg:hidden flex items-center p-1 bg-[#ede8dc] border border-[#D7D1C8] rounded-xl mb-3 gap-1">
+                <button
+                    type="button"
+                    class="flex-1 py-1.5 px-2 rounded-lg text-[11px] sm:text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer whitespace-nowrap"
+                    :class="activeMobileTab === 'office' ? 'bg-[#FFFFFF] text-[#302B2A] shadow-xs' : 'text-[#5A5150] hover:text-[#302B2A]'"
+                    @click="activeMobileTab = 'office'"
+                >
+                    <span>🏢 Ruang 3D</span>
+                </button>
+                <button
+                    type="button"
+                    class="flex-1 py-1.5 px-2 rounded-lg text-[11px] sm:text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer whitespace-nowrap"
+                    :class="activeMobileTab === 'agents' ? 'bg-[#FFFFFF] text-[#302B2A] shadow-xs' : 'text-[#5A5150] hover:text-[#302B2A]'"
+                    @click="activeMobileTab = 'agents'"
+                >
+                    <span>🤖 5 Agen</span>
+                    <span
+                        v-if="hasActiveAudit"
+                        class="w-1.5 h-1.5 rounded-full bg-[#245F59] animate-ping"
+                    ></span>
+                </button>
+                <button
+                    type="button"
+                    class="flex-1 py-1.5 px-2 rounded-lg text-[11px] sm:text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer whitespace-nowrap"
+                    :class="activeMobileTab === 'logs' ? 'bg-[#FFFFFF] text-[#302B2A] shadow-xs' : 'text-[#5A5150] hover:text-[#302B2A]'"
+                    @click="activeMobileTab = 'logs'"
+                >
+                    <span>📋 Aktivitas</span>
+                </button>
+            </div>
+
             <!-- Main 3-Column Editorial Workspace Container -->
             <div class="markas-grid">
                 <!-- ========================================================= -->
                 <!-- 1. KOLOM KIRI: "Status & Daftar Agen"                     -->
                 <!-- ========================================================= -->
-                <aside class="markas-side bg-[#FCF9EA] border border-[#D7D1C8] rounded-[20px] p-3.5 flex flex-col gap-3">
+                <aside
+                    class="markas-side bg-[#FCF9EA] border border-[#D7D1C8] rounded-2xl sm:rounded-[20px] p-3 sm:p-3.5 flex-col gap-3"
+                    :class="[activeMobileTab === 'agents' ? 'flex' : 'hidden lg:flex']"
+                >
                     <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-[#D7D1C8]">
                         <div class="min-w-0">
                             <h2 class="mk-panel-title font-['Outfit'] font-semibold text-[#302B2A] truncate">
@@ -1180,13 +1216,14 @@ onUnmounted(() => {
                 <!-- 2. KOLOM TENGAH (LARGE): "Ruang Operasi 5 Agen AI"         -->
                 <!-- ========================================================= -->
                 <section
-                    class="markas-center min-w-0 bg-[#FCF9EA] border border-[#D7D1C8] rounded-[20px] p-4 sm:p-5 flex flex-col gap-3"
+                    class="markas-center min-w-0 bg-[#FCF9EA] border border-[#D7D1C8] rounded-2xl sm:rounded-[20px] p-2.5 sm:p-5 flex-col gap-3"
+                    :class="[activeMobileTab === 'office' ? 'flex' : 'hidden lg:flex']"
                 >
                     <!-- Center Header Bar -->
-                    <div class="flex flex-wrap items-center justify-between gap-3 pb-2.5 border-b border-[#D7D1C8]">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 pb-2.5 border-b border-[#D7D1C8]">
                         <div>
-                            <span class="text-xs font-semibold text-[#5A5150] block leading-tight">AI 3D Office</span>
-                            <div class="flex items-center gap-2.5 flex-wrap mt-0.5">
+                            <span class="text-[11px] sm:text-xs font-semibold text-[#5A5150] block leading-tight">AI 3D Office</span>
+                            <div class="flex items-center gap-2 flex-wrap mt-0.5">
                                 <h1 class="mk-main-title font-['Outfit'] font-semibold text-[#302B2A]">
                                     Ruang Operasi 5 Agen AI
                                 </h1>
@@ -1194,32 +1231,34 @@ onUnmounted(() => {
                                 <!-- Accurate Real-Time Audit Status Badge -->
                                 <span
                                     v-if="hasActiveAudit"
-                                    class="inline-flex items-center gap-1.5 bg-[#BADFDB] text-[#245F59] border border-[#96C9C3] rounded-full px-3 py-0.5 text-[11px] font-semibold font-['JetBrains_Mono'] tabular-nums"
+                                    class="inline-flex items-center gap-1.5 bg-[#BADFDB] text-[#245F59] border border-[#96C9C3] rounded-full px-2.5 sm:px-3 py-0.5 text-[10.5px] sm:text-[11px] font-semibold font-['JetBrains_Mono'] tabular-nums"
                                 >
-                                    <span class="w-2 h-2 rounded-full bg-[#245F59] animate-ping"></span>
-                                    PEMERIKSAAN AKTIF ({{ activelyWorkingCount }} BEKERJA · {{ activePubCompletedPages }}/{{ activePubTotalPages }} HAL)
+                                    <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#245F59] animate-ping"></span>
+                                    <span class="hidden sm:inline">PEMERIKSAAN AKTIF ({{ activelyWorkingCount }} BEKERJA · {{ activePubCompletedPages }}/{{ activePubTotalPages }} HAL)</span>
+                                    <span class="sm:hidden">AKTIF: {{ activelyWorkingCount }} BEKERJA ({{ activePubCompletedPages }}/{{ activePubTotalPages }} HAL)</span>
                                 </span>
                                 <span
                                     v-else-if="demoMode"
-                                    class="inline-flex items-center gap-1.5 bg-[#FFBDBD] text-[#302B2A] border border-[#E88D8D] rounded-full px-3 py-0.5 text-[11px] font-semibold font-['JetBrains_Mono'] tabular-nums"
+                                    class="inline-flex items-center gap-1.5 bg-[#FFBDBD] text-[#302B2A] border border-[#E88D8D] rounded-full px-2.5 sm:px-3 py-0.5 text-[10.5px] sm:text-[11px] font-semibold font-['JetBrains_Mono'] tabular-nums"
                                 >
-                                    MODE SIMULASI DEMO (CONTOH VISUAL)
+                                    SIMULASI DEMO
                                 </span>
                                 <span
                                     v-else
-                                    class="inline-flex items-center gap-1.5 bg-[#FFFFFF] text-[#5A5150] border border-[#D7D1C8] rounded-full px-3 py-0.5 text-[11px] font-semibold font-['JetBrains_Mono'] tabular-nums"
+                                    class="inline-flex items-center gap-1.5 bg-[#FFFFFF] text-[#5A5150] border border-[#D7D1C8] rounded-full px-2.5 sm:px-3 py-0.5 text-[10px] sm:text-[11px] font-semibold font-['JetBrains_Mono'] tabular-nums"
                                 >
-                                    <span class="w-2 h-2 rounded-full bg-[#D7D1C8]"></span>
-                                    TIDAK ADA PEMERIKSAAN AKTIF · {{ readyAgentsCount }}/5 SIAGA (RIWAYAT: {{ totalProcessedPagesDisplay }} HAL)
+                                    <span class="w-1.5 h-1.5 rounded-full bg-[#D7D1C8]"></span>
+                                    <span class="hidden sm:inline">TIDAK ADA PEMERIKSAAN AKTIF · {{ readyAgentsCount }}/5 SIAGA (RIWAYAT: {{ totalProcessedPagesDisplay }} HAL)</span>
+                                    <span class="sm:hidden">{{ readyAgentsCount }}/5 SIAGA · {{ totalProcessedPagesDisplay }} HAL</span>
                                 </span>
                             </div>
                         </div>
 
-                        <!-- Top Right Controls -->
-                        <div class="flex flex-wrap items-center gap-1.5">
+                        <!-- Top Right Controls (Horizontally scrollable on mobile) -->
+                        <div class="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 -mx-0.5 px-0.5 sm:mx-0 sm:px-0 no-scrollbar shrink-0">
                             <button
                                 type="button"
-                                class="whitespace-nowrap text-[11.5px] font-semibold rounded-full px-3 py-1.5 border transition-colors cursor-pointer"
+                                class="whitespace-nowrap text-[11px] sm:text-[11.5px] font-semibold rounded-full px-2.5 sm:px-3 py-1.5 border transition-colors cursor-pointer shrink-0"
                                 :class="
                                     demoMode
                                         ? 'btn-coral-action border-[#302B2A]'
@@ -1228,12 +1267,12 @@ onUnmounted(() => {
                                 title="Aktifkan hanya jika ingin melihat contoh simulasi gerakan tanpa pemeriksaan asli"
                                 @click="toggleDemoMode"
                             >
-                                {{ demoMode ? '■ Matikan Simulasi Demo' : '▶ Coba Simulasi Demo' }}
+                                {{ demoMode ? '■ Matikan Demo' : '▶ Simulasi Demo' }}
                             </button>
 
                             <button
                                 type="button"
-                                class="btn-secondary-pill whitespace-nowrap border border-[#D7D1C8] rounded-full px-3 py-1.5 text-[11.5px] font-semibold font-['JetBrains_Mono'] tabular-nums transition-colors cursor-pointer"
+                                class="btn-secondary-pill whitespace-nowrap border border-[#D7D1C8] rounded-full px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-[11.5px] font-semibold font-['JetBrains_Mono'] tabular-nums transition-colors cursor-pointer shrink-0"
                                 @click="liveSyncEnabled = !liveSyncEnabled"
                             >
                                 Live Sync: {{ liveSyncEnabled ? '3s' : 'Pause' }}
@@ -1241,15 +1280,15 @@ onUnmounted(() => {
 
                             <button
                                 type="button"
-                                class="btn-secondary-pill whitespace-nowrap border border-[#D7D1C8] rounded-full px-3 py-1.5 text-[11.5px] font-semibold transition-colors cursor-pointer"
+                                class="btn-secondary-pill whitespace-nowrap border border-[#D7D1C8] rounded-full px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-[11.5px] font-semibold transition-colors cursor-pointer shrink-0"
                                 @click="openSkinPickerForSlot(selectedSlot)"
                             >
-                                Pilih Skin Agen
+                                Pilih Skin
                             </button>
 
                             <button
                                 type="button"
-                                class="whitespace-nowrap text-[11.5px] font-semibold rounded-full px-3 py-1.5 border transition-colors cursor-pointer"
+                                class="whitespace-nowrap text-[11px] sm:text-[11.5px] font-semibold rounded-full px-2.5 sm:px-3 py-1.5 border transition-colors cursor-pointer shrink-0"
                                 :class="
                                     debugMode
                                         ? 'btn-cocoa-ink border-[#302B2A]'
@@ -1258,12 +1297,12 @@ onUnmounted(() => {
                                 title="Tampilkan jalur waypoint koridor isometric, frame sprite 1-8, dan arah jalan"
                                 @click="debugMode = !debugMode"
                             >
-                                {{ debugMode ? 'Debug Jalur: ON' : 'Debug Jalur' }}
+                                {{ debugMode ? 'Debug: ON' : 'Debug Jalur' }}
                             </button>
 
                             <button
                                 type="button"
-                                class="whitespace-nowrap text-[11.5px] font-semibold rounded-full px-3 py-1.5 border transition-colors cursor-pointer"
+                                class="whitespace-nowrap text-[11px] sm:text-[11.5px] font-semibold rounded-full px-2.5 sm:px-3 py-1.5 border transition-colors cursor-pointer shrink-0"
                                 :class="
                                     calibrationMode
                                         ? 'btn-coral-action border-[#302B2A]'
@@ -1271,7 +1310,7 @@ onUnmounted(() => {
                                 "
                                 @click="calibrationMode = !calibrationMode"
                             >
-                                {{ calibrationMode ? 'Selesai Kalibrasi' : 'Kalibrasi Posisi' }}
+                                {{ calibrationMode ? 'Selesai' : 'Kalibrasi' }}
                             </button>
                         </div>
                     </div>
@@ -1844,39 +1883,39 @@ onUnmounted(() => {
                             </div>
 
                             <!-- Interactive Pose Preview Triggers (8s temporary preview) -->
-                            <div class="flex flex-wrap items-center gap-1.5">
-                                <span class="text-[10.5px] font-semibold text-[#5A5150] mr-0.5">Uji Pose (8s):</span>
+                            <div class="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 no-scrollbar shrink-0">
+                                <span class="text-[10px] sm:text-[10.5px] font-semibold text-[#5A5150] mr-0.5 shrink-0">Uji Pose (8s):</span>
                                 <button
                                     type="button"
-                                    class="btn-secondary-pill whitespace-nowrap border border-[#D7D1C8] rounded-full px-2.5 py-1 text-[11px] font-semibold cursor-pointer"
+                                    class="btn-secondary-pill whitespace-nowrap border border-[#D7D1C8] rounded-full px-2.5 py-1 text-[10.5px] sm:text-[11px] font-semibold cursor-pointer shrink-0"
                                     @click="commandAgentBehavior(selectedAgent.slot, 'working')"
                                 >
                                     💻 Mengetik
                                 </button>
                                 <button
                                     type="button"
-                                    class="btn-secondary-pill whitespace-nowrap border border-[#D7D1C8] rounded-full px-2.5 py-1 text-[11px] font-semibold cursor-pointer"
+                                    class="btn-secondary-pill whitespace-nowrap border border-[#D7D1C8] rounded-full px-2.5 py-1 text-[10.5px] sm:text-[11px] font-semibold cursor-pointer shrink-0"
                                     @click="commandAgentBehavior(selectedAgent.slot, 'server')"
                                 >
                                     🚶 Ke Server
                                 </button>
                                 <button
                                     type="button"
-                                    class="btn-secondary-pill whitespace-nowrap border border-[#D7D1C8] rounded-full px-2.5 py-1 text-[11px] font-semibold cursor-pointer"
+                                    class="btn-secondary-pill whitespace-nowrap border border-[#D7D1C8] rounded-full px-2.5 py-1 text-[10.5px] sm:text-[11px] font-semibold cursor-pointer shrink-0"
                                     @click="commandAgentBehavior(selectedAgent.slot, 'coffee')"
                                 >
                                     ☕ Ke Kopi
                                 </button>
                                 <button
                                     type="button"
-                                    class="btn-secondary-pill whitespace-nowrap border border-[#D7D1C8] rounded-full px-2.5 py-1 text-[11px] font-semibold cursor-pointer"
+                                    class="btn-secondary-pill whitespace-nowrap border border-[#D7D1C8] rounded-full px-2.5 py-1 text-[10.5px] sm:text-[11px] font-semibold cursor-pointer shrink-0"
                                     @click="commandAgentBehavior(selectedAgent.slot, 'done')"
                                 >
                                     👋 Selesai
                                 </button>
                                 <button
                                     type="button"
-                                    class="btn-coral-action whitespace-nowrap text-[11px] font-semibold rounded-full px-3 py-1 border border-[#E88D8D] cursor-pointer"
+                                    class="btn-coral-action whitespace-nowrap text-[10.5px] sm:text-[11px] font-semibold rounded-full px-3 py-1 border border-[#E88D8D] cursor-pointer shrink-0"
                                     @click="openSkinPickerForSlot(selectedAgent.slot)"
                                 >
                                     Ganti Karakter (1-8)
@@ -1889,7 +1928,10 @@ onUnmounted(() => {
                 <!-- ========================================================= -->
                 <!-- 3. KOLOM KANAN: "Live Feed & Riwayat Aktivitas"           -->
                 <!-- ========================================================= -->
-                <aside class="markas-side bg-[#FCF9EA] border border-[#D7D1C8] rounded-[20px] p-3.5 flex flex-col gap-3">
+                <aside
+                    class="markas-side bg-[#FCF9EA] border border-[#D7D1C8] rounded-2xl sm:rounded-[20px] p-3 sm:p-3.5 flex-col gap-3"
+                    :class="[activeMobileTab === 'logs' ? 'flex' : 'hidden lg:flex']"
+                >
                     <div class="pb-2.5 border-b border-[#D7D1C8]">
                         <div class="flex items-center justify-between gap-2">
                             <h2 class="mk-panel-title font-['Outfit'] font-semibold text-[#302B2A] truncate">
@@ -2244,21 +2286,29 @@ onUnmounted(() => {
 
 /* Office Zoom HUD Controls */
 .office-hud-guide {
-    font-size: 9px !important;
+    font-size: 10px !important;
     line-height: 1 !important;
 }
 
 .office-hud-btn-step {
-    width: 18px !important;
-    height: 18px !important;
-    font-size: 10px !important;
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 13px !important;
     line-height: 1 !important;
 }
 
 .office-hud-pct-badge {
     font-family: 'JetBrains Mono', monospace !important;
-    font-size: 9px !important;
+    font-size: 10px !important;
     line-height: 1 !important;
-    padding: 2px 6px !important;
+    padding: 3px 8px !important;
+}
+
+@media (min-width: 640px) {
+    .office-hud-btn-step {
+        width: 20px !important;
+        height: 20px !important;
+        font-size: 11px !important;
+    }
 }
 </style>
