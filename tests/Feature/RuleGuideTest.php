@@ -36,7 +36,7 @@ class RuleGuideTest extends TestCase
             ->has('version')
             ->has('target_version')
             ->has('summary', fn (Assert $summary) => $summary
-                ->where('total_rules', 39)
+                ->where('total_rules', 54)
                 ->where('categories_count', 6)
                 ->has('mandatory_count')
                 ->has('advisory_count')
@@ -44,7 +44,7 @@ class RuleGuideTest extends TestCase
             )
             ->has('categories', 6)
             ->has('stages', 11)
-            ->has('rules', 39)
+            ->has('rules', 54)
             ->where('rules.0.code', 'COVER.COMPONENTS')
         );
     }

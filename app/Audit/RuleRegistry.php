@@ -33,6 +33,23 @@ class RuleRegistry
             'PRINT.TRAILING_BLANKS' => 'Kesesuaian halaman putih akhir sebelum kover belakang',
             'COVER.TITLE.LAYOUT' => 'Kesamaan tata letak halaman judul dengan kover depan',
             'OFFICIAL.REFERENCE' => 'Validasi rujukan publikasi resmi BPS',
+
+            // 15 Aturan Baru Spesifik Teradopsi dari Standar Pedoman BPS 2023 & web_v2
+            'IDENTITY.WILAYAH_MISMATCH' => 'Deteksi ketidaksesuaian identitas wilayah antarseksi (District Mismatch)',
+            'DOCUMENT.RAW_TEMPLATE' => 'Deteksi naskah draf template master BPS mentah',
+            'CATALOGUE.NO_INDIVIDUAL_NAMES' => 'Larangan pencantuman nama individu pada halaman katalog',
+            'CATALOGUE.ISSN_COLON_RULE' => 'Format penulisan ISSN wajib titik dua pada halaman katalog',
+            'TEAM.ENGLISH_PLURAL_RULE' => 'Kaidah bentuk tunggal jabatan bahasa Inggris pada tim penyusun',
+            'TEAM.NO_NIP' => 'Larangan pencantuman NIP pada susunan tim penyusun',
+            'PREFACE.NO_NIP' => 'Larangan pencantuman NIP pada penandatangan kata pengantar',
+            'PREFACE.TITIMANGSA_YEAR' => 'Sinkronisasi tahun titimangsa tanda tangan kata pengantar',
+            'PREFACE.BPS_FULL_TITLE' => 'Penulisan lengkap tanpa singkatan jabatan pimpinan kata pengantar',
+            'TOC.SUBCHAPTER_NO_TRAILING_DOT' => 'Larangan tanda titik di akhir nomor subbab daftar isi',
+            'TOC.NO_DAFTAR_GRAFIK' => 'Penggunaan istilah resmi Daftar Gambar (bukan Daftar Grafik)',
+            'TABLE.NO_TRAILING_DOT' => 'Larangan tanda titik di akhir nomor dan judul tabel',
+            'TABLE.NO_KATA_TAHUN' => 'Larangan kata "Tahun" pada judul tabel statistik',
+            'TABLE.EN_DASH_ZERO' => 'Standar notasi angka nol mutlak menggunakan En Dash (–)',
+            'TYPOGRAPHY.SUPERSCRIPT_UNIT' => 'Penulisan simbol kuadrat superskrip pada satuan luas (km² dan m²)',
         ];
     }
 

@@ -50,6 +50,8 @@ Publikasi rujukan tidak boleh disalin secara buta karena masih mengandung bebera
 6. Kesalahan yang ditemukan pada satu tabel atau halaman harus dicari juga pada seluruh publikasi.
 7. Cocokkan daftar isi, daftar tabel, daftar gambar, dan daftar lampiran dengan isi publikasi.
 8. Jangan menerima teks hasil salin dari templat apabila nama wilayah, tahun, nomor bab, satuan, atau sumber belum disesuaikan.
+9. **`IDENTITY.WILAYAH_MISMATCH` (Aturan Baku):** Seluruh penyebutan nama kecamatan/wilayah wajib selaras antara Kover Depan, Halaman Judul Utama, Halaman Katalog, Kata Pengantar, dan tabel-tabel data batang tubuh. Dilarang merilis publikasi yang masih memuat nama kecamatan lain sisa salinan berkas wilayah sebelumnya.
+10. **`DOCUMENT.RAW_TEMPLATE` (Aturan Baku):** Dokumen dilarang memuat teks placeholder template master BPS mentah seperti `COVER DEPAN`, `Volume XX`, `1102001.xxxx`, `Kecamatan XXXX`, atau pilihan ganda yang belum dipilih seperti `KABUPATEN/KOTA` dan `REGENCY/MUNICIPALITY`. Seluruh draf wajib diganti dengan data riil daerah sebelum diperiksa.
 
 ## 2. Kover depan
 
@@ -177,8 +179,8 @@ Publikasi rujukan tidak boleh disalin secara buta karena masih mengandung bebera
 
 ### 5.3 Aturan khusus ISSN — aturan pengguna
 
-1. **Hanya pada halaman katalog ISSN wajib menggunakan titik dua:** `ISSN: 0215-6768`.
-2. Pada seluruh bagian lain, gunakan `ISSN 0215-6768` tanpa titik dua.
+1. **`CATALOGUE.ISSN_COLON_RULE`:** Hanya pada halaman katalog penulisan nomor ISSN WAJIB menggunakan titik dua rapat: `ISSN: 0215-6768` (tanpa spasi sebelum titik dua).
+2. Pada seluruh bagian lain (`ISSN.COLON`), gunakan `ISSN 0215-6768` tanpa titik dua.
 3. Aturan tanpa titik dua berlaku pada kover, halaman judul utama, Tim Penyusun, daftar isi, dan kover belakang.
 
 ### 5.4 Ukuran buku
@@ -214,7 +216,7 @@ Publikasi rujukan tidak boleh disalin secara buta karena masih mengandung bebera
 2. Berlaku pada Penyusun Naskah, Penyunting, Pembuat Kover, Penerbit, Dicetak oleh, dan tanda tangan Kata Pengantar.
 3. Gunakan bentuk seperti `Badan Pusat Statistik Kabupaten Tojo Una-Una`.
 4. Dalam bahasa Inggris, bentuk resmi `BPS-Statistics Tojo Una-Una Regency` diperbolehkan.
-5. Pembuat Kover diisi nama unit kerja, bukan nama individu.
+5. **`CATALOGUE.NO_INDIVIDUAL_NAMES` (Aturan Baku):** Baris Penyusun Naskah, Penyunting/Editor, dan Pembuat Kover pada Halaman Katalog WAJIB diisi nama unit kerja institusi BPS (misal: "BPS Kabupaten Tojo Una-Una"). Dilarang keras mencantumkan nama orang pribadi beserta gelar akademik pada Halaman Katalog. Nama-nama individu hanya diperbolehkan pada Halaman Tim Penyusun.
 6. Penerbit menggunakan simbol hak cipta tanpa spasi: `©Badan Pusat Statistik Kabupaten Tojo Una-Una`.
 7. Label `Penerbit/Publisher:` harus menggunakan titik dua.
 8. `Dicetak oleh/Printed by:` wajib diisi dengan nama lengkap Badan Pusat Statistik untuk cetak internal atau nama perusahaan untuk cetak luar.
@@ -234,14 +236,15 @@ Publikasi rujukan tidak boleh disalin secara buta karena masih mengandung bebera
 ## 6. Tim Penyusun
 
 1. Wajib ada dan dimulai pada halaman ganjil setelah katalog.
-2. Gunakan judul `Tim Penyusun/Compilers`.
+2. Gunakan judul `Tim Penyusun/Compilers` (dilarang istilah `Team Members`).
 3. Judul publikasi, tahun, volume, dan ISSN sama dengan kover.
 4. ISSN berada di kanan atas tanpa titik dua.
 5. Komponen yang diperiksa: Pengarah, Penanggung Jawab, Penyunting, Penulis Naskah, Pengolah Data, Penata Letak, dan Penerjemah.
-6. Bentuk tunggal/jamak bahasa Inggris disesuaikan dengan jumlah orang.
-7. Pencantuman gelar harus konsisten.
-8. Tidak menggunakan nomor halaman dan running title, tetapi tetap dihitung sebagai halaman romawi.
-9. Jika berakhir pada halaman ganjil, tambahkan halaman kosong yang tetap dihitung.
+6. **`TEAM.ENGLISH_PLURAL_RULE`:** Gelar jabatan bahasa Inggris wajib menggunakan bentuk tunggal jika personilnya hanya satu orang (`Person In Charge`, `Editor`, `Writer`, `Layouter`, `Translator`). Dilarang menggunakan akhiran jamak -s (`Editors`, `Writers`) jika personil di bawahnya hanya satu orang.
+7. **`TEAM.NO_NIP`:** Susunan anggota tim penyusun ditulis nama jelas tanpa mencantumkan Nomor Induk Pegawai (NIP).
+8. Pencantuman gelar harus konsisten di seluruh seksi publikasi.
+9. Tidak menggunakan nomor halaman fisik dan running title (blind folio), tetapi tetap dihitung sebagai halaman romawi.
+10. Jika berakhir pada halaman ganjil, tambahkan halaman kosong yang tetap dihitung.
 
 ## 7. Kata Sambutan, Kata Pengantar, dan Abstraksi
 
@@ -257,10 +260,11 @@ Publikasi rujukan tidak boleh disalin secara buta karena masih mengandung bebera
 
 1. Wajib ada dan dimulai pada halaman ganjil.
 2. Preface ditempatkan setelah versi Indonesia.
-3. Jabatan Indonesia menggunakan nama lengkap, misalnya `Kepala Badan Pusat Statistik Kabupaten Tojo Una-Una`.
-4. Bentuk Inggris: `Head of BPS-Statistics Tojo Una-Una Regency`.
-5. Jangan memakai singkatan `BPS` pada jabatan bahasa Indonesia.
-6. Nama penandatangan dicetak tebal dan tanpa NIP.
+3. **`PREFACE.BPS_FULL_TITLE`:** Jabatan Indonesia wajib menggunakan nama lengkap `Kepala Badan Pusat Statistik Kabupaten/Kota [Nama]`. Dilarang keras memakai singkatan `Kepala BPS` pada jabatan resmi penandatangan bahasa Indonesia.
+4. Bentuk Inggris: `Head of BPS-Statistics [Nama] Regency/Municipality` (dilarang istilah `Chief Statistician`).
+5. **`PREFACE.NO_NIP`:** Nama penandatangan dicetak tebal dan tanpa NIP.
+6. **`PREFACE.TITIMANGSA_YEAR`:** Tahun pada teks titimangsa penandatanganan Kata Pengantar (tempat, bulan, tahun) wajib selaras dengan tahun edisi publikasi (publikasi 2026 tidak boleh tertinggal titimangsa tahun 2025).
+7. Menggunakan nomor halaman romawi tanpa running title.
 7. Menggunakan nomor halaman romawi tanpa running title.
 
 ### 7.3 Abstraksi
@@ -277,7 +281,7 @@ Publikasi rujukan tidak boleh disalin secara buta karena masih mengandung bebera
 2. ISSN berada di kanan atas tanpa titik dua.
 3. Judul, tahun, dan volume sama dengan kover.
 4. Memuat bagian pendahuluan, bab, subbab, maksimal tiga tingkat hierarki, bagian penutup, dan nomor halaman.
-5. Nomor subbab tidak diakhiri titik tambahan: benar `2.3 Pemerintahan`, salah `2.3. Pemerintahan`.
+5. **`TOC.SUBCHAPTER_NO_TRAILING_DOT`:** Nomor subbab tidak diakhiri titik tambahan: benar `2.3 Pemerintahan`, salah `2.3. Pemerintahan`.
 6. Judul dan nomor halaman harus sesuai dengan isi.
 
 ### 8.2 Daftar Tabel
@@ -291,7 +295,7 @@ Publikasi rujukan tidak boleh disalin secara buta karena masih mengandung bebera
 ### 8.3 Daftar Gambar
 
 1. Dibuat jika terdapat minimal tiga gambar.
-2. Gunakan nama `Daftar Gambar` meskipun seluruh isinya berupa grafik.
+2. **`TOC.NO_DAFTAR_GRAFIK`:** Gunakan nama `Daftar Gambar` meskipun seluruh isinya berupa grafik (dilarang menggunakan istilah `Daftar Grafik`).
 3. Nomor tidak diakhiri titik.
 4. Nomor, judul, dan halaman harus sesuai dengan gambar dalam isi.
 
@@ -346,15 +350,14 @@ Publikasi rujukan tidak boleh disalin secara buta karena masih mengandung bebera
 1. Tabel memuat nomor, judul, judul stub, judul kolom, nomor kolom, stub, isi, sumber bila diperlukan, dan catatan bila diperlukan.
 2. Nomor menggunakan angka Arab.
 3. Penomoran dapat berurutan seluruh buku atau mengikuti nomor bab, misalnya `Tabel 2.3`.
-4. Nomor harus urut, tidak boleh ganda, dan tidak diakhiri titik.
-5. Judul tidak diakhiri titik.
-6. Posisi judul konsisten di seluruh publikasi.
+4. **`TABLE.NO_TRAILING_DOT`:** Nomor tabel (`Tabel 2.3`, bukan `Tabel 2.3.`) dan judul tabel tidak diakhiri tanda titik.
+5. Posisi judul konsisten di seluruh publikasi.
 
 ### 12.2 Judul tabel
 
 1. Menggunakan kapital pada awal kata, kecuali kata sambung, kata depan, dan partikel.
 2. Menjelaskan apa, di mana, dan kapan.
-3. Tidak memakai kata `Tahun`.
+3. **`TABLE.NO_KATA_TAHUN`:** Judul tabel dilarang menggunakan kata `Tahun` sebelum angka tahun (contoh benar: `..., 2024`; contoh salah: `..., Tahun 2024`).
 4. Gunakan koma sebelum keterangan waktu.
 5. Rentang waktu memakai en dash tanpa spasi.
 6. Satuan ditempatkan sebelum keterangan waktu.
@@ -373,7 +376,7 @@ Publikasi rujukan tidak boleh disalin secara buta karena masih mengandung bebera
 1. Angka rata kanan lalu diatur agar tampak di tengah kolom menggunakan right indent atau cell margin.
 2. Pemisah ribuan memakai titik pada publikasi Indonesia dan dwibahasa.
 3. Angka negatif memakai tanda minus tanpa spasi.
-4. Nilai nol mutlak memakai en dash `–`, bukan `-`, `0`, `0,0`, atau `0,00`.
+4. **`TABLE.EN_DASH_ZERO`:** Nilai nol mutlak/nihil wajib memakai en dash `–` (U+2013), bukan tanda minus pendek `-`, angka biasa `0`, `0,0`, atau `0,00`.
 5. Nilai mendekati nol ditulis `~0`.
 6. Baris total dicetak tebal tanpa italic atau underline yang tidak diperlukan.
 7. Hapus baris kosong yang tidak mempunyai fungsi.
@@ -488,6 +491,8 @@ Publikasi rujukan tidak boleh disalin secara buta karena masih mengandung bebera
 18. Cocokkan judul grafik dengan sumbu dan data.
 19. Pastikan nomor bab, subbab, dan tabel mengikuti nomor bab yang benar.
 20. Cocokkan nomor katalog dengan master katalog atau metadata resmi.
+21. **`TYPOGRAPHY.SUPERSCRIPT_UNIT`:** Satuan luas pangkat dua (persegi) wajib menggunakan superskrip Unicode (`km²`, `m²`), dilarang menggunakan angka biasa (`km2`, `m2`).
+
 
 ## 17. Konflik dan keputusan sementara
 

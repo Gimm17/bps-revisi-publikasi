@@ -45,6 +45,73 @@ class CrossChecker
                 $findings[] = $this->make('IDENTITY.CONSISTENCY', 'Identitas '.$field.' berbeda: '.implode('; ', array_map(fn ($e) => 'PDF hlm. '.$e['page'].' “'.$e['quote'].'”', $evidence)), 'Identitas publikasi sama pada semua bagian yang merujuk publikasi ini.', 'Cocokkan '.$field.' dengan metadata resmi kemudian samakan bagian yang terbukti salah.', $evidence, 'verifikasi');
             }
         }
+
+        // IDENTITY.WILAYAH_MISMATCH (Deteksi kelalaian kasus ganti kover)
+        $coverText = '';
+        foreach ($pages as $p) {
+            if (in_array($p['page_type'] ?? '', ['front_cover', 'cover'], true)) {
+                $coverText = (string) ($p['text'] ?? '');
+                break;
+            }
+        }
+        if ($coverText !== '' && preg_match('/\bKecamatan\s+([A-Za-z\s]+?)(?:\s+Dalam\s+Angka|\s+in\s+Figures|\n|$)/iu', $coverText, $covM)) {
+            $coverDistrict = trim($covM[1]);
+            foreach ($pages as $p) {
+                $pType = $p['page_type'] ?? '';
+                if (in_array($pType, ['title', 'catalogue', 'preface'], true)) {
+                    $pText = (string) ($p['text'] ?? '');
+                    if (preg_match_all('/\bKecamatan\s+([A-Za-z\s]+?)(?:\s+Dalam\s+Angka|\s+in\s+Figures|\n|\.)/iu', $pText, $distMatches, PREG_SET_ORDER)) {
+                        foreach ($distMatches as $dm) {
+                            $otherDistrict = trim($dm[1]);
+                            if ($otherDistrict !== '' && mb_strtolower($otherDistrict) !== mb_strtolower($coverDistrict) && ! str_contains(mb_strtolower($coverDistrict), mb_strtolower($otherDistrict)) && ! str_contains(mb_strtolower($otherDistrict), mb_strtolower($coverDistrict))) {
+                                $findings[] = $this->make(
+                                    'IDENTITY.WILAYAH_MISMATCH',
+                                    'Kover depan memuat "Kecamatan '.$coverDistrict.'", tetapi halaman '.$pType.' memuat "Kecamatan '.$otherDistrict.'".',
+                                    'Nama kecamatan selaras di seluruh seksi publikasi.',
+                                    'Terdeteksi ketidaksesuaian identitas wilayah (kasus ganti kover / sisa file kecamatan lain). Selaraskan seluruh penyebutan nama wilayah dengan "Kecamatan '.$coverDistrict.'".',
+                                    [['page' => $p['physical_page'] ?? $p['page_number'] ?? $p['page'] ?? 1, 'quote' => $dm[0], 'bbox' => null]],
+                                    'wajib'
+                                );
+                                break 2;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // PREFACE.TITIMANGSA_YEAR (Sinkronisasi tahun titimangsa Kata Pengantar)
+        $pubYear = $identity['year'][0]['quote'] ?? null;
+        if (! $pubYear || ! ctype_digit((string) $pubYear)) {
+            foreach ($pages as $p) {
+                if (in_array($p['page_type'] ?? '', ['front_cover', 'cover', 'title'], true)) {
+                    if (preg_match('/\b(202\d|201\d)\b/', (string) ($p['text'] ?? ''), $ym)) {
+                        $pubYear = $ym[1];
+                        break;
+                    }
+                }
+            }
+        }
+        if ($pubYear && ctype_digit((string) $pubYear)) {
+            foreach ($pages as $p) {
+                if (($p['page_type'] ?? '') === 'preface') {
+                    $pText = (string) ($p['text'] ?? '');
+                    if (preg_match('/\b(?:Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(20\d\d)\b/iu', $pText, $titimangsaM)) {
+                        $titimangsaYear = $titimangsaM[1];
+                        if ((int) $titimangsaYear < (int) $pubYear) {
+                            $findings[] = $this->make(
+                                'PREFACE.TITIMANGSA_YEAR',
+                                'Titimangsa penandatanganan Kata Pengantar mencantumkan tahun '.$titimangsaYear.', padahal publikasi adalah edisi '.$pubYear.'.',
+                                'Tahun titimangsa Kata Pengantar selaras dengan tahun publikasi ('.$pubYear.').',
+                                'Perbarui angka tahun pada baris titimangsa penandatanganan Kata Pengantar menjadi tahun '.$pubYear.'.',
+                                [['page' => $p['physical_page'] ?? $p['page_number'] ?? $p['page'] ?? 1, 'quote' => $titimangsaM[0], 'bbox' => null]],
+                                'wajib'
+                            );
+                        }
+                    }
+                }
+            }
+        }
         $publicationTitle = $identity['title'][0]['quote'] ?? '';
         foreach ($pages as $page) {
             $number = $page['printed_page'] ?? '';
