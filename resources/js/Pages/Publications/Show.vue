@@ -83,6 +83,16 @@ const incomplete = computed(() =>
 const latestExport = computed(() =>
     props.exports.find((e) => e.status === "complete"),
 );
+const showDownloadModal = ref(false);
+const downloadTargetExport = ref<ExportRecord | null>(null);
+const downloadFormat = ref<"standard" | "internal">("standard");
+
+function triggerDownloadModal(exportRecord?: ExportRecord | null) {
+    downloadTargetExport.value = exportRecord || latestExport.value || null;
+    if (downloadTargetExport.value) {
+        showDownloadModal.value = true;
+    }
+}
 const selected = computed(
     () => props.findings.find((f) => f.id === selectedId.value) ?? null,
 );
@@ -317,6 +327,9 @@ onUnmounted(() => {
                     <template v-if="publication.cross_verify_mode">
                         · Mode Verifikasi: <em>{{ publication.cross_verify_mode === 'high_risk' ? 'Resiko Tinggi & Tabel' : (publication.cross_verify_mode === 'all_pages' ? 'Semua Halaman' : 'Nonaktif') }}</em>
                     </template>
+                    <template v-if="publication.audit_mode">
+                        · Metode: <strong>{{ publication.audit_mode === 'machine' ? '⚡ Mesin Kilat' : (publication.audit_mode === 'fusion' ? '🧬 Fusion Dual-Engine' : '✨ Full Vision AI') }}</strong>
+                    </template>
                 </p>
             </div>
             <div class="inline-actions">
@@ -340,15 +353,17 @@ onUnmounted(() => {
                     @click="rebindAi"
                 >
                     Gunakan koneksi AI terbaru</button
-                ><a
+                ><button
                     v-if="latestExport"
-                    :href="`${root}/exports/${latestExport.id}`"
+                    type="button"
                     class="button primary"
-                    ><Download :size="17" />{{
+                    @click="triggerDownloadModal(latestExport)"
+                >
+                    <Download :size="17" />{{
                         latestExport.validation?.mode === "partial"
                             ? "Unduh Excel sementara"
                             : "Unduh Excel"
-                    }}</a
+                    }}</button
                 >
             </div>
         </div>
@@ -897,12 +912,14 @@ onUnmounted(() => {
                 </div>
                 <StatusBadge :status="e.status" />
                 <div class="export-actions" style="display: flex; gap: 8px; align-items: center;">
-                    <a
+                    <button
                         v-if="e.status === 'complete'"
-                        :href="`${root}/exports/${e.id}`"
+                        type="button"
                         class="button secondary"
-                        ><Download :size="17" />Unduh</a
+                        @click="triggerDownloadModal(e)"
                     >
+                        <Download :size="17" />Unduh
+                    </button>
                     <label
                         v-if="e.status === 'complete' && canReview"
                         class="button secondary"
@@ -971,5 +988,93 @@ onUnmounted(() => {
                 :assessments="assessments ?? []"
             />
         </section>
+
+        <!-- Modal Pilihan Format Download Excel -->
+        <Teleport to="body">
+            <div 
+                v-if="showDownloadModal && downloadTargetExport" 
+                class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+                @click.self="showDownloadModal = false"
+            >
+                <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 text-left">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                            <FileSpreadsheet class="text-emerald-600 dark:text-emerald-400" :size="20" />
+                            Pilih Format Laporan Excel
+                        </h3>
+                        <button 
+                            @click="showDownloadModal = false" 
+                            class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg font-bold leading-none"
+                        >
+                            &times;
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-4 leading-relaxed">
+                        Tentukan tingkat detail metadata pemeriksaan pada file Excel (.xlsx):
+                    </p>
+
+                    <div class="space-y-3 mb-6">
+                        <!-- Opsi 1: Format Standar Resmi BPS (Default) -->
+                        <div 
+                            @click="downloadFormat = 'standard'"
+                            :class="[
+                                'p-3.5 rounded-xl border-2 cursor-pointer transition flex items-start gap-3',
+                                downloadFormat === 'standard' 
+                                    ? 'border-indigo-600 bg-indigo-50/40 dark:bg-indigo-950/20 ring-1 ring-indigo-500/20' 
+                                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                            ]"
+                        >
+                            <input type="radio" value="standard" v-model="downloadFormat" class="mt-1" />
+                            <div>
+                                <strong class="text-xs font-bold block text-slate-900 dark:text-slate-100">Format Standar Resmi BPS (Default)</strong>
+                                <span class="text-[11px] text-slate-500 dark:text-slate-400 leading-tight block mt-0.5">
+                                    Sesuai format baku instrumen pemeriksaan BPS tanpa kolom teknis sistem. Siap dibagikan ke pimpinan atau daerah.
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Opsi 2: Format Internal Diagnostik -->
+                        <div 
+                            @click="downloadFormat = 'internal'"
+                            :class="[
+                                'p-3.5 rounded-xl border-2 cursor-pointer transition flex items-start gap-3',
+                                downloadFormat === 'internal' 
+                                    ? 'border-emerald-600 bg-emerald-50/40 dark:bg-emerald-950/20 ring-1 ring-emerald-500/20' 
+                                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                            ]"
+                        >
+                            <input type="radio" value="internal" v-model="downloadFormat" class="mt-1" />
+                            <div>
+                                <strong class="text-xs font-bold block text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                                    Format Audit Lengkap (Internal)
+                                    <span class="text-[9px] px-1.5 py-0.2 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 rounded font-semibold">Diagnostik</span>
+                                </strong>
+                                <span class="text-[11px] text-slate-500 dark:text-slate-400 leading-tight block mt-0.5">
+                                    Menyertakan baris <b>"Terdeteksi Oleh"</b> (Mesin Heuristik, Vision AI, atau Keduanya) serta status rekonsiliasi Fusion.
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2">
+                        <button 
+                            type="button" 
+                            @click="showDownloadModal = false" 
+                            class="button secondary text-xs py-2 px-3"
+                        >
+                            Batal
+                        </button>
+                        <a 
+                            :href="`${root}/exports/${downloadTargetExport.id}?format=${downloadFormat}`"
+                            @click="showDownloadModal = false"
+                            class="button primary text-xs py-2 px-3 flex items-center gap-1.5"
+                        >
+                            <Download :size="15" />
+                            Unduh File (.xlsx)
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </AppLayout>
 </template>

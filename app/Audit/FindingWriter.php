@@ -29,6 +29,8 @@ class FindingWriter
                 'section' => $candidate['section'] ?? 'Pemeriksaan isi dan layout',
                 'severity' => ($candidate['confidence'] ?? 1.0) < .80 ? 'verifikasi' : $candidate['severity'],
                 'source' => $candidate['source'] ?? 'ai_visual',
+                'detected_by' => $candidate['detected_by'] ?? (($candidate['source'] ?? '') === 'machine' ? 'machine' : 'ai'),
+                'fusion_status' => $candidate['fusion_status'] ?? null,
                 'confidence' => $candidate['confidence'] ?? 1.0,
                 'observed' => $candidate['observed'],
                 'expected' => $candidate['expected'],

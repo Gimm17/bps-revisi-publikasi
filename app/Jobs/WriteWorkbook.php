@@ -59,7 +59,8 @@ class WriteWorkbook implements ShouldBeUnique, ShouldQueue
             // A job captures the current revision under the same lock as finding edits.
             $export->update(['status' => 'processing', 'publication_revision' => $pub->revision]);
             $path = 'publications/'.$pub->id.'/exports/v'.$export->version.'.xlsx';
-            $validation = $writer->write($pub, $path, $coverage);
+            $exportFormat = $export->validation['export_format'] ?? 'standard';
+            $validation = $writer->write($pub, $path, $coverage, ['include_engine_source' => ($exportFormat === 'internal')]);
             $export->update(['status' => 'complete', 'path' => $path, 'checksum' => $validation['sha256'], 'finding_count' => $validation['finding_count'], 'validation' => $validation, 'error' => null]);
             if (! $partial && $pub->status === 'exporting') {
                 $pub->update(['status' => 'review_ready']);

@@ -198,15 +198,23 @@ class RuleEvaluator
             $lines = array_map('trim', explode("\n", $text));
             $bareZeros = [];
             foreach ($lines as $line) {
-                if (in_array($line, ['0', '0,0', '0,00'], true) || preg_match('/\s0(?:\s|$)/', $line) || preg_match('/\s0,0(?:\s|$)/', $line)) {
+                // Abaikan baris nomor kolom seperti (1) (2) (0) atau penjelasan persen/tahun
+                if (preg_match('/\([0-9]+\)/', $line) || str_contains($line, '%') || preg_match('/\b(?:persen|percent|tahun|year)\b/iu', $line)) {
+                    continue;
+                }
+                if (in_array($line, ['0', '0,0', '0,00'], true)) {
                     $bareZeros[] = $line;
+                } elseif (preg_match('/(?:\t|\s{2,})(0|0,0|0,00)(?:\t|\s{2,}|$)/', $line, $zm)) {
+                    $bareZeros[] = $zm[1];
+                } elseif (preg_match('/[A-Za-z]\s+(0|0,0|0,00)$/', $line, $zm)) {
+                    $bareZeros[] = $zm[1];
                 }
             }
             if (count($bareZeros) >= 1) {
                 $findings[] = $this->finding(
                     'TABLE.EN_DASH_ZERO',
                     $page,
-                    reset($bareZeros).' (ditemukan '.count($bareZeros).' sel)',
+                    reset($bareZeros).' (ditemukan '.count($bareZeros).' sel nol biasa)',
                     '– (En Dash)',
                     'Sesuai Pedoman Pembuatan Publikasi BPS 2023 Bab 4 hal. 69 & Instrumen baris 156, nilai nol mutlak (nihil) WAJIB disajikan dengan tanda strip panjang En Dash ("–"), dilarang angka 0 atau 0,0.',
                     'wajib'

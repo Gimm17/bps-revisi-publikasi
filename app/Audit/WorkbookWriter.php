@@ -111,7 +111,7 @@ class WorkbookWriter
         'back_cover' => 'Kover belakang',
     ];
 
-    public function write(Publication $pub, string $path, ?array $coverage = null): array
+    public function write(Publication $pub, string $path, ?array $coverage = null, array $options = []): array
     {
         if ($coverage === null) {
             $baseCoverage = app(AuditCoordinator::class)->coverage($pub);
@@ -275,7 +275,18 @@ class WorkbookWriter
                 $refTag = "\nRef: #F".$finding->id;
             }
 
-            $text = $headerTag."\nDitemukan: ".$finding->observed."\nSeharusnya: ".$finding->expected."\nRevisi: ".$finding->recommendation."\nBukti: ".$evidence.$noteLine.$assessmentNote.$refTag;
+            $engineTag = '';
+            if (! empty($options['include_engine_source'])) {
+                $sourceLabel = match ($finding->detected_by ?? ($finding->source === 'machine' ? 'machine' : 'ai')) {
+                    'machine' => 'Mesin Heuristik (Regex BPS)',
+                    'both' => 'Mesin + Vision AI (Terkonfirmasi Bersama)',
+                    default => 'Vision AI Multimodal',
+                };
+                $fusionLabel = ! empty($finding->fusion_status) ? ' · Status Fusion: '.$finding->fusion_status : '';
+                $engineTag = "\nTerdeteksi Oleh: ".$sourceLabel.$fusionLabel;
+            }
+
+            $text = $headerTag."\nDitemukan: ".$finding->observed."\nSeharusnya: ".$finding->expected."\nRevisi: ".$finding->recommendation."\nBukti: ".$evidence.$engineTag.$noteLine.$assessmentNote.$refTag;
             // Split long evidence across rows so Excel does not clip text at its 409pt limit.
             $chunks = $this->chunks($text);
             foreach ($chunks as $i => $chunk) {

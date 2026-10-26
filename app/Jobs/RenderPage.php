@@ -89,7 +89,16 @@ class RenderPage implements ShouldBeUnique, ShouldQueue
             'text_layer_status' => $textLayerStatus,
             'status' => 'ready',
         ]);
-        AnalyzePage::dispatch($page->id, $page->dpi)->onQueue('ai');
+
+        $mode = $pub->audit_mode ?? 'ai';
+        if ($mode === 'machine') {
+            MachineAnalyzePage::dispatch($page->id)->onQueue('machine');
+        } elseif ($mode === 'fusion') {
+            AnalyzePage::dispatch($page->id, $page->dpi)->onQueue('ai');
+            MachineAnalyzePage::dispatch($page->id)->onQueue('machine');
+        } else {
+            AnalyzePage::dispatch($page->id, $page->dpi)->onQueue('ai');
+        }
     }
 
     public function failed(?\Throwable $exception): void

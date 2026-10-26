@@ -203,23 +203,40 @@ class PublicationController extends Controller
     public function export(Request $request, Publication $publication, AuditCoordinator $coordinator): RedirectResponse
     {
         Gate::authorize('view', $publication);
-        $coordinator->export($publication, $request->user()->id);
+        $format = $request->input('format', 'standard');
+        if (! in_array($format, ['standard', 'internal'], true)) {
+            $format = 'standard';
+        }
+        $coordinator->export($publication, $request->user()->id, $format);
 
-        return back()->with('success', 'Versi Excel baru sedang dibuat.');
+        return back()->with('success', 'Versi Excel baru ('.($format === 'internal' ? 'Format Audit Internal' : 'Format Standar Resmi').') sedang diproses.');
     }
 
-    public function download(Publication $publication, Export $export): BinaryFileResponse
+    public function download(Request $request, Publication $publication, Export $export, \App\Audit\WorkbookWriter $writer): BinaryFileResponse
     {
         Gate::authorize('view', $publication);
+        $format = $request->query('format', $export->validation['export_format'] ?? 'standard');
+        $includeEngineSource = ($format === 'internal');
+
+        $targetPath = $export->path;
+        if ($includeEngineSource) {
+            $internalPath = str_replace('.xlsx', '_internal.xlsx', $export->path);
+            if (! Storage::disk('local')->exists($internalPath)) {
+                $writer->write($publication, $internalPath, $export->validation, ['include_engine_source' => true]);
+            }
+            $targetPath = $internalPath;
+        }
+
         $mode = $export->validation['mode'] ?? ($export->validation['report_mode'] ?? 'full');
         $label = match ($mode) {
             'partial' => 'SEMENTARA BELUM LENGKAP',
             'complete_with_limitations' => 'DENGAN KETERBATASAN',
             default => 'Pemeriksaan',
         };
-        $filename = preg_replace('/[^\pL\pN\- ]/u', '', $publication->title).' - '.$label.' v'.$export->version.'.xlsx';
+        $suffix = $includeEngineSource ? ' (Internal - Asal Deteksi)' : '';
+        $filename = preg_replace('/[^\pL\pN\- ]/u', '', $publication->title).' - '.$label.' v'.$export->version.$suffix.'.xlsx';
 
-        return response()->download(Storage::disk('local')->path($export->path), $filename, ['Cache-Control' => 'private, no-store']);
+        return response()->download(Storage::disk('local')->path($targetPath), $filename, ['Cache-Control' => 'private, no-store']);
     }
 
     public function exportPartial(PartialExportRequest $request, Publication $publication, AuditCoordinator $coordinator): RedirectResponse

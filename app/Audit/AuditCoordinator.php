@@ -23,10 +23,15 @@ class AuditCoordinator
         if (in_array($publication->status, ['review_ready', 'final'], true)) {
             return;
         }
-        $readyAgents = AiAgent::ready()->where('slot', '<=', 5)->get();
-        $config = $publication->aiConfig ?? AiProviderConfig::latest('id')->first();
-        if ($readyAgents->isEmpty() && ! $config?->vision_tested_at) {
-            throw ValidationException::withMessages(['ai' => 'Admin perlu mengatur AI Agent dan meluluskan uji pembacaan gambar pada minimal 1 agent terlebih dahulu.']);
+        $mode = $publication->audit_mode ?? 'ai';
+        $readyAgents = collect();
+        $config = null;
+        if ($mode !== 'machine') {
+            $readyAgents = AiAgent::ready()->where('slot', '<=', 5)->get();
+            $config = $publication->aiConfig ?? AiProviderConfig::latest('id')->first();
+            if ($readyAgents->isEmpty() && ! $config?->vision_tested_at) {
+                throw ValidationException::withMessages(['ai' => 'Admin perlu mengatur AI Agent dan meluluskan uji pembacaan gambar pada minimal 1 agent terlebih dahulu.']);
+            }
         }
         if ($publication->locked_at) {
             throw ValidationException::withMessages(['audit' => 'Hasil final sudah dikunci.']);
@@ -48,7 +53,8 @@ class AuditCoordinator
             RenderPage::dispatch($page->id);
         }
         AuditLogger::record('audit.started', $publication, [
-            'model' => $readyAgents->first()?->model ?? $config?->model,
+            'mode' => $mode,
+            'model' => $readyAgents->first()?->model ?? $config?->model ?? 'Machine Heuristic',
             'active_agents_count' => $readyAgents->count(),
         ]);
     }
@@ -103,9 +109,17 @@ class AuditCoordinator
 
     public function canComplete(Publication $publication): bool
     {
+        $mode = $publication->audit_mode ?? 'ai';
         $pagesComplete = $publication->pages()->count() === $publication->page_count && ! $publication->pages()->where(fn ($q) => $q->where('status', '!=', 'complete')->orWhereNull('result')->orWhereNull('completed_at'))->exists();
         if (! $pagesComplete) {
             return false;
+        }
+
+        if ($mode === 'fusion') {
+            $pendingFusion = $publication->pages()->where('fusion_status', '!=', 'done')->exists();
+            if ($pendingFusion) {
+                return false;
+            }
         }
 
         $pendingVerifications = PageVerification::whereIn('publication_page_id', $publication->pages()->select('id'))
@@ -155,15 +169,20 @@ class AuditCoordinator
         }
     }
 
-    public function export(Publication $publication, ?int $userId = null): Export
+    public function export(Publication $publication, ?int $userId = null, string $format = 'standard'): Export
     {
         if (! $this->canComplete($publication) || ! in_array($publication->status, ['exporting', 'review_ready', 'final'], true)) {
             throw ValidationException::withMessages(['export' => 'Semua halaman dan pemeriksaan silang harus selesai sebelum Excel dibuat.']);
         }
-        $export = DB::transaction(function () use ($publication, $userId): Export {
+        $export = DB::transaction(function () use ($publication, $userId, $format): Export {
             $pub = Publication::whereKey($publication->id)->lockForUpdate()->firstOrFail();
 
-            return $pub->exports()->create(['version' => ($pub->exports()->max('version') ?? 0) + 1, 'publication_revision' => $pub->revision, 'created_by' => $userId]);
+            return $pub->exports()->create([
+                'version' => ($pub->exports()->max('version') ?? 0) + 1,
+                'publication_revision' => $pub->revision,
+                'created_by' => $userId,
+                'validation' => ['export_format' => $format],
+            ]);
         });
         WriteWorkbook::dispatch($export->id);
 

@@ -13,11 +13,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Publication extends Model
 {
-    protected $fillable = ['owner_id', 'title', 'region', 'year', 'kind', 'notes', 'pdf_path', 'pdf_name', 'pdf_checksum', 'template_path', 'template_name', 'template_checksum', 'page_count', 'status', 'manifest', 'context', 'ai_config_id', 'cross_verify_mode', 'rule_version', 'prompt_version', 'error', 'started_at', 'completed_at', 'locked_at', 'revision'];
+    protected $fillable = ['owner_id', 'title', 'region', 'year', 'kind', 'notes', 'pdf_path', 'pdf_name', 'pdf_checksum', 'template_path', 'template_name', 'template_checksum', 'page_count', 'status', 'manifest', 'context', 'ai_config_id', 'cross_verify_mode', 'rule_version', 'prompt_version', 'error', 'started_at', 'completed_at', 'locked_at', 'revision', 'audit_mode', 'fusion_summary'];
 
     protected function casts(): array
     {
-        return ['manifest' => 'array', 'context' => 'array', 'started_at' => 'datetime', 'completed_at' => 'datetime', 'locked_at' => 'datetime'];
+        return ['manifest' => 'array', 'context' => 'array', 'fusion_summary' => 'array', 'started_at' => 'datetime', 'completed_at' => 'datetime', 'locked_at' => 'datetime'];
     }
 
     use HasUuids;

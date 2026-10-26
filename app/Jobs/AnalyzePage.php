@@ -166,6 +166,8 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
                 }
                 $suppressor = app(\App\Audit\Text\ArtifactSuppressor::class);
                 $learningSuppressor = app(\App\Audit\LearningSuppressor::class);
+                $isFusion = ($publication->audit_mode ?? 'ai') === 'fusion';
+                $allAiCandidates = [];
                 foreach ($result['findings'] as $candidate) {
                     if ($suppressor->shouldSuppress($candidate, $page->text_layer) || $learningSuppressor->shouldSuppress($candidate)) {
                         continue;
@@ -176,13 +178,13 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
                     if ($endpoint->agentId()) {
                         $candidate['agent_ids'] = [$endpoint->agentId()];
                     }
-                    $writer->store($publication, $candidate);
+                    $allAiCandidates[] = $candidate;
                 }
                 foreach (app(RuleEvaluator::class)->evaluate($result) as $candidate) {
                     if ($suppressor->shouldSuppress($candidate, $page->text_layer) || $learningSuppressor->shouldSuppress($candidate)) {
                         continue;
                     }
-                    $writer->store($publication, $candidate);
+                    $allAiCandidates[] = $candidate;
                 }
 
                 if (config('audit.spellcheck_enabled', true) && ! empty($page->text_layer)) {
@@ -190,7 +192,28 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
                     $spellFinding = $spellChecker->checkPage((string) $page->text_layer, $page->physical_page);
                     if ($spellFinding !== null && ! $suppressor->shouldSuppress($spellFinding, $page->text_layer)) {
                         $spellFinding['section'] = $result['page_type'];
-                        $writer->store($publication, $spellFinding);
+                        $allAiCandidates[] = $spellFinding;
+                    }
+                }
+
+                if ($isFusion) {
+                    foreach ($allAiCandidates as $candidate) {
+                        \App\Models\FusionCandidate::create([
+                            'publication_id' => $publication->id,
+                            'publication_page_id' => $page->id,
+                            'physical_page' => $page->physical_page,
+                            'engine' => 'ai',
+                            'rule_code' => $candidate['rule_code'],
+                            'severity' => $candidate['severity'] ?? 'wajib',
+                            'observed' => (string) ($candidate['observed'] ?? ''),
+                            'expected' => (string) ($candidate['expected'] ?? ''),
+                            'recommendation' => (string) ($candidate['recommendation'] ?? ''),
+                            'evidences' => $candidate['evidences'] ?? [],
+                        ]);
+                    }
+                } else {
+                    foreach ($allAiCandidates as $candidate) {
+                        $writer->store($publication, $candidate);
                     }
                 }
                 $current->update([
@@ -205,6 +228,10 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
                         : null,
                 ]);
             }, 3);
+
+            if (($publication->audit_mode ?? 'ai') === 'fusion') {
+                \App\Jobs\FusionReconcilePage::dispatchIfReady($page->id);
+            }
 
             // If cross-verification is enabled for this page, dispatch VerifyPage
             if ($crossVerifier->shouldVerify($page)) {

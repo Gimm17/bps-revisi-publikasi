@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Finding extends Model
 {
-    protected $fillable = ['publication_id', 'check_run_id', 'fingerprint', 'rule_code', 'section', 'severity', 'source', 'confidence', 'observed', 'expected', 'recommendation', 'evidences', 'review_status', 'review_note', 'agreement', 'agent_ids', 'version', 'deleted'];
+    protected $fillable = ['publication_id', 'check_run_id', 'fingerprint', 'rule_code', 'section', 'severity', 'source', 'detected_by', 'fusion_status', 'confidence', 'observed', 'expected', 'recommendation', 'evidences', 'review_status', 'review_note', 'agreement', 'agent_ids', 'version', 'deleted'];
 
     protected function casts(): array
     {

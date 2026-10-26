@@ -5,6 +5,9 @@ import {
     FileSpreadsheet,
     ArrowRight,
     ShieldCheck,
+    Sparkles,
+    Zap,
+    Lock,
 } from "lucide-vue-next";
 import { ref } from "vue";
 import AppLayout from "../../Layouts/AppLayout.vue";
@@ -13,6 +16,7 @@ const form = useForm({
     region: "",
     year: new Date().getFullYear(),
     kind: "kcda",
+    audit_mode: "ai",
     notes: "",
     pdf: null as File | null,
     template: null as File | null,
@@ -172,6 +176,87 @@ function submit() {
                             rows="3"
                             maxlength="3000"
                         />
+
+                        <div class="mode-selection my-4">
+                            <label class="block font-semibold text-sm mb-2 text-slate-800 dark:text-slate-200">Metode Pemeriksaan</label>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <!-- Mode 1: Full AI -->
+                                <div 
+                                    @click="form.audit_mode = 'ai'"
+                                    :class="[
+                                        'p-3.5 rounded-xl border-2 cursor-pointer transition flex flex-col justify-between text-left',
+                                        form.audit_mode === 'ai' 
+                                            ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/20 ring-1 ring-indigo-500/20' 
+                                            : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-900'
+                                    ]"
+                                >
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300">Default</span>
+                                        <Sparkles :size="16" class="text-indigo-600 dark:text-indigo-400" />
+                                    </div>
+                                    <strong class="text-sm font-bold text-slate-900 dark:text-slate-100">Full Vision AI</strong>
+                                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                                        Inspeksi mendalam tiap halaman dengan mata Vision AI multimodal.
+                                    </p>
+                                </div>
+
+                                <!-- Mode 2: Mesin Kilat -->
+                                <div 
+                                    @click="form.audit_mode = 'machine'"
+                                    :class="[
+                                        'p-3.5 rounded-xl border-2 cursor-pointer transition flex flex-col justify-between text-left',
+                                        form.audit_mode === 'machine' 
+                                            ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/20 ring-1 ring-amber-500/20' 
+                                            : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-900'
+                                    ]"
+                                >
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">0 Token</span>
+                                        <Zap :size="16" class="text-amber-600 dark:text-amber-400" />
+                                    </div>
+                                    <strong class="text-sm font-bold text-slate-900 dark:text-slate-100">Mesin Kilat</strong>
+                                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                                        100% regex & aturan baku BPS. Selesai dalam 3 detik tanpa kuota AI.
+                                    </p>
+                                </div>
+
+                                <!-- Mode 3: Fusion Dual-Engine (Khusus Admin) -->
+                                <div 
+                                    @click="$page.props.auth?.user?.role === 'admin' ? form.audit_mode = 'fusion' : null"
+                                    :class="[
+                                        'p-3.5 rounded-xl border-2 transition flex flex-col justify-between text-left',
+                                        $page.props.auth?.user?.role !== 'admin'
+                                            ? 'opacity-60 cursor-not-allowed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950'
+                                            : (form.audit_mode === 'fusion' 
+                                                ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 ring-1 ring-emerald-500/20 cursor-pointer' 
+                                                : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-900 cursor-pointer')
+                                    ]"
+                                >
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span 
+                                            :class="[
+                                                'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full',
+                                                $page.props.auth?.user?.role === 'admin' 
+                                                    ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' 
+                                                    : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                            ]"
+                                        >
+                                            {{ $page.props.auth?.user?.role === 'admin' ? 'Double Teliti' : 'Admin Only' }}
+                                        </span>
+                                        <ShieldCheck v-if="$page.props.auth?.user?.role === 'admin'" :size="16" class="text-emerald-600 dark:text-emerald-400" />
+                                        <Lock v-else :size="16" class="text-slate-400" />
+                                    </div>
+                                    <strong class="text-sm font-bold text-slate-900 dark:text-slate-100">Fusion Dual-Engine</strong>
+                                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                                        Audit Mesin + AI, komparasi selisih, dan auto-learning otomatis.
+                                    </p>
+                                </div>
+                            </div>
+                            <p v-if="form.errors.audit_mode" class="field-error mt-1 text-red-500 text-xs" role="alert">
+                                {{ form.errors.audit_mode }}
+                            </p>
+                        </div>
+
                         <div class="notice neutral">
                             <strong>{{ form.pdf?.name }}</strong
                             ><br />Jumlah halaman akan dihitung dan divalidasi
