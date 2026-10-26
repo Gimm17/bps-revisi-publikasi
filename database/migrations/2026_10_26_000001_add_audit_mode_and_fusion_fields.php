@@ -42,7 +42,7 @@ return new class extends Migration
 
         Schema::table('ai_usage_records', function (Blueprint $table): void {
             if (! Schema::hasColumn('ai_usage_records', 'purpose')) {
-                $table->string('purpose', 24)->default('page')->after('agent_id');
+                $table->string('purpose', 24)->default('page')->after('page_id');
             }
         });
     }
