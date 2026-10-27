@@ -5,9 +5,6 @@ import {
     FileSpreadsheet,
     ArrowRight,
     ShieldCheck,
-    Sparkles,
-    Zap,
-    Lock,
 } from "lucide-vue-next";
 import { ref } from "vue";
 import AppLayout from "../../Layouts/AppLayout.vue";
@@ -177,25 +174,22 @@ function submit() {
                             maxlength="3000"
                         />
 
-                        <div class="mode-selection my-4">
-                            <label class="block font-semibold text-sm mb-2 text-slate-800 dark:text-slate-200">Metode Pemeriksaan</label>
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="mode-selection">
+                            <label>Metode Pemeriksaan</label>
+                            <div class="mode-grid">
                                 <!-- Mode 1: Full AI -->
                                 <div 
                                     @click="form.audit_mode = 'ai'"
-                                    :class="[
-                                        'p-3.5 rounded-xl border-2 cursor-pointer transition flex flex-col justify-between text-left',
-                                        form.audit_mode === 'ai' 
-                                            ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/20 ring-1 ring-indigo-500/20' 
-                                            : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-900'
-                                    ]"
+                                    :class="['mode-card', { selected: form.audit_mode === 'ai' }]"
                                 >
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300">Default</span>
-                                        <Sparkles :size="16" class="text-indigo-600 dark:text-indigo-400" />
+                                    <div class="mode-card-header">
+                                        <span class="mode-pill default">Default</span>
+                                        <span class="radio-indicator">
+                                            <span v-if="form.audit_mode === 'ai'" class="radio-dot"></span>
+                                        </span>
                                     </div>
-                                    <strong class="text-sm font-bold text-slate-900 dark:text-slate-100">Full Vision AI</strong>
-                                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                                    <strong class="mode-title">Full Vision AI</strong>
+                                    <p class="mode-desc">
                                         Inspeksi mendalam tiap halaman dengan mata Vision AI multimodal.
                                     </p>
                                 </div>
@@ -203,19 +197,16 @@ function submit() {
                                 <!-- Mode 2: Mesin Kilat -->
                                 <div 
                                     @click="form.audit_mode = 'machine'"
-                                    :class="[
-                                        'p-3.5 rounded-xl border-2 cursor-pointer transition flex flex-col justify-between text-left',
-                                        form.audit_mode === 'machine' 
-                                            ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/20 ring-1 ring-amber-500/20' 
-                                            : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-900'
-                                    ]"
+                                    :class="['mode-card', { selected: form.audit_mode === 'machine' }]"
                                 >
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">0 Token</span>
-                                        <Zap :size="16" class="text-amber-600 dark:text-amber-400" />
+                                    <div class="mode-card-header">
+                                        <span class="mode-pill token">0 Token</span>
+                                        <span class="radio-indicator">
+                                            <span v-if="form.audit_mode === 'machine'" class="radio-dot"></span>
+                                        </span>
                                     </div>
-                                    <strong class="text-sm font-bold text-slate-900 dark:text-slate-100">Mesin Kilat</strong>
-                                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                                    <strong class="mode-title">Mesin Kilat</strong>
+                                    <p class="mode-desc">
                                         100% regex & aturan baku BPS. Selesai dalam 3 detik tanpa kuota AI.
                                     </p>
                                 </div>
@@ -224,35 +215,28 @@ function submit() {
                                 <div 
                                     @click="$page.props.auth?.user?.role === 'admin' ? form.audit_mode = 'fusion' : null"
                                     :class="[
-                                        'p-3.5 rounded-xl border-2 transition flex flex-col justify-between text-left',
-                                        $page.props.auth?.user?.role !== 'admin'
-                                            ? 'opacity-60 cursor-not-allowed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950'
-                                            : (form.audit_mode === 'fusion' 
-                                                ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 ring-1 ring-emerald-500/20 cursor-pointer' 
-                                                : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-900 cursor-pointer')
+                                        'mode-card',
+                                        { 
+                                            selected: form.audit_mode === 'fusion',
+                                            disabled: $page.props.auth?.user?.role !== 'admin'
+                                        }
                                     ]"
                                 >
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span 
-                                            :class="[
-                                                'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full',
-                                                $page.props.auth?.user?.role === 'admin' 
-                                                    ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' 
-                                                    : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                                            ]"
-                                        >
-                                            {{ $page.props.auth?.user?.role === 'admin' ? 'Double Teliti' : 'Admin Only' }}
+                                    <div class="mode-card-header">
+                                        <span :class="['mode-pill', $page.props.auth?.user?.role === 'admin' ? 'fusion' : 'locked']">
+                                            {{ $page.props.auth?.user?.role === 'admin' ? 'Double Teliti' : 'Khusus Admin' }}
                                         </span>
-                                        <ShieldCheck v-if="$page.props.auth?.user?.role === 'admin'" :size="16" class="text-emerald-600 dark:text-emerald-400" />
-                                        <Lock v-else :size="16" class="text-slate-400" />
+                                        <span class="radio-indicator">
+                                            <span v-if="form.audit_mode === 'fusion'" class="radio-dot"></span>
+                                        </span>
                                     </div>
-                                    <strong class="text-sm font-bold text-slate-900 dark:text-slate-100">Fusion Dual-Engine</strong>
-                                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                                    <strong class="mode-title">Fusion Dual-Engine</strong>
+                                    <p class="mode-desc">
                                         Audit Mesin + AI, komparasi selisih, dan auto-learning otomatis.
                                     </p>
                                 </div>
                             </div>
-                            <p v-if="form.errors.audit_mode" class="field-error mt-1 text-red-500 text-xs" role="alert">
+                            <p v-if="form.errors.audit_mode" class="field-error" role="alert" style="margin-top: 6px;">
                                 {{ form.errors.audit_mode }}
                             </p>
                         </div>
@@ -310,3 +294,123 @@ function submit() {
         </div></AppLayout
     >
 </template>
+
+<style scoped>
+.mode-selection {
+    margin: 18px 0 20px;
+}
+.mode-selection label {
+    margin-bottom: 8px;
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink, #302b2a);
+}
+.mode-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+@media (max-width: 768px) {
+    .mode-grid {
+        grid-template-columns: 1fr;
+    }
+}
+.mode-card {
+    background: #ffffff;
+    border: 1.5px solid var(--line, #d7d1c8);
+    border-radius: 10px;
+    padding: 14px 14px 12px;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: left;
+    position: relative;
+    user-select: none;
+}
+.mode-card:hover {
+    border-color: #beb7a5;
+    background: #faf8f5;
+}
+.mode-card.selected {
+    border: 2px solid #305e58;
+    background: #f2f7f5;
+    box-shadow: 0 2px 6px rgba(48, 94, 88, 0.12);
+}
+.mode-card.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #fbfaf8;
+    border-color: #e5e0d8;
+}
+.mode-card.disabled:hover {
+    border-color: #e5e0d8;
+    background: #fbfaf8;
+}
+.mode-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+.mode-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--ink, #302b2a);
+    display: block;
+    line-height: 1.3;
+}
+.mode-desc {
+    font-size: 11.5px;
+    color: var(--muted, #5a5150);
+    margin-top: 4px;
+    line-height: 1.45;
+}
+.mode-pill {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 7px;
+    border-radius: 99px;
+    line-height: 1.2;
+}
+.mode-pill.default {
+    background: #ede8dc;
+    color: #4e4644;
+}
+.mode-pill.token {
+    background: #fef3c7;
+    color: #92400e;
+}
+.mode-pill.fusion {
+    background: #dcfce7;
+    color: #166534;
+}
+.mode-pill.locked {
+    background: #f1f5f9;
+    color: #64748b;
+}
+.radio-indicator {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid var(--line, #d7d1c8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    flex-shrink: 0;
+}
+.mode-card.selected .radio-indicator {
+    border-color: #305e58;
+}
+.radio-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #305e58;
+}
+</style>

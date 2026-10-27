@@ -1077,23 +1077,27 @@ onUnmounted(() => {
         <Teleport to="body">
             <div 
                 v-if="showDownloadModal && downloadTargetExport" 
-                class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+                class="fixed inset-0 z-50 flex items-center justify-center p-4"
+                style="background: rgba(48, 43, 42, 0.45); backdrop-filter: blur(2px);"
                 @click.self="showDownloadModal = false"
             >
-                <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 text-left">
+                <div 
+                    class="rounded-2xl max-w-md w-full p-6 shadow-2xl text-left"
+                    style="background: #ffffff; border: 1.5px solid #d7d1c8; color: #302b2a;"
+                >
                     <div class="flex items-center justify-between mb-2">
-                        <h3 class="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                            <FileSpreadsheet class="text-emerald-600 dark:text-emerald-400" :size="20" />
+                        <h3 class="text-base font-bold flex items-center gap-2" style="color: #302b2a;">
+                            <FileSpreadsheet style="color: #305e58;" :size="20" />
                             Pilih Format Laporan Excel
                         </h3>
                         <button 
                             @click="showDownloadModal = false" 
-                            class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg font-bold leading-none"
+                            style="color: #5a5150; font-size: 20px; font-weight: bold; background: none; border: none; cursor: pointer; line-height: 1;"
                         >
                             &times;
                         </button>
                     </div>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-4 leading-relaxed">
+                    <p class="text-xs mb-4 leading-relaxed" style="color: #5a5150;">
                         Tentukan tingkat detail metadata pemeriksaan pada file Excel (.xlsx):
                     </p>
 
@@ -1101,17 +1105,16 @@ onUnmounted(() => {
                         <!-- Opsi 1: Format Standar Resmi BPS (Default) -->
                         <div 
                             @click="downloadFormat = 'standard'"
-                            :class="[
-                                'p-3.5 rounded-xl border-2 cursor-pointer transition flex items-start gap-3',
-                                downloadFormat === 'standard' 
-                                    ? 'border-indigo-600 bg-indigo-50/40 dark:bg-indigo-950/20 ring-1 ring-indigo-500/20' 
-                                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                            ]"
+                            :style="{
+                                border: downloadFormat === 'standard' ? '2px solid #305e58' : '1.5px solid #d7d1c8',
+                                background: downloadFormat === 'standard' ? '#f2f7f5' : '#ffffff',
+                            }"
+                            class="p-3.5 rounded-xl cursor-pointer transition flex items-start gap-3"
                         >
                             <input type="radio" value="standard" v-model="downloadFormat" class="mt-1" />
                             <div>
-                                <strong class="text-xs font-bold block text-slate-900 dark:text-slate-100">Format Standar Resmi BPS (Default)</strong>
-                                <span class="text-[11px] text-slate-500 dark:text-slate-400 leading-tight block mt-0.5">
+                                <strong class="text-xs font-bold block" style="color: #302b2a;">Format Standar Resmi BPS (Default)</strong>
+                                <span class="text-[11px] leading-tight block mt-0.5" style="color: #5a5150;">
                                     Sesuai format baku instrumen pemeriksaan BPS tanpa kolom teknis sistem. Siap dibagikan ke pimpinan atau daerah.
                                 </span>
                             </div>
@@ -1120,20 +1123,19 @@ onUnmounted(() => {
                         <!-- Opsi 2: Format Internal Diagnostik -->
                         <div 
                             @click="downloadFormat = 'internal'"
-                            :class="[
-                                'p-3.5 rounded-xl border-2 cursor-pointer transition flex items-start gap-3',
-                                downloadFormat === 'internal' 
-                                    ? 'border-emerald-600 bg-emerald-50/40 dark:bg-emerald-950/20 ring-1 ring-emerald-500/20' 
-                                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                            ]"
+                            :style="{
+                                border: downloadFormat === 'internal' ? '2px solid #305e58' : '1.5px solid #d7d1c8',
+                                background: downloadFormat === 'internal' ? '#f2f7f5' : '#ffffff',
+                            }"
+                            class="p-3.5 rounded-xl cursor-pointer transition flex items-start gap-3"
                         >
                             <input type="radio" value="internal" v-model="downloadFormat" class="mt-1" />
                             <div>
-                                <strong class="text-xs font-bold block text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                                <strong class="text-xs font-bold block flex items-center gap-1.5" style="color: #302b2a;">
                                     Format Audit Lengkap (Internal)
-                                    <span class="text-[9px] px-1.5 py-0.2 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 rounded font-semibold">Diagnostik</span>
+                                    <span class="text-[9px] px-1.5 py-0.2 rounded font-semibold" style="background: #dcfce7; color: #166534;">Diagnostik</span>
                                 </strong>
-                                <span class="text-[11px] text-slate-500 dark:text-slate-400 leading-tight block mt-0.5">
+                                <span class="text-[11px] leading-tight block mt-0.5" style="color: #5a5150;">
                                     Menyertakan baris <b>"Terdeteksi Oleh"</b> (Mesin Heuristik, Vision AI, atau Keduanya) serta status rekonsiliasi Fusion.
                                 </span>
                             </div>
