@@ -16,7 +16,15 @@ class ResumeAudits extends Command
 
     public function handle(AuditCoordinator $coordinator): int
     {
-        $query = Publication::whereNull('locked_at')->whereNotNull('ai_config_id')->whereIn('status', ['processing', 'partial_failure', 'cross_checking', 'exporting']);
+        $query = Publication::whereNull('locked_at')->whereNotNull('ai_config_id')->whereIn('status', [
+            'processing',
+            'processing_machine',
+            'processing_ai',
+            'reconciling',
+            'partial_failure',
+            'cross_checking',
+            'exporting',
+        ]);
         if ($id = $this->argument('publication')) {
             $query->whereKey($id);
         }

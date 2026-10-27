@@ -63,7 +63,15 @@ class AgentOfficeController extends Controller
     private function buildState(): array
     {
         // Active publications that are genuinely being processed right now
-        $activePublications = Publication::whereIn('status', ['processing', 'analyzing', 'cross_checking', 'exporting'])
+        $activePublications = Publication::whereIn('status', [
+            'processing',
+            'processing_machine',
+            'processing_ai',
+            'reconciling',
+            'analyzing',
+            'cross_checking',
+            'exporting',
+        ])
             ->latest('updated_at')
             ->get(['id', 'title', 'status', 'updated_at']);
 
