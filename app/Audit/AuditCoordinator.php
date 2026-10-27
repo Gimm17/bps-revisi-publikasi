@@ -36,9 +36,15 @@ class AuditCoordinator
         if ($publication->locked_at) {
             throw ValidationException::withMessages(['audit' => 'Hasil final sudah dikunci.']);
         }
+        $initialStatus = match ($mode) {
+            'fusion', 'machine' => 'processing_machine',
+            default => 'processing',
+        };
+
         $publication->update([
             'ai_config_id' => $config?->id,
-            'status' => 'processing',
+            'status' => $initialStatus,
+            'fusion_summary' => $mode === 'fusion' ? ['stage' => 'machine'] : null,
             'started_at' => $publication->started_at ?? now(),
             'error' => null,
         ]);
@@ -129,12 +135,98 @@ class AuditCoordinator
         return ! $pendingVerifications;
     }
 
+    public function afterMachinePage(Publication $publication): void
+    {
+        $allMachineComplete = $publication->pages()->count() === $publication->page_count
+            && ! $publication->pages()->where('machine_status', '!=', 'complete')->exists();
+
+        if (! $allMachineComplete) {
+            if ($publication->status !== 'processing_machine') {
+                $publication->update(['status' => 'processing_machine']);
+            }
+            return;
+        }
+
+        // Tahap 1 (Mesin) selesai 100%!
+        // SEKARANG: Berpindah ke Tahap 2 (Vision AI)
+        $publication->update([
+            'status' => 'processing_ai',
+            'fusion_summary' => array_merge((array) ($publication->fusion_summary ?? []), ['stage' => 'ai']),
+        ]);
+
+        AuditLogger::record('audit.fusion_machine_completed', $publication);
+
+        // Picu pemeriksaan Vision AI untuk seluruh halaman yang belum complete
+        foreach ($publication->pages()->where('status', '!=', 'complete')->get() as $page) {
+            AnalyzePage::dispatch($page->id, $page->dpi)->onQueue('ai');
+        }
+    }
+
+    public function afterAiPage(Publication $publication): void
+    {
+        $mode = $publication->audit_mode ?? 'ai';
+        if ($mode !== 'fusion') {
+            $this->afterPage($publication);
+            return;
+        }
+
+        $allAiComplete = $publication->pages()->count() === $publication->page_count
+            && ! $publication->pages()->where('status', '!=', 'complete')->exists();
+
+        if (! $allAiComplete) {
+            if ($publication->status !== 'processing_ai') {
+                $publication->update(['status' => 'processing_ai']);
+            }
+            return;
+        }
+
+        // Tahap 2 (Vision AI) selesai 100%!
+        // SEKARANG: Berpindah ke Tahap 3 (Rekonsiliasi & Adjudikasi)
+        $publication->update([
+            'status' => 'reconciling',
+            'fusion_summary' => array_merge((array) ($publication->fusion_summary ?? []), ['stage' => 'reconciling']),
+        ]);
+
+        AuditLogger::record('audit.fusion_ai_completed', $publication);
+
+        // Picu Rekonsiliasi Fusion untuk setiap halaman
+        foreach ($publication->pages as $page) {
+            FusionReconcilePage::dispatch($page->id);
+        }
+    }
+
     public function afterPage(Publication $publication): void
     {
         if ($this->canComplete($publication)) {
             FinalizeAudit::dispatch($publication->id);
 
             return;
+        }
+
+        $mode = $publication->audit_mode ?? 'ai';
+        if ($mode === 'fusion') {
+            $stage = $publication->fusion_summary['stage'] ?? 'machine';
+            if ($stage === 'machine') {
+                if ($publication->status !== 'processing_machine') {
+                    $publication->update(['status' => 'processing_machine']);
+                }
+                return;
+            }
+            if ($stage === 'ai') {
+                if ($publication->status !== 'processing_ai') {
+                    $publication->update(['status' => 'processing_ai']);
+                }
+                return;
+            }
+            if ($stage === 'reconciling') {
+                $hasPendingFusion = $publication->pages()->where('fusion_status', '!=', 'done')->exists();
+                if ($hasPendingFusion) {
+                    if ($publication->status !== 'reconciling') {
+                        $publication->update(['status' => 'reconciling']);
+                    }
+                    return;
+                }
+            }
         }
 
         // Check if any pages or cross-verifications are still actively processing
@@ -148,7 +240,7 @@ class AuditCoordinator
 
         if ($hasActivePages || $hasPendingVerifications) {
             // Keep status as processing while remaining pages are still in progress
-            if ($publication->status !== 'processing' && ! in_array($publication->status, ['final', 'exporting', 'review_ready'], true)) {
+            if (! in_array($publication->status, ['processing', 'processing_machine', 'processing_ai', 'reconciling', 'final', 'exporting', 'review_ready'], true)) {
                 $publication->update(['status' => 'processing', 'error' => null]);
             }
 

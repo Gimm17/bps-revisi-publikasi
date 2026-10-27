@@ -91,10 +91,8 @@ class RenderPage implements ShouldBeUnique, ShouldQueue
         ]);
 
         $mode = $pub->audit_mode ?? 'ai';
-        if ($mode === 'machine') {
-            MachineAnalyzePage::dispatch($page->id)->onQueue('machine');
-        } elseif ($mode === 'fusion') {
-            AnalyzePage::dispatch($page->id, $page->dpi)->onQueue('ai');
+        if ($mode === 'machine' || $mode === 'fusion') {
+            // Pada mode Mesin dan Fusion: Mesin berjalan duluan sebelum ke AI
             MachineAnalyzePage::dispatch($page->id)->onQueue('machine');
         } else {
             AnalyzePage::dispatch($page->id, $page->dpi)->onQueue('ai');

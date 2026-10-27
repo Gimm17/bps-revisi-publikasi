@@ -106,8 +106,8 @@ class MachineAnalyzePage implements ShouldQueue
                 ]);
             });
 
-            // Picu rekonsiliasi jika pasangan AI-nya juga sudah complete
-            FusionReconcilePage::dispatchIfReady($page->id);
+            // Beritahu coordinator bahwa pemindaian mesin untuk halaman ini selesai
+            app(\App\Audit\AuditCoordinator::class)->afterMachinePage($publication);
         }
     }
 }

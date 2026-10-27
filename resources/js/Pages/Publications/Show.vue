@@ -120,12 +120,20 @@ const boxes = computed(
         ) ?? [],
 );
 const running = computed(() =>
-    ["processing", "cross_checking", "exporting"].includes(
-        props.publication.status,
-    ),
+    [
+        "processing",
+        "processing_machine",
+        "processing_ai",
+        "reconciling",
+        "cross_checking",
+        "exporting",
+    ].includes(props.publication.status),
 );
 const ready = computed(() =>
     ["review_ready", "final"].includes(props.publication.status),
+);
+const machineChecked = computed(
+    () => props.pages.filter((p) => p.machine_status === "complete").length,
 );
 const remainingReview = computed(
     () =>
@@ -300,7 +308,7 @@ onMounted(() => {
                     "exports",
                 ],
             });
-    }, 5000);
+    }, 2500);
     window.addEventListener("beforeunload", beforeUnload);
 });
 onUnmounted(() => {
@@ -328,7 +336,7 @@ onUnmounted(() => {
                         · Mode Verifikasi: <em>{{ publication.cross_verify_mode === 'high_risk' ? 'Resiko Tinggi & Tabel' : (publication.cross_verify_mode === 'all_pages' ? 'Semua Halaman' : 'Nonaktif') }}</em>
                     </template>
                     <template v-if="publication.audit_mode">
-                        · Metode: <strong>{{ publication.audit_mode === 'machine' ? '⚡ Mesin Kilat' : (publication.audit_mode === 'fusion' ? '🧬 Fusion Dual-Engine' : '✨ Full Vision AI') }}</strong>
+                        · Metode: <strong>{{ publication.audit_mode === 'machine' ? 'Mesin Kilat' : (publication.audit_mode === 'fusion' ? 'Fusion (Mesin + AI)' : 'Full Vision AI') }}</strong>
                     </template>
                 </p>
             </div>
@@ -341,13 +349,23 @@ onUnmounted(() => {
                 >
                     <Play :size="17" />{{
                         running
-                            ? "Sedang diperiksa"
-                            : publication.status === "draft"
-                              ? "Mulai pemeriksaan"
-                              : "Lanjutkan pemeriksaan"
+                            ? (publication.status === 'processing_machine'
+                                ? 'Sedang memeriksa dengan mesin...'
+                                : (publication.status === 'processing_ai'
+                                    ? 'Sedang memeriksa dengan Vision AI...'
+                                    : (publication.status === 'reconciling'
+                                        ? 'Sedang merekonsiliasi hasil...'
+                                        : 'Sedang diperiksa...')))
+                            : publication.status === 'draft'
+                              ? (publication.audit_mode === 'machine'
+                                  ? 'Mulai pemeriksaan mesin'
+                                  : (publication.audit_mode === 'fusion'
+                                      ? 'Mulai pemeriksaan (Mesin + AI)'
+                                      : 'Mulai pemeriksaan'))
+                              : 'Lanjutkan pemeriksaan'
                     }}</button
                 ><button
-                    v-if="canEdit && publication.status === 'partial_failure'"
+                    v-if="canEdit && publication.status === 'partial_failure' && publication.audit_mode !== 'machine'"
                     class="button secondary"
                     :disabled="busy"
                     @click="rebindAi"
@@ -369,21 +387,73 @@ onUnmounted(() => {
         </div>
         <div class="audit-progress" aria-live="polite">
             <CheckCircle2 :size="21" />
-            <div>
-                <strong
-                    >{{ checked }} dari {{ publication.page_count }} halaman
-                    selesai diperiksa</strong
-                ><progress
-                    :value="checked"
+            <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+                    <strong>
+                        <template v-if="publication.audit_mode === 'fusion'">
+                            <template v-if="publication.status === 'processing_machine'">
+                                Tahap 1/2: Pemeriksaan Mesin — {{ machineChecked }} dari {{ publication.page_count }} halaman selesai
+                            </template>
+                            <template v-else-if="publication.status === 'processing_ai'">
+                                Tahap 2/2: Pemeriksaan Vision AI — {{ checked }} dari {{ publication.page_count }} halaman selesai
+                            </template>
+                            <template v-else-if="publication.status === 'reconciling'">
+                                Tahap Akhir: Rekonsiliasi Hasil Pemeriksaan & Adjudikasi
+                            </template>
+                            <template v-else>
+                                {{ checked }} dari {{ publication.page_count }} halaman selesai diperiksa
+                            </template>
+                        </template>
+                        <template v-else-if="publication.audit_mode === 'machine'">
+                            Pemeriksaan Mesin: {{ checked }} dari {{ publication.page_count }} halaman selesai
+                        </template>
+                        <template v-else>
+                            {{ checked }} dari {{ publication.page_count }} halaman selesai diperiksa
+                        </template>
+                    </strong>
+                    <span style="font-size: 13px; font-weight: 600; color: #475569;">
+                        <template v-if="publication.status === 'processing_machine'">
+                            {{ Math.round((machineChecked / publication.page_count) * 100) }}%
+                        </template>
+                        <template v-else>
+                            {{ Math.round((checked / publication.page_count) * 100) }}%
+                        </template>
+                    </span>
+                </div>
+                <progress
+                    :value="publication.status === 'processing_machine' ? machineChecked : checked"
                     :max="publication.page_count"
                     aria-label="Cakupan pemeriksaan"
                 />
+                <div v-if="publication.audit_mode === 'fusion'" style="display: flex; gap: 14px; margin-top: 8px; font-size: 12px; color: #64748b; flex-wrap: wrap;">
+                    <span>
+                        Tahap 1 (Mesin): 
+                        <strong :style="{ color: machineChecked === publication.page_count ? '#166534' : (publication.status === 'processing_machine' ? '#1e40af' : '#64748b') }">
+                            {{ machineChecked === publication.page_count ? 'Selesai' : (publication.status === 'processing_machine' ? 'Sedang memindai...' : 'Menunggu') }}
+                        </strong>
+                    </span>
+                    <span>·</span>
+                    <span>
+                        Tahap 2 (Vision AI): 
+                        <strong :style="{ color: checked === publication.page_count ? '#166534' : (publication.status === 'processing_ai' ? '#1e40af' : '#64748b') }">
+                            {{ checked === publication.page_count ? 'Selesai' : (publication.status === 'processing_ai' ? 'Sedang dianalisis...' : 'Menunggu tahap mesin') }}
+                        </strong>
+                    </span>
+                    <span>·</span>
+                    <span>
+                        Tahap 3 (Rekonsiliasi): 
+                        <strong :style="{ color: ready ? '#166534' : (publication.status === 'reconciling' ? '#1e40af' : '#64748b') }">
+                            {{ ready ? 'Selesai' : (publication.status === 'reconciling' ? 'Sedang proses...' : 'Menunggu') }}
+                        </strong>
+                    </span>
+                </div>
+                <small v-else-if="publication.audit_mode === 'machine'" style="display: block; margin-top: 4px; color: #64748b;">
+                    Pemeriksaan deterministik 54 aturan BPS dan ejaan KBBI tanpa token AI.
+                </small>
             </div>
-            <span
-                >{{
-                    Math.round((checked / publication.page_count) * 100)
-                }}%</span
-            >
+            <span v-if="publication.audit_mode !== 'fusion'" style="margin-left: 14px;">
+                {{ Math.round((checked / publication.page_count) * 100) }}%
+            </span>
         </div>
         <div
             v-if="publication.error || incomplete.length"
@@ -510,6 +580,9 @@ onUnmounted(() => {
                                     {{ p.printed_page ? `Tercetak ${p.printed_page}` : label(p.status) }}
                                     <template v-if="p.primary_agent_slot">
                                         · A{{ p.primary_agent_slot }}<span v-if="p.verifier_agent_slot">·A{{ p.verifier_agent_slot }}</span>
+                                    </template>
+                                    <template v-if="publication.audit_mode === 'fusion' && p.machine_status === 'complete' && p.status !== 'complete'">
+                                        · Mesin selesai
                                     </template>
                                 </small>
                             </span>
@@ -652,6 +725,9 @@ onUnmounted(() => {
                             {{ currentPage.page_type ?? "Jenis halaman belum ditentukan" }}
                             {{ currentPage.printed_page ? ` · Tercetak ${currentPage.printed_page}` : "" }}
                         </small>
+                        <span v-if="publication.audit_mode === 'fusion' && currentPage.machine_status === 'complete'" class="badge" style="background: #e2e8f0; color: #334155;">
+                            Mesin selesai
+                        </span>
                         <span v-if="currentPage.primary_agent" class="badge" style="background: #e9ecef; color: #495057;">
                             Dibaca: {{ currentPage.primary_agent.name }}
                         </span>
@@ -692,10 +768,18 @@ onUnmounted(() => {
                         {{ currentPage.error }}
                     </p>
                     <details
+                        v-if="currentPage.machine_result?.text_preview || currentPage.text_layer"
+                        class="extracted-text"
+                        style="margin-bottom: 8px;"
+                    >
+                        <summary>Layer teks PDF (ekstraksi mesin)</summary>
+                        <pre>{{ currentPage.machine_result?.text_preview || currentPage.text_layer }}</pre>
+                    </details>
+                    <details
                         v-if="currentPage.result?.text"
                         class="extracted-text"
                     >
-                        <summary>Teks yang dibaca AI</summary>
+                        <summary>Teks yang dibaca Vision AI</summary>
                         <pre>{{ currentPage.result.text }}</pre>
                     </details>
                 </section>

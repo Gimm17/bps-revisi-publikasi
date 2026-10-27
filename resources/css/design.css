@@ -235,6 +235,9 @@ progress::-webkit-progress-value {
     color: #294d46;
 }
 .badge.processing,
+.badge.processing_machine,
+.badge.processing_ai,
+.badge.reconciling,
 .badge.analyzing,
 .badge.cross_checking,
 .badge.exporting {

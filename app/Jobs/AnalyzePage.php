@@ -229,10 +229,6 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
                 ]);
             }, 3);
 
-            if (($publication->audit_mode ?? 'ai') === 'fusion') {
-                \App\Jobs\FusionReconcilePage::dispatchIfReady($page->id);
-            }
-
             // If cross-verification is enabled for this page, dispatch VerifyPage
             if ($crossVerifier->shouldVerify($page)) {
                 PageVerification::updateOrCreate(
@@ -242,7 +238,11 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
                 VerifyPage::dispatch($page->id)->onQueue('verify');
             }
 
-            $coordinator->afterPage($publication);
+            if (($publication->audit_mode ?? 'ai') === 'fusion') {
+                $coordinator->afterAiPage($publication);
+            } else {
+                $coordinator->afterPage($publication);
+            }
         } catch (\Throwable $e) {
             if ($e instanceof AiRequestException && $e->category === 'capacity') {
                 $this->release($e->retryAfter);

@@ -29,6 +29,8 @@ export interface Publication {
     rule_version: string;
     pdf_name: string;
     template_name: string;
+    audit_mode?: 'ai' | 'machine' | 'fusion';
+    fusion_summary?: { stage?: string; [key: string]: unknown } | null;
 }
 export interface Evidence {
     kind?: 'publication_page' | 'reference_artifact';
@@ -209,6 +211,10 @@ export interface PageRecord {
     verification?: PageVerificationRecord | null;
     result?: { text?: string; inventory?: Record<string, unknown> };
     image_path?: string | null;
+    machine_status?: string | null;
+    machine_result?: Record<string, unknown> | null;
+    fusion_status?: string | null;
+    text_layer?: string | null;
 }
 export interface ExportRecord {
     id: number;
@@ -242,6 +248,9 @@ export const labels: Record<string, string> = {
     ready: "Gambar siap",
     analyzing: "Sedang dibaca",
     processing: "Sedang diperiksa",
+    processing_machine: "Pemeriksaan mesin (Tahap 1)",
+    processing_ai: "Pemeriksaan Vision AI (Tahap 2)",
+    reconciling: "Rekonsiliasi hasil",
     complete: "Sudah diperiksa",
     needs_verification: "Perlu verifikasi",
     failed: "Gagal",

@@ -46,7 +46,7 @@ class PublicationController extends Controller
             'aiReady' => AiAgent::ready()->exists() || AiProviderConfig::latest('id')->first()?->vision_tested_at !== null,
             'metrics' => [
                 'total' => Publication::visibleTo($request->user())->count(),
-                'active' => Publication::visibleTo($request->user())->whereIn('status', ['processing', 'cross_checking', 'exporting'])->count(),
+                'active' => Publication::visibleTo($request->user())->whereIn('status', ['processing', 'processing_machine', 'processing_ai', 'reconciling', 'cross_checking', 'exporting'])->count(),
                 'ready' => Publication::visibleTo($request->user())->whereIn('status', ['review_ready', 'final'])->count(),
             ],
         ]);
@@ -70,11 +70,11 @@ class PublicationController extends Controller
         $page = max(1, min($publication->page_count, $request->integer('page', 1)));
 
         return Inertia::render('Publications/Show', [
-            'publication' => $publication->only('id', 'title', 'region', 'year', 'kind', 'notes', 'status', 'page_count', 'manifest', 'pdf_name', 'template_name', 'rule_version', 'started_at', 'completed_at', 'locked_at', 'revision', 'error', 'cross_verify_mode'),
+            'publication' => $publication->only('id', 'title', 'region', 'year', 'kind', 'notes', 'status', 'page_count', 'manifest', 'pdf_name', 'template_name', 'rule_version', 'started_at', 'completed_at', 'locked_at', 'revision', 'error', 'cross_verify_mode', 'audit_mode', 'fusion_summary'),
             'publicationAgents' => fn () => $publication->aiAgents()->get(['ai_agents.id', 'slot', 'name', 'model']),
             'readyAgentsCount' => fn () => AiAgent::ready()->count(),
             'pages' => fn () => $publication->pages()->with(['aiAgent', 'latestVerification.agent'])->get()->map(fn ($p) => [
-                ...$p->only('id', 'physical_page', 'status', 'page_type', 'printed_page', 'attempts', 'error'),
+                ...$p->only('id', 'physical_page', 'status', 'page_type', 'printed_page', 'attempts', 'error', 'machine_status', 'fusion_status'),
                 'has_image' => (bool) $p->image_path,
                 'primary_agent_slot' => $p->aiAgent?->slot,
                 'verifier_agent_slot' => $p->latestVerification?->agent?->slot,
@@ -87,7 +87,7 @@ class PublicationController extends Controller
                 }
 
                 return [
-                    ...$p->only('id', 'physical_page', 'status', 'page_type', 'printed_page', 'image_path', 'result', 'error', 'ai_agent_id'),
+                    ...$p->only('id', 'physical_page', 'status', 'page_type', 'printed_page', 'image_path', 'result', 'error', 'ai_agent_id', 'machine_status', 'machine_result', 'fusion_status', 'text_layer'),
                     'primary_agent' => $p->aiAgent ? ['id' => $p->aiAgent->id, 'slot' => $p->aiAgent->slot, 'name' => $p->aiAgent->name] : null,
                     'verification' => $p->latestVerification ? [
                         'status' => $p->latestVerification->status,

@@ -67,7 +67,7 @@ class CoverageService
         }
 
         // Determine report mode
-        if (! $pagesComplete || ! $allAdditionalComplete || in_array($publication->status, ['processing', 'cross_checking', 'partial_failure'], true)) {
+        if (! $pagesComplete || ! $allAdditionalComplete || in_array($publication->status, ['processing', 'processing_machine', 'processing_ai', 'reconciling', 'cross_checking', 'partial_failure'], true)) {
             $reportMode = 'partial';
         } elseif ($hasLimitations || ! empty($limitations)) {
             $reportMode = 'complete_with_limitations';
