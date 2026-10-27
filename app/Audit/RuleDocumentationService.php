@@ -27,6 +27,17 @@ class RuleDocumentationService
         ];
     }
 
+    public function find(string $code): ?array
+    {
+        foreach ($this->getRulesList() as $rule) {
+            if (($rule['code'] ?? '') === $code) {
+                return $rule;
+            }
+        }
+
+        return null;
+    }
+
     /**
      * @return array<string, array{id: string, label: string, icon: string, description: string}>
      */
