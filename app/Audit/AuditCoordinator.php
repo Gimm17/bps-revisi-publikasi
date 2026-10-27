@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Audit;
 
+use App\Jobs\AnalyzePage;
 use App\Jobs\FinalizeAudit;
+use App\Jobs\FusionReconcilePage;
+use App\Jobs\MachineAnalyzePage;
 use App\Jobs\RenderPage;
 use App\Jobs\WriteWorkbook;
 use App\Models\AiAgent;
