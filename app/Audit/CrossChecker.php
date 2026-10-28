@@ -184,6 +184,90 @@ class CrossChecker
             }
         }
 
+        // CHAPTER.START (Setiap awal bab wajib di halaman ganjil)
+        foreach ($pages as $page) {
+            $isChapter = ($page['page_type'] ?? '') === 'chapter' ||
+                         preg_match('/^\s*(?:BAB|CHAPTER)\s+[1-9IVX]+\b/im', (string) ($page['text'] ?? ''));
+            if ($isChapter) {
+                $num = $page['printed_page'] ?? null;
+                $pNum = is_numeric($num) ? (int) $num : ($page['physical_page'] ?? null);
+                if ($pNum !== null && is_numeric($pNum) && ((int) $pNum) % 2 === 0) {
+                    $findings[] = $this->make(
+                        'CHAPTER.START',
+                        'Awal Bab dimulai pada halaman genap (hlm. '.$pNum.').',
+                        'Setiap awal bab baru atau pembatas bab wajib berada pada halaman ganjil (halaman kanan buku).',
+                        'Sisipkan satu halaman putih penutup (blank page) sebelum awal bab ini agar posisinya bergeser ke halaman ganjil.',
+                        [['page' => $page['physical_page'] ?? (int) $pNum, 'quote' => 'Awal Bab pada hlm. '.$pNum, 'bbox' => null]],
+                        'wajib'
+                    );
+                }
+            }
+        }
+
+        // PAGINATION.ORDER (Urutan penomoran halaman tidak boleh melompat atau mundur)
+        $arabicPages = [];
+        foreach ($pages as $page) {
+            $printed = trim((string) ($page['printed_page'] ?? ''));
+            if (ctype_digit($printed)) {
+                $arabicPages[] = ['val' => (int) $printed, 'page' => $page['physical_page'] ?? (int) $printed];
+            }
+        }
+        for ($i = 0; $i < count($arabicPages) - 1; $i++) {
+            $curr = $arabicPages[$i];
+            $next = $arabicPages[$i + 1];
+            if ($next['val'] > $curr['val'] + 1) {
+                $findings[] = $this->make(
+                    'PAGINATION.ORDER',
+                    'Nomor halaman tercetak melompat dari hlm. '.$curr['val'].' ke hlm. '.$next['val'].'.',
+                    'Urutan penomoran halaman wajib berurutan tanpa lompatan angka.',
+                    'Periksa kelengkapan halaman antara hlm. '.$curr['val'].' dan hlm. '.$next['val'].'; pastikan tidak ada nomor atau lembar yang terlewat.',
+                    [['page' => $curr['page'], 'quote' => 'Hlm. '.$curr['val'], 'bbox' => null], ['page' => $next['page'], 'quote' => 'Hlm. '.$next['val'], 'bbox' => null]],
+                    'wajib'
+                );
+            } elseif ($next['val'] < $curr['val']) {
+                $findings[] = $this->make(
+                    'PAGINATION.ORDER',
+                    'Nomor halaman tercetak mundur dari hlm. '.$curr['val'].' ke hlm. '.$next['val'].'.',
+                    'Urutan penomoran halaman wajib berurutan maju.',
+                    'Periksa susunan urutan halaman agar tidak terbalik.',
+                    [['page' => $curr['page'], 'quote' => 'Hlm. '.$curr['val'], 'bbox' => null], ['page' => $next['page'], 'quote' => 'Hlm. '.$next['val'], 'bbox' => null]],
+                    'wajib'
+                );
+            }
+        }
+
+        // CATALOGUE.PAGE_COUNT (Sinkronisasi angka total halaman KDT dengan halaman isi terakhir)
+        $catPage = null;
+        foreach ($pages as $p) {
+            if (($p['page_type'] ?? '') === 'catalogue') {
+                $catPage = $p;
+                break;
+            }
+        }
+        if ($catPage) {
+            $catText = (string) ($catPage['text'] ?? '');
+            if (preg_match('/\b([ivxldcm]+)\s*\+\s*(\d+)\s*(?:hal|hlm|pages|halaman)\b/iu', $catText, $catCountM)) {
+                $catArabicNum = (int) $catCountM[2];
+                $maxArabic = 0;
+                foreach ($pages as $p) {
+                    $num = trim((string) ($p['printed_page'] ?? ''));
+                    if (ctype_digit($num) && (int) $num > $maxArabic) {
+                        $maxArabic = (int) $num;
+                    }
+                }
+                if ($maxArabic > 0 && abs($catArabicNum - $maxArabic) > 0) {
+                    $findings[] = $this->make(
+                        'CATALOGUE.PAGE_COUNT',
+                        'Teks katalog (KDT) mencantumkan total '.$catArabicNum.' halaman, tetapi konten terakhir buku bernomor '.$maxArabic.'.',
+                        'Jumlah halaman pada teks katalog KDT sinkron dengan halaman konten terakhir buku ('.$maxArabic.' hal.).',
+                        'Sesuaikan angka halaman pada teks Katalog Dalam Terbitan menjadi "... + '.$maxArabic.' hal." agar akurat dengan isi buku.',
+                        [['page' => $catPage['physical_page'] ?? 1, 'quote' => $catCountM[0], 'bbox' => null]],
+                        'wajib'
+                    );
+                }
+            }
+        }
+
         return $findings;
     }
 

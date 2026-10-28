@@ -220,6 +220,187 @@ class RuleEvaluator
                     'wajib'
                 );
             }
+
+            // TABLE.TITLE (Kewajiban tahun data pada judul tabel)
+            if (preg_match('/\b(Tabel\s+[1-9]\.\d+(?:\.\d+)?\s+[^\n]+)/iu', $text, $tblTitleLine)) {
+                $titleContent = trim($tblTitleLine[1]);
+                if (! preg_match('/\b(201\d|202\d|Tahun|Year)\b/iu', $titleContent) && ! str_contains($titleContent, '...') && strlen($titleContent) < 140) {
+                    $findings[] = $this->finding(
+                        'TABLE.TITLE',
+                        $page,
+                        $titleContent,
+                        $titleContent . ', [Tahun]',
+                        'Sesuai Pedoman Publikasi BPS 2023 hal. 41 & Instrumen baris 145, judul tabel wajib memuat rujukan waktu atau tahun data.',
+                        'wajib'
+                    );
+                }
+            }
+
+            // TABLE.SYMBOL (Kewajiban keterangan Sumber di bawah tabel)
+            if (preg_match('/\bTabel\s+[1-9]\.\d+/iu', $text)) {
+                $hasSource = preg_match('/\b(?:Sumber|Source)\s*[:\/]/iu', $text);
+                if (! $hasSource && strlen(trim($text)) > 60) {
+                    $findings[] = $this->finding(
+                        'TABLE.SYMBOL',
+                        $page,
+                        'Keterangan sumber data tidak ditemukan di bawah tabel.',
+                        'Mencantumkan baris "Sumber: [Nama Instansi/BPS]" di bagian bawah tabel',
+                        'Sesuai Pedoman Pembuatan Publikasi BPS 2023 Bab 4 hal. 42-43 & Instrumen baris 160, setiap tabel statistik wajib mencantumkan sumber data.',
+                        'wajib'
+                    );
+                }
+            }
+
+            // LANGUAGE.BILINGUAL (Judul tabel dwibahasa dengan tanda slash)
+            if (preg_match('/\b(Tabel\s+[1-9]\.\d+(?:\.\d+)?\s+[^/\n]{10,80})$/ium', $text, $monolingualM)) {
+                $line = trim($monolingualM[1]);
+                if (! str_contains($text, '/') && ! preg_match('/\b(?:Table|Figures)\b/iu', $text)) {
+                    $findings[] = $this->finding(
+                        'LANGUAGE.BILINGUAL',
+                        $page,
+                        $line,
+                        $line . ' / [English Translation]',
+                        'Sesuai Pedoman Publikasi BPS 2023 hal. 40, publikasi dwibahasa wajib menyajikan judul tabel dalam bahasa Indonesia dan bahasa Inggris yang dipisahkan garis miring (" / ").',
+                        'wajib'
+                    );
+                }
+            }
+        }
+
+        // 9. BPS.FULL_NAME (Kaidah penulisan lengkap Badan Pusat Statistik)
+        if (in_array($pageType, ['front_cover', 'cover', 'title', 'catalogue', 'preface', 'back_cover'], true)) {
+            if (preg_match('/\b(?:Diterbitkan\s+oleh|Penerbit|Publisher|Penyusun|Disusun\s+oleh|Editor)\s*[:\/]?\s*(BPS\s+(?:Kabupaten|Kota|Provinsi)[^\n\r]*)/iu', $text, $bpsM)) {
+                $expected = str_ireplace('BPS', 'Badan Pusat Statistik', $bpsM[1]);
+                $findings[] = $this->finding(
+                    'BPS.FULL_NAME',
+                    $page,
+                    $bpsM[0],
+                    $expected,
+                    'Sesuai Pedoman Publikasi BPS §2.1, nama institusi pada penerbit/penyusun wajib ditulis lengkap "Badan Pusat Statistik", tidak disingkat BPS.',
+                    'wajib'
+                );
+            }
+        }
+
+        // 10. CATALOGUE.COMPONENTS & CATALOGUE.LABELS & CATALOGUE.COPYRIGHT (Halaman Katalog)
+        if ($pageType === 'catalogue') {
+            $missingComponents = [];
+            if (! preg_match('/\b(?:No\.?\s*Publikasi|Publication\s*Number)\b/iu', $text)) {
+                $missingComponents[] = 'Nomor Publikasi';
+            }
+            if (! preg_match('/\b(?:No\.?\s*Katalog|Katalog\s*BPS|Catalog\s*Number)\b/iu', $text)) {
+                $missingComponents[] = 'Nomor Katalog';
+            }
+            if (! preg_match('/\b\d{1,2}(?:[.,]\d+)?\s*[xX×]\s*\d{1,2}(?:[.,]\d+)?\s*cm\b/iu', $text)) {
+                $missingComponents[] = 'Ukuran Buku (cm)';
+            }
+            if (! empty($missingComponents)) {
+                $findings[] = $this->finding(
+                    'CATALOGUE.COMPONENTS',
+                    $page,
+                    'Komponen KDT belum lengkap: hilang ' . implode(', ', $missingComponents),
+                    'Halaman Katalog memuat blok KDT lengkap (No. Publikasi, No. Katalog, dan Ukuran Buku)',
+                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 Bab 4 hal. 78, blok Katalog Dalam Terbitan wajib memuat Nomor Publikasi, Nomor Katalog, dan dimensi ukuran buku.',
+                    'wajib'
+                );
+            }
+
+            if (preg_match('/\bPenerbit\s*:/iu', $text) && ! preg_match('/\bPublished\s*by\b/iu', $text)) {
+                $findings[] = $this->finding(
+                    'CATALOGUE.LABELS',
+                    $page,
+                    'Label katalog "Penerbit:" tidak memiliki padanan dwibahasa Inggris "Published by:"',
+                    'Penerbit/Published by:',
+                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 Bab 4 hal. 78, label halaman katalog publikasi dwibahasa wajib disajikan dalam dua bahasa (Indonesia dan Inggris).',
+                    'wajib'
+                );
+            }
+
+            $hasCopyright = preg_match('/\b(Hak\s+Cipta|Copyright)\b/iu', $text);
+            $hasBps = preg_match('/\b(Badan\s+Pusat\s+Statistik|BPS)\b/iu', $text);
+            if (! $hasCopyright || ! $hasBps) {
+                $findings[] = $this->finding(
+                    'CATALOGUE.COPYRIGHT',
+                    $page,
+                    'Pernyataan hak cipta Badan Pusat Statistik tidak teridentifikasi pada halaman katalog.',
+                    'Memuat klausul Hak Cipta Badan Pusat Statistik/Copyright Statistics Indonesia',
+                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 Bab 4 hal. 78, halaman katalog wajib mencantumkan klausul perlindungan hak cipta Badan Pusat Statistik.',
+                    'saran'
+                );
+            }
+        }
+
+        // 11. TEAM.FORMAT (Pembagian peran pada Halaman Tim Penyusun)
+        if ($pageType === 'team') {
+            $hasRole = preg_match('/\b(?:Penanggung\s*Jawab|Pengarah|Person[s]?\s*in\s*Charge|Penyunting|Editor[s]?|Pengolah\s*Data|Data\s*Processing|Penata\s*Letak|Layouter[s]?|Pembuat\s*Kover|Cover\s*Design)\b/iu', $text);
+            if (! $hasRole && strlen(trim($text)) > 30) {
+                $findings[] = $this->finding(
+                    'TEAM.FORMAT',
+                    $page,
+                    'Susunan tim penyusun tidak memuat pembagian peran resmi.',
+                    'Halaman memuat peran terstruktur: Penanggung Jawab, Penyunting, Pengolah Data, dan Penata Letak/Pembuat Kover',
+                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 Bab 4 hal. 80, halaman Tim Penyusun wajib mencantumkan pembagian peran dan tanggung jawab yang jelas.',
+                    'wajib'
+                );
+            }
+        }
+
+        // 12. PREFACE.FORMAT (Format Kata Pengantar dan Titimangsa)
+        if ($pageType === 'preface') {
+            $hasTitimangsa = preg_match('/\b[A-Z][a-z]+,\s*(?:Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+20\d\d\b/iu', $text);
+            if (! $hasTitimangsa && strlen(trim($text)) > 60) {
+                $findings[] = $this->finding(
+                    'PREFACE.FORMAT',
+                    $page,
+                    'Baris titimangsa kota dan tanggal pengesahan belum teridentifikasi pada Kata Pengantar.',
+                    'Mencantumkan baris tempat dan tanggal (contoh: "Ampana, September 2026")',
+                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 Bab 4 hal. 83, halaman Kata Pengantar wajib memuat tempat dan waktu penandatanganan pengesahan.',
+                    'wajib'
+                );
+            }
+        }
+
+        // 13. BIBLIOGRAPHY.FORMAT (Penyusunan alfabetis daftar pustaka)
+        if ($pageType === 'bibliography') {
+            $bibLines = array_filter(array_map('trim', explode("\n", $text)), fn ($l) => preg_match('/^[A-Z][a-zA-Z\s]+,\s*(?:19|20)\d\d\b/', $l));
+            $firstLetters = [];
+            foreach ($bibLines as $l) {
+                $firstLetters[] = strtoupper($l[0]);
+            }
+            $isAlphabetical = true;
+            for ($i = 0; $i < count($firstLetters) - 1; $i++) {
+                if (strcmp($firstLetters[$i], $firstLetters[$i + 1]) > 0) {
+                    $isAlphabetical = false;
+                    break;
+                }
+            }
+            if (! $isAlphabetical && count($firstLetters) >= 3) {
+                $findings[] = $this->finding(
+                    'BIBLIOGRAPHY.FORMAT',
+                    $page,
+                    'Urutan rujukan daftar pustaka tidak tersusun secara alfabetis (' . implode(', ', $firstLetters) . ').',
+                    'Daftar pustaka disusun menurut abjad nama pengarang (A sampai Z)',
+                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 Bab 4 hal. 87, rujukan pada daftar pustaka wajib disusun berurutan menurut alfabet nama pengarang.',
+                    'saran'
+                );
+            }
+        }
+
+        // 14. OFFICIAL.REFERENCE (Domain rujukan eksternal BPS)
+        if (preg_match_all('/(?:https?:\/\/|www\.)([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})[^\s]*/i', $text, $urlMatches, PREG_SET_ORDER)) {
+            foreach ($urlMatches as $um) {
+                $host = strtolower($um[1]);
+                if (preg_match('/\b(?:bps|sulteng|statistik)\b/i', $host) && ! str_ends_with($host, '.bps.go.id') && $host !== 'bps.go.id') {
+                    $findings[] = $this->finding(
+                        'OFFICIAL.REFERENCE',
+                        $page,
+                        $um[0],
+                        'Portal rujukan resmi https://*.bps.go.id',
+                        'Rujukan data publikasi BPS wajib menggunakan domain portal resmi BPS (.bps.go.id).',
+                        'verifikasi'
+                    );
+                }
+            }
         }
 
         return $findings;
