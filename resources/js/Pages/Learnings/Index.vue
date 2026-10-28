@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Head, router } from "@inertiajs/vue3";
-import { ref } from "vue";
-import { Brain, CheckCircle, Clock, XCircle, Search, SlidersHorizontal, Sparkles } from "lucide-vue-next";
+import { Head, Link, router } from "@inertiajs/vue3";
+import { ref, computed } from "vue";
+import { Brain, CheckCircle, Clock, XCircle, Search, SlidersHorizontal, Sparkles, ShieldCheck, BookOpenCheck, ArrowRight, Layers } from "lucide-vue-next";
 import AppLayout from "../../Layouts/AppLayout.vue";
 
 interface Learning {
@@ -51,6 +51,16 @@ function applyFilters() {
     );
 }
 
+const showExplainer = ref(true);
+
+const totalHits = computed(() => {
+    return props.learnings.data.reduce((acc, curr) => acc + (Number(curr.hits) || 0), 0);
+});
+
+const activeCount = computed(() => {
+    return props.learnings.data.filter(l => l.status === 'active').length;
+});
+
 function updateStatus(learning: Learning, newStatus: "active" | "pending" | "disabled") {
     router.patch(`/learnings/${learning.id}`, { status: newStatus }, { preserveScroll: true });
 }
@@ -60,17 +70,97 @@ function updateStatus(learning: Learning, newStatus: "active" | "pending" | "dis
     <Head title="Pembelajaran AI" />
     <AppLayout>
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="sm:flex sm:items-center sm:justify-between mb-8">
+            <div class="sm:flex sm:items-center sm:justify-between mb-6">
                 <div>
                     <div class="flex items-center gap-3">
-                        <div class="p-2 bg-indigo-50 rounded-lg">
-                            <Brain class="w-6 h-6 text-indigo-600" />
+                        <div class="p-2.5 bg-[#245F59]/10 text-[#245F59] rounded-xl border border-[#245F59]/20">
+                            <Brain class="w-6 h-6" />
                         </div>
-                        <h1 class="text-2xl font-bold text-gray-900">Pembelajaran AI Pemeriksa</h1>
+                        <div>
+                            <h1 class="text-2xl font-bold text-[#302B2A] font-['Outfit']">Pembelajaran AI Pemeriksa</h1>
+                            <p class="text-xs sm:text-sm text-gray-600 mt-0.5">
+                                Pusat memori cerdas berbasis <em>Human-in-the-Loop</em> dari penolakan temuan, catatan revisi, dan impor Excel.
+                            </p>
+                        </div>
                     </div>
-                    <p class="mt-2 text-sm text-gray-600">
-                        Aturan pengecualian dan contoh pembelajaran permanen dari koreksi manual pemeriksa dan hasil sinkronisasi Excel.
-                    </p>
+                </div>
+
+                <div class="mt-4 sm:mt-0 flex items-center gap-2">
+                    <Link
+                        href="/documentation?tab=learning"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-[#245F59] text-white text-xs font-semibold rounded-full shadow-sm hover:bg-[#1E4F4A] transition-all"
+                    >
+                        <BookOpenCheck class="w-4 h-4" />
+                        <span>Panduan Lengkap Arsitektur</span>
+                        <ArrowRight class="w-3.5 h-3.5" />
+                    </Link>
+                </div>
+            </div>
+
+            <!-- Aesthetic Explainer Card (Human-in-the-Loop Architecture) -->
+            <div class="bg-gradient-to-br from-[#ffffff] via-[#fcfbf7] to-[#f4f8f7] border border-[#D7D1C8] rounded-2xl p-5 sm:p-6 mb-6 shadow-xs">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-4 border-b border-[#E5E0D8]">
+                    <div class="space-y-1">
+                        <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-[#BADFDB]/50 text-[#245F59] border border-[#96C9C3] text-[11px] font-bold">
+                            <Sparkles class="w-3.5 h-3.5" />
+                            <span>Mekanisme Closed-Loop Feedback</span>
+                        </div>
+                        <h2 class="text-lg font-bold text-[#302B2A]">Bagaimana AI Belajar Dari Catatan &amp; Penolakan Anda?</h2>
+                        <p class="text-xs text-gray-600 max-w-3xl leading-relaxed">
+                            Sistem tidak melatih ulang bobot AI secara lambat. Setiap kali pemeriksa menolak temuan palsu atau mengedit Excel, sistem mengompilasinya menjadi <strong>aturan larangan permanen</strong> yang otomatis diinjeksikan ke prompt dan dikawal jaring pengaman kemiripan teks &ge; 80% di backend.
+                        </p>
+                    </div>
+
+                    <!-- Quick Telemetry Stats -->
+                    <div class="flex items-center gap-3 shrink-0">
+                        <div class="px-4 py-2.5 bg-white border border-[#D7D1C8] rounded-xl text-center min-w-[110px]">
+                            <span class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Pengecualian Aktif</span>
+                            <strong class="text-lg font-bold text-[#245F59] font-['JetBrains_Mono']">{{ activeCount }}</strong>
+                        </div>
+                        <div class="px-4 py-2.5 bg-white border border-[#D7D1C8] rounded-xl text-center min-w-[120px]" title="Total temuan palsu yang berhasil dicegah secara otomatis oleh sistem">
+                            <span class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Temuan Dicegah</span>
+                            <strong class="text-lg font-bold text-emerald-700 font-['JetBrains_Mono']">{{ totalHits }}×</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3 Pillars Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-4">
+                    <div class="bg-white/80 border border-[#E5E0D8] rounded-xl p-3.5 flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 font-bold text-xs">
+                            1
+                        </div>
+                        <div class="space-y-1">
+                            <h3 class="text-xs font-bold text-gray-900">Umpan Balik Pemeriksa</h3>
+                            <p class="text-[11.5px] text-gray-600 leading-normal">
+                                Tombol <strong>Tolak</strong> di web dan penghapusan baris di Excel otomatis dikonversi menjadi memori larangan permanen.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white/80 border border-[#E5E0D8] rounded-xl p-3.5 flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 font-bold text-xs">
+                            2
+                        </div>
+                        <div class="space-y-1">
+                            <h3 class="text-xs font-bold text-gray-900">Prompt Injection (Lapis 1)</h3>
+                            <p class="text-[11.5px] text-gray-600 leading-normal">
+                                Sebelum Agen AI memeriksa halaman baru, sistem otomatis menyematkan 25 pembelajaran aktif teratas ke dalam instruksi model.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white/80 border border-[#E5E0D8] rounded-xl p-3.5 flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 font-bold text-xs">
+                            3
+                        </div>
+                        <div class="space-y-1">
+                            <h3 class="text-xs font-bold text-gray-900">Suppressor Filter (Lapis 2)</h3>
+                            <p class="text-[11.5px] text-gray-600 leading-normal">
+                                Jika AI masih halusinasi, backend mencocokkan kemiripan teks &ge; 80% dan langsung membuangnya dari laporan akhir.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
 

@@ -2,6 +2,7 @@
 import { Head, Link } from "@inertiajs/vue3";
 import { ref, computed } from "vue";
 import {
+    Brain,
     BookOpenCheck,
     Cpu,
     Zap,
@@ -65,8 +66,16 @@ const props = defineProps<{
 
 // Search state
 const searchQuery = ref("");
-const activeTab = ref<"guide" | "settings" | "workflow" | "logic" | "parallel" | "speedup" | "faq">("guide");
+const activeTab = ref<"guide" | "settings" | "workflow" | "logic" | "parallel" | "speedup" | "faq" | "learning">("guide");
 const copiedKey = ref<string | null>(null);
+
+if (typeof window !== "undefined") {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get("tab");
+    if (tabParam && ["guide", "settings", "workflow", "logic", "parallel", "speedup", "faq", "learning"].includes(tabParam)) {
+        activeTab.value = tabParam as any;
+    }
+}
 
 // Interactive FAQ open states
 const openFaqs = ref<Record<string, boolean>>({
@@ -188,6 +197,7 @@ const matchesSearch = (text: string) => {
                         <option value="parallel">🤖 5. AI Paralel (5 Agen)</option>
                         <option value="speedup">⚡ 6. Optimasi Kecepatan</option>
                         <option value="faq">❓ 7. FAQ & Solusi Kendala</option>
+                        <option value="learning">🧠 8. Sistem Pembelajaran AI</option>
                     </select>
                     <ChevronDown :size="18" class="docs-select-arrow" />
                 </div>
@@ -250,6 +260,14 @@ const matchesSearch = (text: string) => {
                 >
                     <HelpCircle :size="16" />
                     <span>7. FAQ & Solusi</span>
+                </button>
+                <button
+                    class="nav-tab"
+                    :class="{ active: activeTab === 'learning' }"
+                    @click="activeTab = 'learning'"
+                >
+                    <Brain :size="16" />
+                    <span>8. Pembelajaran AI</span>
                 </button>
             </nav>
 
@@ -963,6 +981,271 @@ AUDIT_TEXT_LAYER_ENABLED=true</code></pre>
                             </p>
                         </div>
                     </div>
+                </div>
+            </section>
+
+            <!-- TAB 8: SISTEM PEMBELAJARAN AI (HUMAN-IN-THE-LOOP) -->
+            <section v-show="activeTab === 'learning'" class="tab-content" id="learning">
+                <div class="section-header">
+                    <h2>8. Sistem Pembelajaran AI (Human-in-the-Loop & Dynamic Context)</h2>
+                    <p>
+                        Mekanisme cerdas di mana setiap koreksi pemeriksa manusia, penolakan temuan palsu, dan impor catatan revisi Excel secara otomatis menjadi memori permanen bagi Agen AI agar kesalahan yang sama tidak pernah dilaporkan berulang pada publikasi berikutnya.
+                    </p>
+                </div>
+
+                <!-- Core Highlights Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="docs-panel p-5 border-l-4 border-l-emerald-600 bg-white">
+                        <div class="flex items-center gap-2 mb-2 text-emerald-800 font-bold">
+                            <Sparkles :size="18" class="text-emerald-600" />
+                            <span>Tanpa Retraining Model</span>
+                        </div>
+                        <p class="text-xs text-gray-600 leading-relaxed">
+                            Menggunakan arsitektur <em>Dynamic In-Context Memory</em> dan <em>Backend Suppressor Guardrail</em>. Pembelajaran aktif secara instan dalam hitungan detik tanpa memakan biaya GPU atau pelatihan ulang model dasar.
+                        </p>
+                    </div>
+
+                    <div class="docs-panel p-5 border-l-4 border-l-blue-600 bg-white">
+                        <div class="flex items-center gap-2 mb-2 text-blue-800 font-bold">
+                            <ShieldCheck :size="18" class="text-blue-600" />
+                            <span>Proteksi Ganda (2-Layer)</span>
+                        </div>
+                        <p class="text-xs text-gray-600 leading-relaxed">
+                            Dilindungi dua lapis keamanan: instruksi tegas pada prompt sebelum AI membaca (Lapis 1), dan jaring pengaman pencocokan kemiripan teks &ge; 80% di backend setelah AI mengembalikan hasil (Lapis 2).
+                        </p>
+                    </div>
+
+                    <div class="docs-panel p-5 border-l-4 border-l-amber-600 bg-white">
+                        <div class="flex items-center gap-2 mb-2 text-amber-800 font-bold">
+                            <CheckSquare :size="18" class="text-amber-600" />
+                            <span>Transparan & Terkendali</span>
+                        </div>
+                        <p class="text-xs text-gray-600 leading-relaxed">
+                            Bukan kotak hitam (<em>black box</em>). Seluruh memori tersimpan rapi di menu <strong>Pembelajaran AI</strong>, lengkap dengan statistik penghematan (<em>hits counter</em>), serta opsi edit atau nonaktifkan kapan saja.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 4-Step Learning Pipeline Visual -->
+                <div class="docs-panel mb-6">
+                    <div class="panel-title">
+                        <Workflow :size="20" class="text-emerald-700" />
+                        <div>
+                            <h3>Alur Lingkaran Tertutup Pembelajaran (Closed-Loop Feedback System)</h3>
+                            <p>Bagaimana satu ketukan koreksi dari penelaah mengalir menjadi kecerdasan permanen bagi seluruh 5 Agen AI.</p>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 relative">
+                            <!-- Step 1 -->
+                            <div class="step-card bg-emerald-50/50 border border-emerald-200/70 p-4 rounded-xl">
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="w-7 h-7 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-xs">1</span>
+                                    <span class="text-[10px] font-semibold text-emerald-800 uppercase tracking-wider">Koreksi User</span>
+                                </div>
+                                <h4 class="font-bold text-gray-900 text-sm mb-1.5">Penelaah Menolak Temuan</h4>
+                                <p class="text-xs text-gray-600 leading-relaxed">
+                                    Pemeriksa menandai temuan sebagai <em>False Positive</em> di web atau menghapus barisnya dari Excel hasil revisi, disertai catatan alasan.
+                                </p>
+                            </div>
+
+                            <!-- Step 2 -->
+                            <div class="step-card bg-blue-50/50 border border-blue-200/70 p-4 rounded-xl">
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="w-7 h-7 rounded-full bg-blue-700 text-white flex items-center justify-center font-bold text-xs">2</span>
+                                    <span class="text-[10px] font-semibold text-blue-800 uppercase tracking-wider">Pemrosesan</span>
+                                </div>
+                                <h4 class="font-bold text-gray-900 text-sm mb-1.5">Kompilasi Memori Cerdas</h4>
+                                <p class="text-xs text-gray-600 leading-relaxed">
+                                    Sistem mengekstrak konteks, kode aturan, dan alasan penolakan, lalu membentuk formula instruksi larangan permanen di basis data.
+                                </p>
+                            </div>
+
+                            <!-- Step 3 -->
+                            <div class="step-card bg-amber-50/50 border border-amber-200/70 p-4 rounded-xl">
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="w-7 h-7 rounded-full bg-amber-700 text-white flex items-center justify-center font-bold text-xs">3</span>
+                                    <span class="text-[10px] font-semibold text-amber-800 uppercase tracking-wider">Injeksi Lapis 1</span>
+                                </div>
+                                <h4 class="font-bold text-gray-900 text-sm mb-1.5">Prompt Injection Otomatis</h4>
+                                <p class="text-xs text-gray-600 leading-relaxed">
+                                    Pada publikasi baru, sistem otomatis menyematkan 25 pembelajaran ber-<em>hits</em> tertinggi langsung ke dalam instruksi Agen AI.
+                                </p>
+                            </div>
+
+                            <!-- Step 4 -->
+                            <div class="step-card bg-purple-50/50 border border-purple-200/70 p-4 rounded-xl">
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="w-7 h-7 rounded-full bg-purple-700 text-white flex items-center justify-center font-bold text-xs">4</span>
+                                    <span class="text-[10px] font-semibold text-purple-800 uppercase tracking-wider">Proteksi Lapis 2</span>
+                                </div>
+                                <h4 class="font-bold text-gray-900 text-sm mb-1.5">Suppressor Guardrail</h4>
+                                <p class="text-xs text-gray-600 leading-relaxed">
+                                    Jika AI masih melaporkan teks serupa (kemiripan &ge; 80%), backend otomatis membuangnya sebelum sampai ke laporan akhir.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3 Pintu Masuk Pembelajaran (Detailed Breakdown) -->
+                <div class="docs-panel mb-6">
+                    <div class="panel-title">
+                        <Layers :size="20" class="text-emerald-700" />
+                        <div>
+                            <h3>Tiga Pintu Masuk Pembelajaran AI</h3>
+                            <p>Tiga mekanisme terintegrasi untuk menyalurkan umpan balik penelaah ke sistem pembelajaran.</p>
+                        </div>
+                    </div>
+                    <div class="panel-body space-y-4">
+                        <!-- Channel 1 -->
+                        <div class="p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">Pintu 1</span>
+                                <h4 class="font-bold text-gray-900 text-sm">Penolakan Temuan Langsung pada Editor Web</h4>
+                            </div>
+                            <p class="text-xs text-gray-600 leading-relaxed mb-3">
+                                Di halaman periksa publikasi, klik tombol <strong>Tolak / False Positive</strong> pada suatu temuan, lalu masukkan catatan singkat mengapa temuan itu sah (misal: <em>"Sumber Podes 2024 sah untuk buku 2026 karena Podes adalah pendataan berkala"</em>).
+                            </p>
+                            <div class="bg-white border border-gray-200 rounded-lg p-3 text-xs font-mono text-gray-700">
+                                <strong>Hasil Kompilasi Otomatis:</strong><br />
+                                <code>[TABLE.SYMBOL] DILARANG menandai temuan serupa pada aturan TABLE.SYMBOL jika: Sumber Podes 2024 sah untuk buku 2026 karena Podes adalah pendataan berkala. (Contoh yang dibatalkan: "Sumber: Podes 2024")</code>
+                            </div>
+                        </div>
+
+                        <!-- Channel 2 -->
+                        <div class="p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">Pintu 2</span>
+                                <h4 class="font-bold text-gray-900 text-sm">Sinkronisasi File Excel Hasil Telaah (Two-Way Excel Sync)</h4>
+                            </div>
+                            <p class="text-xs text-gray-600 leading-relaxed mb-2">
+                                Penelaah yang lebih nyaman bekerja di Microsoft Excel dapat mengunduh format laporan telaah, menghapus baris-baris temuan yang tidak dianggap salah oleh tim penyusun, lalu mengunggah kembali file tersebut ke tombol <strong>Impor Catatan Excel</strong>.
+                            </p>
+                            <p class="text-xs text-gray-600 leading-relaxed">
+                                Sistem secara otomatis membandingkan versi revisi dengan database. Baris yang dihapus dari Excel akan dicatat ke dalam database pembelajaran dengan status <em>Pending / Active</em> agar temuan tersebut tidak muncul lagi di masa mendatang.
+                            </p>
+                        </div>
+
+                        <!-- Channel 3 -->
+                        <div class="p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800">Pintu 3</span>
+                                <h4 class="font-bold text-gray-900 text-sm">Auto-Learning Fusion (Tahap 3 Rekonsiliasi & Adjudikasi)</h4>
+                            </div>
+                            <p class="text-xs text-gray-600 leading-relaxed mb-2">
+                                Saat menggunakan <strong>Metode Fusion Dual-Engine</strong>, sistem membandingkan temuan Mesin Scripted dengan temuan Vision AI. Jika salah satu mesin mendeteksi kesalahan tetapi mesin lainnya tidak, tahap adjudikasi otomatis memverifikasi kebenaran temuan tersebut.
+                            </p>
+                            <ul class="text-xs text-gray-600 space-y-1 pl-4 list-disc">
+                                <li><strong>AI Blind Spot:</strong> Jika Mesin menemukan aturan valid yang terlewat oleh AI, sistem langsung menyuntikkan instruksi pengingat ke prompt AI.</li>
+                                <li><strong>AI Hallucination:</strong> Jika AI salah menandai teks sah yang ditolak oleh aturan deterministik, sistem mencatatnya sebagai pola halusinasi yang dilarang diulang.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Two-Tier Defense Architecture Technical Panel -->
+                <div class="docs-panel mb-6">
+                    <div class="panel-title">
+                        <ShieldCheck :size="20" class="text-emerald-700" />
+                        <div>
+                            <h3>Spesifikasi Teknis Jaring Pengaman 2-Lapis</h3>
+                            <p>Bagaimana backend Laravel melindungi konsistensi laporan dari halusinasi model AI.</p>
+                        </div>
+                    </div>
+                    <div class="panel-body space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-white border border-gray-200 rounded-xl p-4">
+                                <div class="flex items-center gap-2 mb-2 text-emerald-800 font-bold text-sm">
+                                    <Bot :size="16" />
+                                    <span>Lapis 1: PromptBuilder.php</span>
+                                </div>
+                                <p class="text-xs text-gray-600 leading-relaxed mb-3">
+                                    Setiap kali job <code>AnalyzePage</code> mempersiapkan prompt untuk Agen AI, <code>ExaminerLearningService::activeLearningsForPrompt()</code> dipanggil untuk merangkum hingga 25 aturan pengecualian teratas berdasarkan urutan frekuensi kecocokan (<em>hits</em>).
+                                </p>
+                                <div class="bg-gray-900 text-emerald-400 p-2.5 rounded-lg font-mono text-[11px] overflow-x-auto">
+                                    PEMBELAJARAN PERMANEN PEMERIKSA BPS:<br />
+                                    1. [TEAM.FORMAT] DILARANG menyalahkan kata 'Layouters'...<br />
+                                    2. [TABLE.SYMBOL] DILARANG menyalahkan sumber data Podes...
+                                </div>
+                            </div>
+
+                            <div class="bg-white border border-gray-200 rounded-xl p-4">
+                                <div class="flex items-center gap-2 mb-2 text-blue-800 font-bold text-sm">
+                                    <ShieldCheck :size="16" />
+                                    <span>Lapis 2: LearningSuppressor.php</span>
+                                </div>
+                                <p class="text-xs text-gray-600 leading-relaxed mb-3">
+                                    Jika AI tetap mengembalikan temuan yang melanggar instruksi prompt, <code>LearningSuppressor::evaluate()</code> di backend mencocokkan teks temuan dengan algoritma:
+                                </p>
+                                <ul class="text-xs text-gray-600 space-y-1.5 pl-4 list-disc font-sans mb-3">
+                                    <li><strong>Substring Match:</strong> Jika potongan teks temuan identik dengan contoh yang pernah ditolak.</li>
+                                    <li><strong>Similarity Match &ge; 80%:</strong> Menggunakan kalkulasi kesamaan karakter teks (<em>similar_text</em>) untuk mendeteksi variasi kata yang serupa.</li>
+                                </ul>
+                                <span class="inline-block text-[10.5px] font-semibold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200">
+                                    Temuan otomatis disupresi &amp; hits bertambah (+1)
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Examples from Real BPS Documents -->
+                <div class="docs-panel mb-6">
+                    <div class="panel-title">
+                        <BookOpenCheck :size="20" class="text-emerald-700" />
+                        <div>
+                            <h3>Contoh Pembelajaran Bawaan yang Telah Diterapkan di Sistem</h3>
+                            <p>Contoh kasus lapangan BPS yang sudah otomatis dilindungi dari kesalahan baca.</p>
+                        </div>
+                    </div>
+                    <div class="panel-body space-y-3">
+                        <div class="p-3.5 bg-white border border-gray-200 rounded-xl">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-bold text-gray-900 text-xs">Kata "Layouters" pada Tim Penyusun KCDA</span>
+                                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-gray-100 text-gray-700">TEAM.FORMAT</span>
+                            </div>
+                            <p class="text-xs text-gray-600">
+                                AI awalnya sering menyalahkan kata <em>Layouters</em> karena dianggap bentuk jamak bahasa Inggris yang keliru. Melalui pembelajaran, sistem melarang pelaporan ini karena kata tersebut baku pada template master KCDA BPS.
+                            </p>
+                        </div>
+
+                        <div class="p-3.5 bg-white border border-gray-200 rounded-xl">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-bold text-gray-900 text-xs">Tahun Sumber Data Potensi Desa (Podes)</span>
+                                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-gray-100 text-gray-700">TABLE.SYMBOL</span>
+                            </div>
+                            <p class="text-xs text-gray-600">
+                                AI sempat menganggap sumber <em>Podes 2024</em> tidak sinkron pada buku terbitan 2026. Pembelajaran menegaskan bahwa Podes adalah survei berkala multi-tahunan sehingga tahun sumber lebih awal adalah data termutakhir yang sah.
+                            </p>
+                        </div>
+
+                        <div class="p-3.5 bg-white border border-gray-200 rounded-xl">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-bold text-gray-900 text-xs">Artefak Pemisahan Spasi Ekstraksi Teks PDF</span>
+                                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-gray-100 text-gray-700">LANGUAGE.EJAAN</span>
+                            </div>
+                            <p class="text-xs text-gray-600">
+                                Kata seperti <em>"Transpor tasi"</em> atau <em>"Jakar ta"</em> yang terpisah spasi semata-mata akibat subpixel kerning font PDF (namun secara kasat mata visual tercetak normal) dilarang ditandai sebagai salah ejaan.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Call to Action Banner -->
+                <div class="bg-gradient-to-r from-[#245F59] to-[#1E4F4A] text-white p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                        <h4 class="font-bold text-base text-white mb-1">Lihat dan Kelola Seluruh Pembelajaran yang Aktif</h4>
+                        <p class="text-xs text-emerald-100">
+                            Pantau berapa ratus temuan palsu yang berhasil dicegah dan kelola status tiap aturan pembelajaran secara langsung.
+                        </p>
+                    </div>
+                    <Link
+                        href="/learnings"
+                        class="px-5 py-2.5 bg-[#FCF9EA] text-[#302B2A] font-bold text-xs rounded-full shadow hover:bg-white transition-all whitespace-nowrap shrink-0"
+                    >
+                        Buka Menu Pembelajaran AI &rarr;
+                    </Link>
                 </div>
             </section>
         </div>
