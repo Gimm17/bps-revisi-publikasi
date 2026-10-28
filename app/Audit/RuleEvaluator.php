@@ -252,7 +252,7 @@ class RuleEvaluator
             }
 
             // LANGUAGE.BILINGUAL (Judul tabel dwibahasa dengan tanda slash)
-            if (preg_match('/\b(Tabel\s+[1-9]\.\d+(?:\.\d+)?\s+[^/\n]{10,80})$/ium', $text, $monolingualM)) {
+            if (preg_match('#\b(Tabel\s+[1-9]\.\d+(?:\.\d+)?\s+[^/\n]{10,80})$#ium', $text, $monolingualM)) {
                 $line = trim($monolingualM[1]);
                 if (! str_contains($text, '/') && ! preg_match('/\b(?:Table|Figures)\b/iu', $text)) {
                     $findings[] = $this->finding(
