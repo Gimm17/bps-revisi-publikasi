@@ -63,6 +63,7 @@ class AgentOfficeController extends Controller
     private function buildState(): array
     {
         // Active publications that are genuinely being processed right now
+        // Filter out abandoned/stale audits by checking recency or active page states
         $activePublications = Publication::whereIn('status', [
             'processing',
             'processing_machine',
@@ -72,6 +73,13 @@ class AgentOfficeController extends Controller
             'cross_checking',
             'exporting',
         ])
+            ->where(function ($query) {
+                $query->where('updated_at', '>=', now()->subMinutes(30))
+                    ->orWhereHas('pages', function ($q) {
+                        $q->whereIn('status', ['analyzing', 'ready', 'rendering'])
+                            ->where('updated_at', '>=', now()->subMinutes(15));
+                    });
+            })
             ->latest('updated_at')
             ->get(['id', 'title', 'status', 'updated_at']);
 

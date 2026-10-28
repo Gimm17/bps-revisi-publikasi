@@ -140,6 +140,8 @@ class AuditCoordinator
 
     public function afterMachinePage(Publication $publication): void
     {
+        $publication->touch();
+
         $allMachineComplete = $publication->pages()->count() === $publication->page_count
             && ! $publication->pages()->where('machine_status', '!=', 'complete')->exists();
 
@@ -200,6 +202,8 @@ class AuditCoordinator
 
     public function afterPage(Publication $publication): void
     {
+        $publication->touch();
+
         if ($this->canComplete($publication)) {
             FinalizeAudit::dispatch($publication->id);
 
