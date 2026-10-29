@@ -140,7 +140,37 @@ class NineRouterClient
         $finishReason = $response->json('choices.0.finish_reason');
         $content = $response->json('choices.0.message.content');
 
-        // Automatic fallback to Agent Cadangan (Slot 6) when current model triggers recitation/content filter or returns empty content
+        // Step 1: In-place Anti-Recitation / Filter Paraphrase Retry on the SAME active endpoint
+        if (in_array($finishReason, ['content_filter', 'recitation', 'safety', 'block'], true) || (is_string($content) && trim($content) === '')) {
+            \Illuminate\Support\Facades\Log::warning("NineRouterClient: Model {$config->model()} hit filter '{$finishReason}'. Retrying with anti-recitation paraphrase instruction on {$url}...");
+            try {
+                $retryMessages = $messages;
+                $retryMessages[] = [
+                    'role' => 'user',
+                    'content' => 'INSTRUKSI DARURAT ANTI-RECITATION: Respons sebelumnya diblokir oleh filter recitation/keamanan karena menyalin teks atau tabel secara identik. JANGAN menyalin teks halaman atau baris tabel secara verbatim. Pada field "text", tulis 1 kalimat ringkasan singkat dengan kata-kata sendiri (paraphrase). Pada "inventory.tables", cukup isi nomor/judul/headers dan kosongkan "rows": []. Fokus hanya pada pelaporan "findings" dalam JSON murni yang valid.',
+                ];
+                $retryResponse = Http::withToken($config->apiKey())->acceptJson()->withOptions($options)
+                    ->connectTimeout(15)->timeout(config('audit.ai_timeout'))->post($url.'/chat/completions', [
+                        'model' => $config->model(),
+                        'messages' => $retryMessages,
+                        'temperature' => 0.3,
+                    ]);
+                if ($retryResponse->successful()) {
+                    $retryFinish = $retryResponse->json('choices.0.finish_reason');
+                    $retryContent = $retryResponse->json('choices.0.message.content');
+                    if (! in_array($retryFinish, ['content_filter', 'recitation', 'safety', 'block'], true) && is_string($retryContent) && trim($retryContent) !== '') {
+                        \Illuminate\Support\Facades\Log::info("NineRouterClient: Anti-recitation retry on {$config->model()} succeeded.");
+                        $response = $retryResponse;
+                        $finishReason = $retryFinish;
+                        $content = $retryContent;
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("NineRouterClient: Anti-recitation retry failed: ".$e->getMessage());
+            }
+        }
+
+        // Step 2: Automatic fallback to Agent Cadangan (Slot 6) when current model still triggers recitation/content filter or returns empty content
         if (in_array($finishReason, ['content_filter', 'recitation', 'safety', 'block'], true) || (is_string($content) && trim($content) === '')) {
             $backupAgent = \App\Models\AiAgent::where('slot', 6)->where('enabled', true)->first();
             $fallbackUrl = $backupAgent ? rtrim($this->validateUrl($backupAgent->base_url), '/') : $url;

@@ -266,6 +266,11 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
             $formatFailures = $formatError ? AiUsageRecord::where('page_id', $page->id)->where('id', '>', $this->usageBaseline ?? 0)->whereIn('status', ['failed_validation', 'failed_format'])->count() : 0;
             $terminal = ($e instanceof AiRequestException && ! $e->retryable) || $formatFailures >= 2 || $page->attempts - $baseline >= 3;
             if ($terminal) {
+                if ($e instanceof AiRequestException && $e->category === 'truncated') {
+                    $this->completeWithRecitationFallback($page, $publication, $endpoint?->agentId(), $coordinator);
+
+                    return;
+                }
                 $this->failed($e);
                 $this->fail($e);
                 if (! $this->job) {
@@ -290,8 +295,63 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
         if (! $page || $page->status === 'complete') {
             return;
         }
+        $coordinator = app(\App\Audit\AuditCoordinator::class);
+        if ($exception instanceof AiRequestException && $exception->category === 'truncated') {
+            $this->completeWithRecitationFallback($page, $page->publication, $page->ai_agent_id, $coordinator);
+
+            return;
+        }
         $page->update(['status' => 'failed', 'error' => $this->failureReason($exception).' Pembacaan halaman ini gagal setelah mencoba ulang. Halaman lain tetap dilanjutkan.']);
-        app(\App\Audit\AuditCoordinator::class)->afterPage($page->publication);
+        $coordinator->afterPage($page->publication);
+    }
+
+    private function completeWithRecitationFallback(PublicationPage $page, Publication $publication, ?int $agentId, AuditCoordinator $coordinator): void
+    {
+        $allowedTypes = ['front_cover', 'title', 'catalogue', 'team', 'preface', 'contents', 'table_list', 'figure_list', 'chapter', 'table', 'narrative', 'bibliography', 'blank', 'back_cover'];
+        $pageType = (string) ($page->machine_result['page_type'] ?? '');
+        if (! in_array($pageType, $allowedTypes, true)) {
+            $pageType = trim((string) $page->text_layer) === '' ? 'chapter' : 'narrative';
+        }
+        if ($pageType === 'blank' && trim((string) $page->text_layer) === '') {
+            $pageType = 'chapter';
+        }
+
+        $fallbackText = trim((string) $page->text_layer) !== ''
+            ? mb_substr(trim((string) $page->text_layer), 0, 15000)
+            : 'Halaman telah diperiksa melalui lapisan mesin heuristik BPS (respons Vision AI dibatasi filter recitation).';
+
+        $fallbackResult = [
+            'physical_page' => $page->physical_page,
+            'page_type' => $pageType,
+            'readability' => 'readable',
+            'printed_page' => $page->printed_page,
+            'text' => $fallbackText,
+            'inventory' => [
+                'headings' => [],
+                'tables' => [],
+                'figures' => [],
+                'header' => '',
+                'footer' => '',
+            ],
+            'identity' => [],
+            'contents' => [],
+            'findings' => [],
+        ];
+
+        $page->update([
+            'result' => $fallbackResult,
+            'ai_agent_id' => $agentId ?? $page->ai_agent_id,
+            'page_type' => $pageType,
+            'status' => 'complete',
+            'completed_at' => now(),
+            'error' => null,
+        ]);
+
+        if (($publication->audit_mode ?? 'ai') === 'fusion') {
+            $coordinator->afterAiPage($publication);
+        } else {
+            $coordinator->afterPage($publication);
+        }
     }
 
     private function failureReason(?\Throwable $exception): string

@@ -16,5 +16,29 @@ class WorkerHeartbeat implements ShouldQueue
     {
         AuditEvent::where('action', 'worker.heartbeat')->delete();
         AuditEvent::create(['action' => 'worker.heartbeat', 'details' => []]);
+
+        try {
+            $coordinator = app(\App\Audit\AuditCoordinator::class);
+            $hasWorkJobs = \Illuminate\Support\Facades\DB::table('jobs')
+                ->whereIn('queue', ['machine', 'ai', 'verify'])
+                ->exists();
+
+            if (! $hasWorkJobs) {
+                $stuckPubs = \App\Models\Publication::whereIn('status', [
+                    'processing',
+                    'processing_machine',
+                    'processing_ai',
+                    'reconciling',
+                ])->where('updated_at', '<=', now()->subMinutes(3))->get();
+
+                foreach ($stuckPubs as $pub) {
+                    $coordinator->afterPage($pub);
+                }
+
+                $coordinator->advanceBatchQueue();
+            }
+        } catch (\Throwable) {
+            // Ignore watchdog errors so heartbeat always succeeds
+        }
     }
 }
