@@ -455,7 +455,7 @@ onUnmounted(() => {
                     <span>
                         Tahap 2 (Vision AI): 
                         <strong :style="{ color: checked === publication.page_count ? '#166534' : (publication.status === 'processing_ai' ? '#1e40af' : '#64748b') }">
-                            {{ checked === publication.page_count ? 'Selesai' : (publication.status === 'processing_ai' ? 'Sedang dianalisis...' : 'Menunggu tahap mesin') }}
+                            {{ checked === publication.page_count ? 'Selesai' : (publication.status === 'processing_ai' ? 'Sedang dianalisis...' : (['reconciling', 'review_ready', 'final', 'partial_failure'].includes(publication.status) ? `${checked}/${publication.page_count} Selesai` : 'Menunggu tahap mesin')) }}
                         </strong>
                     </span>
                     <span>·</span>

@@ -48,7 +48,18 @@ class AdjudicatePage implements ShouldQueue
             return;
         }
 
-        $endpoint = $poolSelector->selectAgent($publication);
+        $endpoint = null;
+        try {
+            $endpoint = $poolSelector->selectAgent($publication);
+        } catch (\App\Audit\AiRequestException $e) {
+            if ($e->category === 'capacity' && $this->job && $this->attempts() < 3) {
+                $this->release($e->retryAfter ?? 15);
+                return;
+            }
+        } catch (\Throwable) {
+            $endpoint = null;
+        }
+
         if (! $endpoint) {
             // Jika agent tidak tersedia saat adjudikasi, jangan gagalkan publikasi: tandai semua unresolved sebagai verifikasi manual
             foreach ($unresolved as $item) {
@@ -184,5 +195,14 @@ class AdjudicatePage implements ShouldQueue
 
         $page->update(['fusion_status' => 'done']);
         app(\App\Audit\AuditCoordinator::class)->afterPage($publication);
+    }
+
+    public function failed(?\Throwable $exception): void
+    {
+        $page = PublicationPage::find($this->pageId);
+        if ($page && $page->fusion_status !== 'done') {
+            $page->update(['fusion_status' => 'done']);
+            app(\App\Audit\AuditCoordinator::class)->afterPage($page->publication);
+        }
     }
 }

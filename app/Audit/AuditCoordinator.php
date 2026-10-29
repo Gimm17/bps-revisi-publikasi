@@ -249,10 +249,21 @@ class AuditCoordinator
                     ->where(fn ($q) => $q->whereNull('fusion_status')->orWhere('fusion_status', '!=', 'done'))
                     ->exists();
                 if ($hasPendingFusion) {
-                    if ($publication->status !== 'reconciling') {
-                        $publication->update(['status' => 'reconciling']);
+                    $hasFusionJobs = \Illuminate\Support\Facades\DB::table('jobs')
+                        ->whereIn('queue', ['machine', 'ai'])
+                        ->exists();
+
+                    if (! $hasFusionJobs) {
+                        // Tidak ada job aktif di antrean: selesaikan status halaman yang tertinggal agar tidak deadlock
+                        $publication->pages()
+                            ->where(fn ($q) => $q->whereNull('fusion_status')->orWhere('fusion_status', '!=', 'done'))
+                            ->update(['fusion_status' => 'done']);
+                    } else {
+                        if ($publication->status !== 'reconciling') {
+                            $publication->update(['status' => 'reconciling']);
+                        }
+                        return;
                     }
-                    return;
                 }
             }
         }
