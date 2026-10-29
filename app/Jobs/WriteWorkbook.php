@@ -67,10 +67,13 @@ class WriteWorkbook implements ShouldBeUnique, ShouldQueue
             }
             AuditLogger::record('export.completed', $pub, ['version' => $export->version, 'mode' => $coverage['mode'], 'checked_pages' => $coverage['checked_pages']]);
         });
+
+        app(AuditCoordinator::class)->advanceBatchQueue();
     }
 
     public function failed(?\Throwable $exception): void
     {
         Export::whereKey($this->exportId)->update(['status' => 'failed', 'error' => 'Pembuatan atau validasi Excel gagal. Buat versi baru atau hubungi admin.']);
+        app(AuditCoordinator::class)->advanceBatchQueue();
     }
 }

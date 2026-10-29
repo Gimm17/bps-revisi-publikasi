@@ -13,7 +13,7 @@ import type { Publication, Paginated, Shared } from "../types";
 defineProps<{
     publications: Paginated<Publication>;
     filters: { q?: string; status?: string };
-    metrics: { total: number; active: number; ready: number };
+    metrics: { total: number; active: number; batch_queued?: number; ready: number };
     aiReady: boolean;
 }>();
 const page = usePage<Shared>();
@@ -44,7 +44,11 @@ const page = usePage<Shared>();
             </div>
             <div>
                 <ScanText :size="23" /><strong>{{ metrics.active }}</strong
-                ><span>Sedang diperiksa</span>
+                ><span
+                    >Sedang diperiksa<template v-if="metrics.batch_queued">
+                        · {{ metrics.batch_queued }} antre batch</template
+                    ></span
+                >
             </div>
             <div>
                 <CheckCheck :size="23" /><strong>{{ metrics.ready }}</strong

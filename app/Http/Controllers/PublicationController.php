@@ -40,14 +40,22 @@ class PublicationController extends Controller
         }
         $publications = $query->withCount(['pages as checked_pages_count' => fn ($q) => $q->where('status', 'complete'), 'findings' => fn ($q) => $q->where('deleted', false)->where('review_status', '!=', 'rejected')])->latest()->paginate(20)->withQueryString();
 
+        $activeCount = Publication::visibleTo($request->user())->whereIn('status', ['processing', 'processing_machine', 'processing_ai', 'reconciling', 'cross_checking', 'exporting'])->count();
+        $batchQueuedCount = Publication::visibleTo($request->user())->where('status', 'batch_queued')->count();
+
+        if ($batchQueuedCount > 0 && $activeCount === 0) {
+            app(AuditCoordinator::class)->advanceBatchQueue();
+        }
+
         return Inertia::render($request->routeIs('dashboard') ? 'Dashboard' : 'Publications/Index', [
             'publications' => $publications,
             'filters' => $request->only('q', 'status'),
             'aiReady' => AiAgent::ready()->exists() || AiProviderConfig::latest('id')->first()?->vision_tested_at !== null,
             'metrics' => [
                 'total' => Publication::visibleTo($request->user())->count(),
-                'active' => Publication::visibleTo($request->user())->whereIn('status', ['processing', 'processing_machine', 'processing_ai', 'reconciling', 'cross_checking', 'exporting'])->count(),
+                'active' => $activeCount + $batchQueuedCount,
                 'ready' => Publication::visibleTo($request->user())->whereIn('status', ['review_ready', 'final'])->count(),
+                'batch_queued' => $batchQueuedCount,
             ],
         ]);
     }
@@ -57,11 +65,60 @@ class PublicationController extends Controller
         return Inertia::render('Publications/Create');
     }
 
-    public function store(PublicationRequest $request, CreatePublication $service): RedirectResponse
+    public function store(PublicationRequest $request, CreatePublication $service): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $publication = $service->execute($request->user(), $request->file('pdf'), $request->file('template'), $request->safe()->except(['pdf', 'template']));
 
+        if ($request->boolean('batch_item') || $request->wantsJson()) {
+            return response()->json([
+                'id' => $publication->id,
+                'title' => $publication->title,
+                'page_count' => $publication->page_count,
+                'status' => $publication->status,
+            ]);
+        }
+
         return redirect('/publications/'.$publication->id)->with('success', 'Dokumen berhasil divalidasi. '.$publication->page_count.' halaman siap diperiksa.');
+    }
+
+    public function batchStart(Request $request, AuditCoordinator $coordinator): RedirectResponse|\Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'publication_ids' => ['required', 'array', 'min:1', 'max:15'],
+            'publication_ids.*' => ['required', 'string', 'exists:publications,id'],
+            'audit_mode' => ['nullable', 'string', 'in:ai,machine,fusion'],
+        ]);
+
+        if (($data['audit_mode'] ?? null) === 'fusion' && $request->user()?->role !== 'admin') {
+            throw ValidationException::withMessages(['audit_mode' => 'Mode Fusion Dual-Engine hanya dapat dijalankan oleh Administrator.']);
+        }
+
+        foreach ($data['publication_ids'] as $pubId) {
+            $pub = Publication::findOrFail($pubId);
+            Gate::authorize('update', $pub);
+        }
+
+        $res = $coordinator->enqueueBatch($data['publication_ids'], $data['audit_mode'] ?? null);
+
+        $msg = $res['queued_count'].' publikasi dimasukkan ke antrean batch. Pemeriksaan dikerjakan otomatis satu per satu di server (aman ditinggal atau tutup browser).';
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => $msg,
+                ...$res,
+            ]);
+        }
+
+        return redirect('/publications')->with('success', $msg);
+    }
+
+    public function batchCancel(Publication $publication, AuditCoordinator $coordinator): RedirectResponse
+    {
+        Gate::authorize('update', $publication);
+        $coordinator->cancelBatchQueue($publication);
+        $coordinator->advanceBatchQueue();
+
+        return back()->with('success', 'Publikasi dikeluarkan dari antrean batch.');
     }
 
     public function show(Request $request, Publication $publication): Response
@@ -132,6 +189,7 @@ class PublicationController extends Controller
                         'provenance' => $r->provenance,
                         'access_status' => $r->access_status,
                         'read_status' => $r->read_status,
+                        'metadata' => $r->metadata,
                         'artifact_manifest' => $r->artifact_manifest,
                     ]),
                 ];

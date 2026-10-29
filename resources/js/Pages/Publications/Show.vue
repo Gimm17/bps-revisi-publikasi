@@ -184,6 +184,11 @@ async function choose(f: Finding) {
     adding.value = false;
     mobileTab.value = "findings";
 }
+async function deselect() {
+    if (!(await canLeave())) return;
+    selectedId.value = null;
+    adding.value = false;
+}
 async function add() {
     if (!(await canLeave())) return;
     selectedId.value = null;
@@ -292,6 +297,7 @@ onMounted(() => {
     timer = setInterval(() => {
         if (
             (running.value ||
+                props.publication.status === "batch_queued" ||
                 props.exports.some((e) =>
                     ["pending", "processing"].includes(e.status),
                 )) &&
@@ -356,14 +362,23 @@ onUnmounted(() => {
                                     : (publication.status === 'reconciling'
                                         ? 'Sedang merekonsiliasi hasil...'
                                         : 'Sedang diperiksa...')))
-                            : publication.status === 'draft'
-                              ? (publication.audit_mode === 'machine'
-                                  ? 'Mulai pemeriksaan mesin'
-                                  : (publication.audit_mode === 'fusion'
-                                      ? 'Mulai pemeriksaan (Mesin + AI)'
-                                      : 'Mulai pemeriksaan'))
-                              : 'Lanjutkan pemeriksaan'
+                            : publication.status === 'batch_queued'
+                              ? 'Periksa sekarang (Dahulukan)'
+                              : publication.status === 'draft'
+                                ? (publication.audit_mode === 'machine'
+                                    ? 'Mulai pemeriksaan mesin'
+                                    : (publication.audit_mode === 'fusion'
+                                        ? 'Mulai pemeriksaan (Mesin + AI)'
+                                        : 'Mulai pemeriksaan'))
+                                : 'Lanjutkan pemeriksaan'
                     }}</button
+                ><button
+                    v-if="canEdit && publication.status === 'batch_queued'"
+                    class="button secondary"
+                    :disabled="busy"
+                    @click="action('/batch-cancel')"
+                >
+                    Keluarkan dari antrean batch</button
                 ><button
                     v-if="canEdit && publication.status === 'partial_failure' && publication.audit_mode !== 'machine'"
                     class="button secondary"
@@ -384,6 +399,10 @@ onUnmounted(() => {
                     }}</button
                 >
             </div>
+        </div>
+        <div v-if="publication.status === 'batch_queued'" class="notice neutral" style="border: 1px solid #bfdbfe; background: #eff6ff; color: #1e3a8a;">
+            <strong>Dokumen ini sedang berada dalam antrean batch server.</strong>
+            Pemeriksaan akan dimulai secara otomatis sesuai giliran satu per satu di server meskipun Anda menutup tab browser. Anda juga dapat menekan <em>Periksa sekarang (Dahulukan)</em> jika ingin menjalankannya saat ini juga.
         </div>
         <div class="audit-progress" aria-live="polite">
             <CheckCircle2 :size="21" />
@@ -853,7 +872,7 @@ onUnmounted(() => {
                             />Tampilkan seluruh halaman</label
                         >
                     </div>
-                    <div class="finding-list">
+                    <div :class="['finding-list', { 'has-active-editor': selected || adding }]">
                         <button
                             v-for="f in filtered"
                             :key="f.id"
@@ -904,6 +923,7 @@ onUnmounted(() => {
                         :page="currentPage.physical_page"
                         @evidence="pageTo"
                         @saved="adding = false"
+                        @close="deselect"
                     />
                 </aside>
             </div>

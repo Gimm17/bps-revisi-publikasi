@@ -867,12 +867,15 @@ function formatDuration(ms: number | undefined | null): string {
                     <div class="preset-chips">
                         <span class="preset-label">Preset cepat:</span>
                         <button type="button" class="preset-chip" @click="currentForm.base_url = 'https://api.9router.com/v1'">
-                            9Router
+                            9Router Cloud
                         </button>
                         <button type="button" class="preset-chip" @click="currentForm.base_url = 'https://api.limitrouter.com/v1'">
                             LimitRouter
                         </button>
                     </div>
+                    <p style="font-size: 0.8rem; color: #5a6460; margin-top: 0.35rem; line-height: 1.4;">
+                        Untuk 9Router di komputer lokal, aktifkan fitur <strong>Tunnel</strong> di dashboard 9Router (tab Endpoint) dan gunakan URL HTTPS publik Tunnel yang dihasilkan di sini.
+                    </p>
 
                     <label for="agent-model">Model Vision</label>
                     <input

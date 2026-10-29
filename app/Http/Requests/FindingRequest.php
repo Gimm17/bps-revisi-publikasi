@@ -22,7 +22,7 @@ class FindingRequest extends FormRequest
             'review_note' => ['nullable', 'string', 'max:3000'], 'deleted' => ['sometimes', 'boolean'],
             'page' => ['sometimes', 'integer', 'min:1', 'max:'.$this->route('publication')->page_count],
             'quote' => ['sometimes', 'nullable', 'string', 'max:3000'],
-            'evidences' => ['sometimes', 'array', 'min:1', 'max:50'],
+            'evidences' => ['sometimes', 'array', 'min:1', 'max:500'],
             'evidences.*' => ['array'],
             'evidences.*.physical_page' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:'.$this->route('publication')->page_count],
             'evidences.*.printed_page' => ['sometimes', 'nullable', 'string', 'max:50'],

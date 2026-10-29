@@ -16,8 +16,76 @@ class NineRouterClient
     {
         $parts = parse_url($url);
         $host = strtolower($parts['host'] ?? '');
-        if (($parts['scheme'] ?? '') !== 'https' || isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment']) || ! in_array($host, config('audit.allowed_ai_hosts'), true) || filter_var($host, FILTER_VALIDATE_IP)) {
-            throw ValidationException::withMessages(['base_url' => 'Gunakan alamat HTTPS pada host penyedia AI yang disetujui pengembang (9Router atau LimitRouter).']);
+        $scheme = strtolower($parts['scheme'] ?? '');
+
+        // 1. Lingkungan lokal (development): izinkan http://localhost dan 127.0.0.1
+        $isLocalHost = in_array($host, ['localhost', '127.0.0.1', '::1'], true);
+        if ($isLocalHost && ! app()->environment('production')) {
+            if ($scheme !== 'http' && $scheme !== 'https') {
+                throw ValidationException::withMessages(['base_url' => 'Protokol URL lokal harus berupa http:// atau https://.']);
+            }
+            return rtrim($url, '/');
+        }
+
+        // 2. Lingkungan production cloud: beri edukasi jelas jika user memasukkan localhost
+        if ($isLocalHost && app()->environment('production')) {
+            throw ValidationException::withMessages([
+                'base_url' => 'Website ini berjalan di cloud hosting (pinnhost.my.id), sehingga tidak dapat mengakses http://localhost di laptop Anda secara langsung. Silakan aktifkan tombol "Tunnel" di 9Router lokal Anda, lalu masukkan URL HTTPS Tunnel publiknya di sini.',
+            ]);
+        }
+
+        // 3. Wajib HTTPS untuk akses remote ke penyedia AI
+        if ($scheme !== 'https') {
+            throw ValidationException::withMessages([
+                'base_url' => 'Gunakan protokol HTTPS (contoh: https://.../v1). Untuk 9Router lokal, aktifkan fitur Tunnel di dashboard 9Router untuk mendapatkan alamat HTTPS publik.',
+            ]);
+        }
+
+        if (isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment'])) {
+            throw ValidationException::withMessages(['base_url' => 'Base URL tidak boleh mengandung kredensial atau parameter query (? atau #).']);
+        }
+
+        // 4. Periksa izin host (mendukung domain resmi dan domain tunnel 9Router)
+        $allowedHosts = config('audit.allowed_ai_hosts', []);
+        $defaultTunnelSuffixes = [
+            '9router.com',
+            'limitrouter.com',
+            'abc-tunnel.us',
+            'trycloudflare.com',
+            'ngrok-free.app',
+            'ngrok.io',
+            'loca.lt',
+            'pinggy.link',
+            'tailscale.net',
+            'ts.net',
+        ];
+        $allPatterns = array_unique(array_merge($allowedHosts, $defaultTunnelSuffixes));
+
+        $isAllowed = in_array('*', $allowedHosts, true);
+        if (! $isAllowed) {
+            foreach ($allPatterns as $pattern) {
+                $pattern = strtolower(trim($pattern));
+                if ($pattern === '') continue;
+
+                if (str_starts_with($pattern, '*.')) {
+                    $root = substr($pattern, 2);
+                    if ($host === $root || str_ends_with($host, '.'.$root)) {
+                        $isAllowed = true;
+                        break;
+                    }
+                } else {
+                    if ($host === $pattern || str_ends_with($host, '.'.$pattern)) {
+                        $isAllowed = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (! $isAllowed) {
+            throw ValidationException::withMessages([
+                'base_url' => "Host \"{$host}\" belum terdaftar. Gunakan host resmi (9Router/LimitRouter) atau URL Tunnel (Cloudflare Tunnel *.trycloudflare.com, Ngrok, Tailscale).",
+            ]);
         }
 
         return rtrim($url, '/');

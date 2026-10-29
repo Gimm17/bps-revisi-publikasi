@@ -42,7 +42,21 @@ class CrossChecker
         }
         foreach ($identity as $field => $evidence) {
             if (count(array_unique(array_map(fn ($e) => $this->normalize($e['quote']), $evidence))) > 1) {
-                $findings[] = $this->make('IDENTITY.CONSISTENCY', 'Identitas '.$field.' berbeda: '.implode('; ', array_map(fn ($e) => 'PDF hlm. '.$e['page'].' “'.$e['quote'].'”', $evidence)), 'Identitas publikasi sama pada semua bagian yang merujuk publikasi ini.', 'Cocokkan '.$field.' dengan metadata resmi kemudian samakan bagian yang terbukti salah.', $evidence, 'verifikasi');
+                $uniqueValues = [];
+                $sampleQuotes = [];
+                foreach ($evidence as $e) {
+                    $norm = $this->normalize($e['quote']);
+                    if (!isset($uniqueValues[$norm])) {
+                        $uniqueValues[$norm] = true;
+                        $sampleQuotes[] = 'PDF hlm. '.$e['page'].' “'.$e['quote'].'”';
+                    }
+                }
+                $diffCount = count($evidence);
+                $observedStr = $diffCount > 5
+                    ? 'Identitas '.$field.' memiliki variasi nilai berbeda di '.$diffCount.' halaman, contoh: '.implode('; ', array_slice($sampleQuotes, 0, 4)).' (dan halaman lainnya).'
+                    : 'Identitas '.$field.' berbeda: '.implode('; ', array_map(fn ($e) => 'PDF hlm. '.$e['page'].' “'.$e['quote'].'”', $evidence));
+
+                $findings[] = $this->make('IDENTITY.CONSISTENCY', $observedStr, 'Identitas publikasi sama pada semua bagian yang merujuk publikasi ini.', 'Cocokkan '.$field.' dengan metadata resmi kemudian samakan bagian yang terbukti salah.', $evidence, 'verifikasi');
             }
         }
 

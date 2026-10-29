@@ -22,6 +22,7 @@ const page = usePage<Shared>();
 const menu = ref(false);
 const mobileMenuOpen = ref(false);
 const navRef = ref<HTMLElement | null>(null);
+const accountRef = ref<HTMLElement | null>(null);
 defineProps<{ wide?: boolean }>();
 
 function scrollActiveNavIntoView() {
@@ -49,13 +50,21 @@ function handleKeydown(e: KeyboardEvent) {
     }
 }
 
+function handleDocumentClick(e: MouseEvent) {
+    if (menu.value && accountRef.value && !accountRef.value.contains(e.target as Node)) {
+        menu.value = false;
+    }
+}
+
 onMounted(() => {
     scrollActiveNavIntoView();
     window.addEventListener("keydown", handleKeydown);
+    document.addEventListener("click", handleDocumentClick);
 });
 
 onUnmounted(() => {
     window.removeEventListener("keydown", handleKeydown);
+    document.removeEventListener("click", handleDocumentClick);
 });
 
 watch(() => page.url, () => {
@@ -143,9 +152,11 @@ watch(() => page.url, () => {
                 </Link>
 
                 <!-- Desktop Account Dropdown -->
-                <div class="account desktop-only">
+                <div class="account desktop-only" ref="accountRef">
                     <button
+                        type="button"
                         class="account-trigger"
+                        :class="{ open: menu }"
                         @click="menu = !menu"
                         :aria-expanded="menu"
                         aria-controls="account-menu"
@@ -157,26 +168,52 @@ watch(() => page.url, () => {
                         <span class="account-name">{{
                             page.props.auth.user.name.split(" ")[0]
                         }}</span>
-                        <ChevronDown :size="16" />
+                        <ChevronDown :size="16" class="account-chevron" :class="{ rotated: menu }" />
                     </button>
-                    <div
-                        v-if="menu"
-                        id="account-menu"
-                        class="account-menu"
-                        @keydown.esc="menu = false"
-                    >
-                        <p class="account-email">{{ page.props.auth.user.email }}</p>
-                        <Link
-                            v-if="page.props.auth.user.role === 'admin'"
-                            href="/settings"
-                            @click="menu = false"
+                    <Transition name="dropdown-pop">
+                        <div
+                            v-if="menu"
+                            id="account-menu"
+                            class="account-menu"
+                            @keydown.esc="menu = false"
                         >
-                            <Settings :size="18" />Pengaturan
-                        </Link>
-                        <Link href="/logout" method="post" as="button">
-                            <LogOut :size="18" />Keluar
-                        </Link>
-                    </div>
+                            <div class="account-header">
+                                <div class="account-user-meta">
+                                    <span class="account-fullname">{{ page.props.auth.user.name }}</span>
+                                    <span class="account-role-badge">
+                                        {{ page.props.auth.user.role === 'admin' ? 'Admin' : 'Pemeriksa' }}
+                                    </span>
+                                </div>
+                                <p class="account-email">{{ page.props.auth.user.email }}</p>
+                            </div>
+                            <div class="account-menu-items">
+                                <Link
+                                    v-if="page.props.auth.user.role === 'admin'"
+                                    href="/settings"
+                                    class="account-menu-link"
+                                    @click="menu = false"
+                                >
+                                    <span class="menu-icon-wrap icon-settings">
+                                        <Settings :size="16" />
+                                    </span>
+                                    <span class="menu-label">Pengaturan</span>
+                                </Link>
+                                <div v-if="page.props.auth.user.role === 'admin'" class="account-menu-divider" />
+                                <Link
+                                    href="/logout"
+                                    method="post"
+                                    as="button"
+                                    class="account-menu-link logout"
+                                    @click="menu = false"
+                                >
+                                    <span class="menu-icon-wrap icon-logout">
+                                        <LogOut :size="16" />
+                                    </span>
+                                    <span class="menu-label">Keluar</span>
+                                </Link>
+                            </div>
+                        </div>
+                    </Transition>
                 </div>
             </template>
             <template v-else>

@@ -96,5 +96,6 @@ class FinalizeAudit implements ShouldBeUnique, ShouldQueue
     public function failed(?\Throwable $exception): void
     {
         Publication::whereKey($this->publicationId)->update(['status' => 'partial_failure', 'error' => 'Pemeriksaan silang gagal. Lanjutkan pemeriksaan untuk mencoba ulang.']);
+        app(AuditCoordinator::class)->advanceBatchQueue();
     }
 }

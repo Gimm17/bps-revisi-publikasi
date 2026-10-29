@@ -27,7 +27,7 @@ return new class extends Migration
                 $table->string('machine_status', 16)->nullable()->after('status');
             }
             if (! Schema::hasColumn('publication_pages', 'fusion_status')) {
-                $table->string('fusion_status', 24)->nullable()->after('machine_status');
+                $table->string('fusion_status', 64)->nullable()->after('machine_status');
             }
         });
 
@@ -36,7 +36,7 @@ return new class extends Migration
                 $table->string('detected_by', 16)->default('ai')->after('source');
             }
             if (! Schema::hasColumn('findings', 'fusion_status')) {
-                $table->string('fusion_status', 24)->nullable()->after('detected_by');
+                $table->string('fusion_status', 64)->nullable()->after('detected_by');
             }
         });
 

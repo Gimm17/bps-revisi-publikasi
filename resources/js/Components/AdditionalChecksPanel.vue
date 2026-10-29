@@ -25,12 +25,52 @@ const props = defineProps<{
 
 const showStartDialog = ref(false);
 const showPairModal = ref(false);
+const showManualVolumeInput = ref(false);
+const manualPriorVolume = ref<string>("");
 const busy = ref(false);
 
 const selectedScope = ref<string[]>(["volume", "cover_title", "print_layout"]);
 
 const latestRun = computed(() => props.checkRuns?.[0] ?? null);
 const checks = computed<CheckItemRecord[]>(() => (latestRun.value as any)?.checks ?? []);
+const latestReference = computed(() => {
+    const refs = (latestRun.value as any)?.references ?? [];
+    return refs.length > 0 ? refs[refs.length - 1] : null;
+});
+
+const volumeResult = computed(() => getCheckRecord("volume")?.result ?? null);
+
+const hasCoverArtifact = computed(() => {
+    const manifest = latestReference.value?.artifact_manifest ?? [];
+    return Array.isArray(manifest) && manifest.some((a: any) => a.artifact_type === "cover_image" && a.path);
+});
+
+const coverArtifactUrl = computed(() => {
+    if (!latestReference.value || !hasCoverArtifact.value) return null;
+    return `/publications/${props.publicationId}/references/${latestReference.value.id}/artifacts/cover_image`;
+});
+
+function submitManualVolume() {
+    const parsed = parseInt(String(manualPriorVolume.value), 10);
+    if (!parsed || parsed < 1 || parsed > 500) return;
+    busy.value = true;
+    router.post(
+        `/publications/${props.publicationId}/checks/volume-manual`,
+        {
+            prior_volume: parsed,
+            prior_year: volumeResult.value?.prior_year ?? latestReference.value?.year ?? undefined,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                showManualVolumeInput.value = false;
+            },
+            onFinish: () => {
+                busy.value = false;
+            },
+        }
+    );
+}
 
 const checkTypes = [
     {
@@ -234,6 +274,108 @@ function handleKeydown(e: KeyboardEvent) {
                     <small>{{ getCheckRecord(ct.key)?.error_message }}</small>
                 </div>
 
+                <!-- Volume Verification Rich Details & 1-Click Quick Verify -->
+                <div v-if="ct.key === 'volume' && getCheckRecord('volume')" class="volume-details-section">
+                    <div
+                        v-if="volumeResult?.reference_meta?.title || latestReference?.metadata?.title || volumeResult?.prior_volume"
+                        class="volume-reference-card"
+                    >
+                        <img
+                            v-if="coverArtifactUrl"
+                            :src="coverArtifactUrl"
+                            alt="Sampul Edisi Sebelumnya"
+                            class="volume-ref-thumb"
+                        />
+                        <div class="volume-ref-info">
+                            <div class="volume-ref-badges">
+                                <span class="ref-source-badge">
+                                    {{
+                                        latestReference?.provenance === 'bps_webapi'
+                                            ? 'BPS WebAPI Resmi'
+                                            : latestReference?.provenance === 'local_registry'
+                                            ? 'Memori Rujukan'
+                                            : latestReference?.provenance === 'manual_verified'
+                                            ? 'Verifikasi Manual'
+                                            : 'Rujukan Eksternal'
+                                    }}
+                                </span>
+                                <span v-if="volumeResult?.reference_meta?.catalogue_number || latestReference?.metadata?.catalogue_number" class="ref-cat-badge">
+                                    Katalog: {{ volumeResult?.reference_meta?.catalogue_number || latestReference?.metadata?.catalogue_number }}
+                                </span>
+                            </div>
+                            <strong class="volume-ref-title">
+                                {{ volumeResult?.reference_meta?.title || latestReference?.metadata?.title || `Edisi Tahun ${volumeResult?.prior_year || ''}` }}
+                            </strong>
+                            <div v-if="volumeResult?.prior_volume && volumeResult?.expected_volume" class="volume-progression-pill">
+                                <span>Edisi {{ volumeResult.prior_year }}: <strong>Volume {{ volumeResult.prior_volume }}</strong></span>
+                                <span class="prog-arrow">&rarr;</span>
+                                <span>Target Edisi Ini: <strong>Volume {{ volumeResult.expected_volume }}</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        v-if="volumeResult?.components && Object.keys(volumeResult.components).length > 0"
+                        class="volume-components-grid"
+                    >
+                        <div
+                            v-for="(comp, partKey) in volumeResult.components"
+                            :key="partKey"
+                            class="volume-comp-chip"
+                            :class="{
+                                'comp-match': comp.match === true,
+                                'comp-mismatch': comp.match === false,
+                                'comp-neutral': comp.match === null
+                            }"
+                        >
+                            <div class="comp-top">
+                                <span class="comp-label">{{ comp.label }}</span>
+                                <span v-if="comp.page" class="comp-page">hlm. {{ comp.page }}</span>
+                            </div>
+                            <strong class="comp-val">
+                                {{ comp.observed !== null && comp.observed !== undefined ? `Volume ${comp.observed}` : 'Belum tertulis' }}
+                            </strong>
+                        </div>
+                    </div>
+
+                    <!-- Quick Verify / Override Form -->
+                    <div
+                        v-if="canEdit && (getCheckRecord('volume')?.decision === 'needs_verification' || showManualVolumeInput)"
+                        class="volume-quick-verify-box"
+                    >
+                        <label class="quick-verify-label">
+                            Konfirmasi Cepat Volume Edisi Sebelumnya ({{ volumeResult?.prior_year || 'Tahun Lalu' }}):
+                        </label>
+                        <div class="quick-verify-row">
+                            <input
+                                v-model="manualPriorVolume"
+                                type="number"
+                                min="1"
+                                max="500"
+                                placeholder="Mis. 11"
+                                class="quick-verify-input"
+                                @keydown.enter.prevent="submitManualVolume"
+                            />
+                            <button
+                                type="button"
+                                class="button primary btn-sm"
+                                :disabled="busy || !manualPriorVolume"
+                                @click="submitManualVolume"
+                            >
+                                Simpan &amp; Verifikasi
+                            </button>
+                            <button
+                                v-if="showManualVolumeInput && getCheckRecord('volume')?.decision !== 'needs_verification'"
+                                type="button"
+                                class="button secondary btn-sm"
+                                @click="showManualVolumeInput = false"
+                            >
+                                Batal
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="check-card-actions">
                     <button
                         v-if="ct.key === 'cover_title'"
@@ -246,6 +388,18 @@ function handleKeydown(e: KeyboardEvent) {
                     </button>
 
                     <button
+                        v-if="ct.key === 'volume' && canEdit && getCheckRecord('volume') && getCheckRecord('volume')?.decision !== 'needs_verification' && !showManualVolumeInput"
+                        type="button"
+                        class="button secondary btn-sm"
+                        @click="
+                            manualPriorVolume = String(volumeResult?.prior_volume || '');
+                            showManualVolumeInput = true;
+                        "
+                    >
+                        <span>Koreksi Volume Rujukan</span>
+                    </button>
+
+                    <button
                         v-if="canEdit && getCheckRecord(ct.key) && ['failed', 'retry_wait', 'needs_verification'].includes(getCheckRecord(ct.key)?.execution_status || getCheckRecord(ct.key)?.decision || '')"
                         type="button"
                         class="button secondary btn-sm retry-btn"
@@ -253,7 +407,7 @@ function handleKeydown(e: KeyboardEvent) {
                         @click="retryCheck(getCheckRecord(ct.key)!.id)"
                     >
                         <RotateCcw :size="14" />
-                        <span>Coba Ulang</span>
+                        <span>Coba Ulang via BPS API</span>
                     </button>
                 </div>
             </div>
@@ -567,5 +721,141 @@ function handleKeydown(e: KeyboardEvent) {
 }
 .pair-modal-container {
     margin-top: 1.5rem;
+}
+
+.volume-details-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin: 0.5rem 0;
+}
+.volume-reference-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.65rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+}
+.volume-ref-thumb {
+    width: 48px;
+    height: 66px;
+    object-fit: cover;
+    border-radius: 0.25rem;
+    border: 1px solid #cbd5e1;
+    flex-shrink: 0;
+}
+.volume-ref-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+.volume-ref-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+.ref-source-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+    background: #dbeafe;
+    color: #1e40af;
+}
+.ref-cat-badge {
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+    background: #f1f5f9;
+    color: #475569;
+}
+.volume-ref-title {
+    font-size: 0.8rem;
+    color: #0f172a;
+    line-height: 1.25;
+}
+.volume-progression-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    color: #334155;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.25rem;
+    margin-top: 0.15rem;
+}
+.prog-arrow {
+    color: #64748b;
+    font-weight: 700;
+}
+.volume-components-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+}
+.volume-comp-chip {
+    display: flex;
+    flex-direction: column;
+    padding: 0.4rem 0.55rem;
+    border-radius: 0.3rem;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+.volume-comp-chip.comp-match {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #166534;
+}
+.volume-comp-chip.comp-mismatch {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #991b1b;
+}
+.comp-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.68rem;
+    opacity: 0.85;
+}
+.comp-page {
+    font-weight: 600;
+}
+.comp-val {
+    font-size: 0.78rem;
+    margin-top: 0.1rem;
+}
+.volume-quick-verify-box {
+    padding: 0.65rem;
+    background: #f8fafc;
+    border: 1px dashed #94a3b8;
+    border-radius: 0.375rem;
+}
+.quick-verify-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.4rem;
+}
+.quick-verify-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+.quick-verify-input {
+    width: 90px;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.8rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.25rem;
+    background: #ffffff;
 }
 </style>

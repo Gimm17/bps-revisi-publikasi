@@ -212,11 +212,43 @@ class AdditionalCheckCoordinator
     public function executeVolume(PublicationCheckRun $run, PublicationCheck $check): void
     {
         $pub = $run->publication;
+        $context = $pub->context ?? [];
+
+        try {
+            $bpsClient = app(BpsWebApiClient::class);
+            $extracted = $bpsClient->extractCurrentPublicationIdentity($pub);
+            $extractedHasValues = ! empty(array_filter($extracted['observed_volumes'] ?? [], fn ($v) => $v !== null));
+            $context = array_merge($context, [
+                'year' => $pub->year ?? ($extracted['year'] ?? 2026),
+                'bps_domain' => $extracted['domain_id'] ?? ($context['bps_domain'] ?? null),
+                'domain_id' => $extracted['domain_id'] ?? ($context['domain_id'] ?? null),
+                'catalogue_number' => $extracted['catalogue_number'] ?? ($context['catalogue_number'] ?? null),
+                'publication_number' => $extracted['publication_number'] ?? ($context['publication_number'] ?? null),
+                'observed_volumes' => $extractedHasValues ? $extracted['observed_volumes'] : (! empty($context['observed_volumes']) ? $context['observed_volumes'] : ($extracted['observed_volumes'] ?? [])),
+                'page_map' => $extracted['page_map'] ?? ($context['page_map'] ?? []),
+            ]);
+            $pub->update(['context' => $context]);
+        } catch (\Throwable) {
+            // Keep existing context if extraction fails
+        }
+
+        // Remove unreviewed stale VOLUME.HISTORY findings before storing updated ones
+        $pub->findings()
+            ->where('rule_code', 'VOLUME.HISTORY')
+            ->where('review_status', 'unreviewed')
+            ->delete();
+
         $reference = $run->references()->latest('id')->first();
         if ($reference) {
-            $res = $this->volumeChecker->compare($pub->context ?? [], [
+            $res = $this->volumeChecker->compare($context, [
                 'read_status' => $reference->read_status,
                 'prior_volume' => $reference->metadata['volume'] ?? null,
+                'prior_year' => $reference->year ?? (($pub->year ?? 2026) - 1),
+                'metadata' => array_merge($reference->metadata ?? [], [
+                    'reference_id' => $reference->id,
+                    'source_url' => $reference->source_url,
+                    'provenance' => $reference->provenance,
+                ]),
                 'evidences' => $reference->artifact_manifest ?? [],
             ]);
             foreach ($res['findings'] as $candidate) {
@@ -231,15 +263,23 @@ class AdditionalCheckCoordinator
                 'error_message' => ! empty($res['limitations']) ? implode('; ', $res['limitations']) : null,
             ]);
         } else {
+            $res = $this->volumeChecker->compare($context, [
+                'read_status' => 'unreadable',
+                'prior_volume' => null,
+                'prior_year' => ($pub->year ?? 2026) - 1,
+                'metadata' => [],
+                'evidences' => [],
+            ]);
+            foreach ($res['findings'] as $candidate) {
+                $candidate['check_run_id'] = $run->id;
+                $this->writer->store($pub, $candidate);
+            }
             $check->update([
                 'execution_status' => 'completed',
-                'decision' => 'needs_verification',
-                'result' => [
-                    'decision' => 'needs_verification',
-                    'limitations' => ['Volume edisi sebelumnya belum diverifikasi secara daring (rujukan eksternal dapat diunggah manual jika diperlukan).'],
-                ],
+                'decision' => $res['decision'],
+                'result' => $res,
                 'evidences' => [],
-                'error_message' => 'Volume edisi sebelumnya belum diverifikasi secara daring.',
+                'error_message' => ! empty($res['limitations']) ? implode('; ', $res['limitations']) : 'Volume edisi sebelumnya belum diverifikasi secara daring.',
             ]);
         }
 

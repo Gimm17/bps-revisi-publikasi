@@ -44,9 +44,13 @@ class AuditCoordinator
             default => 'processing',
         };
 
+        $ctx = $publication->context ?? [];
+        unset($ctx['batch_queued_at'], $ctx['batch_order']);
+
         $publication->update([
             'ai_config_id' => $config?->id,
             'status' => $initialStatus,
+            'context' => $ctx,
             'fusion_summary' => $mode === 'fusion' ? ['stage' => 'machine'] : null,
             'started_at' => $publication->started_at ?? now(),
             'error' => null,
@@ -265,6 +269,133 @@ class AuditCoordinator
                 'status' => 'partial_failure',
                 'error' => 'Pemeriksaan selesai untuk sebagian besar halaman. Ada halaman yang membutuhkan verifikasi manual.',
             ]);
+            $this->advanceBatchQueue();
+        }
+    }
+
+    /**
+     * Enqueue up to 15 publications into the sequential server-side batch queue.
+     *
+     * @param  array<int, string>  $publicationIds
+     * @return array{queued_count: int, started_publication_id: ?string}
+     */
+    public function enqueueBatch(array $publicationIds, ?string $auditMode = null): array
+    {
+        $readyAgents = AiAgent::ready()->where('slot', '<=', 5)->get();
+        $config = AiProviderConfig::latest('id')->first();
+        $hasAiReady = $readyAgents->isNotEmpty() || $config?->vision_tested_at !== null;
+
+        $queuedCount = 0;
+        $orderBase = (int) (microtime(true) * 1000);
+
+        foreach (array_slice(array_values(array_unique($publicationIds)), 0, 15) as $idx => $pubId) {
+            $pub = Publication::find($pubId);
+            if (! $pub || $pub->locked_at || in_array($pub->status, ['final', 'processing', 'processing_machine', 'processing_ai', 'reconciling', 'cross_checking', 'exporting'], true)) {
+                continue;
+            }
+
+            $effectiveMode = $auditMode && in_array($auditMode, ['ai', 'machine', 'fusion'], true)
+                ? $auditMode
+                : ($pub->audit_mode ?? 'ai');
+
+            if ($effectiveMode !== 'machine' && ! $hasAiReady) {
+                throw ValidationException::withMessages([
+                    'ai' => 'Admin perlu mengatur AI Agent dan meluluskan uji pembacaan gambar pada minimal 1 agent sebelum menjalankan pemeriksaan AI.',
+                ]);
+            }
+
+            $ctx = $pub->context ?? [];
+            $ctx['batch_queued_at'] = now()->toIso8601String();
+            $ctx['batch_order'] = $orderBase + $idx;
+
+            $pub->update([
+                'status' => 'batch_queued',
+                'audit_mode' => $effectiveMode,
+                'context' => $ctx,
+                'error' => null,
+            ]);
+
+            $queuedCount++;
+        }
+
+        $started = $this->advanceBatchQueue();
+
+        return [
+            'queued_count' => $queuedCount,
+            'started_publication_id' => $started?->id,
+        ];
+    }
+
+    public function cancelBatchQueue(Publication $publication): void
+    {
+        if ($publication->status !== 'batch_queued') {
+            return;
+        }
+
+        $ctx = $publication->context ?? [];
+        unset($ctx['batch_queued_at'], $ctx['batch_order']);
+
+        $hasCompletedPages = $publication->pages()->where('status', 'complete')->exists();
+        $publication->update([
+            'status' => $hasCompletedPages ? 'partial_failure' : 'draft',
+            'context' => $ctx,
+        ]);
+    }
+
+    /**
+     * Advance the sequential batch queue if no publication is currently actively running.
+     * Ensures 1-by-1 execution and never blocks manual single-publication runs.
+     */
+    public function advanceBatchQueue(): ?Publication
+    {
+        try {
+            return \Illuminate\Support\Facades\Cache::lock('audit-batch-sequencer', 15)->block(5, function (): ?Publication {
+                $activeRunningExists = Publication::whereIn('status', [
+                    'processing',
+                    'processing_machine',
+                    'processing_ai',
+                    'reconciling',
+                    'cross_checking',
+                    'exporting',
+                ])
+                    ->where('updated_at', '>=', now()->subMinutes(30))
+                    ->exists();
+
+                if ($activeRunningExists) {
+                    return null;
+                }
+
+                $candidates = Publication::where('status', 'batch_queued')
+                    ->whereNull('locked_at')
+                    ->get()
+                    ->sortBy(fn (Publication $p) => $p->context['batch_order'] ?? $p->created_at?->timestamp ?? 0);
+
+                /** @var ?Publication $next */
+                $next = $candidates->first();
+                if (! $next) {
+                    return null;
+                }
+
+                $ctx = $next->context ?? [];
+                unset($ctx['batch_queued_at'], $ctx['batch_order']);
+                $next->update(['context' => $ctx]);
+
+                try {
+                    $this->start($next);
+                    $this->afterPage($next);
+
+                    return $next->fresh();
+                } catch (\Throwable $e) {
+                    $next->update([
+                        'status' => 'draft',
+                        'error' => 'Gagal memulai dari antrean batch: '.$e->getMessage(),
+                    ]);
+
+                    return null;
+                }
+            });
+        } catch (\Throwable) {
+            return null;
         }
     }
 

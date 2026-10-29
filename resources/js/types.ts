@@ -243,6 +243,7 @@ export interface Paginated<T> {
 }
 export const labels: Record<string, string> = {
     draft: "Siap diperiksa",
+    batch_queued: "Dalam antrean batch",
     pending: "Menunggu",
     rendering: "Menyiapkan gambar",
     ready: "Gambar siap",

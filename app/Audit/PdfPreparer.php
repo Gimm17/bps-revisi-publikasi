@@ -57,26 +57,49 @@ class PdfPreparer
         if ($page < 1) {
             throw new RuntimeException('Nomor halaman tidak valid.');
         }
-        $cmd = [
-            config('audit.pdftotext', 'pdftotext'),
-            '-f', (string) $page,
-            '-l', (string) $page,
-            '-enc', 'UTF-8',
-        ];
-        if ($layout) {
-            $cmd[] = '-layout';
+
+        // 1. Coba gunakan pdftotext binary jika tersedia
+        $pdftotext = config('audit.pdftotext', 'pdftotext');
+        if (! empty($pdftotext)) {
+            $cmd = [
+                $pdftotext,
+                '-f', (string) $page,
+                '-l', (string) $page,
+                '-enc', 'UTF-8',
+            ];
+            if ($layout) {
+                $cmd[] = '-layout';
+            }
+            $cmd[] = $pdfPath;
+            $cmd[] = '-';
+
+            try {
+                $process = new Process($cmd);
+                $process->setTimeout(30);
+                $process->run();
+
+                if ($process->isSuccessful()) {
+                    return $process->getOutput();
+                }
+            } catch (\Throwable $e) {
+                // Lanjut ke fallback Smalot Parser
+            }
         }
-        $cmd[] = $pdfPath;
-        $cmd[] = '-';
 
-        $process = new Process($cmd);
-        $process->setTimeout(30);
-        $process->run();
-
-        if (! $process->isSuccessful()) {
-            throw new RuntimeException('Gagal mengekstrak teks halaman '.$page.': '.$process->getErrorOutput());
+        // 2. Fallback pure-PHP Smalot PDF Parser
+        if (class_exists(\Smalot\PdfParser\Parser::class)) {
+            try {
+                $parser = new \Smalot\PdfParser\Parser();
+                $document = $parser->parseFile($pdfPath);
+                $pages = $document->getPages();
+                if (isset($pages[$page - 1])) {
+                    return (string) $pages[$page - 1]->getText();
+                }
+            } catch (\Throwable $e) {
+                // Abaikan kesalahan parser fallback
+            }
         }
 
-        return $process->getOutput();
+        return '';
     }
 }

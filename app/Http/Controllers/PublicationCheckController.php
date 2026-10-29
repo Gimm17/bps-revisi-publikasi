@@ -96,6 +96,85 @@ class PublicationCheckController extends Controller
         return back()->with('success', 'Dokumen rujukan manual berhasil diunggah.');
     }
 
+    public function verifyVolumeManually(Request $request, Publication $publication, AdditionalCheckCoordinator $coordinator): RedirectResponse
+    {
+        Gate::authorize('update', $publication);
+
+        $data = $request->validate([
+            'prior_volume' => ['required', 'integer', 'between:1,500'],
+            'prior_year' => ['nullable', 'integer', 'between:1990,2050'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $priorYear = (int) ($data['prior_year'] ?? (($publication->year ?? 2026) - 1));
+        $priorVolume = (int) $data['prior_volume'];
+
+        $run = $publication->checkRuns()->latest()->first();
+        if (! $run) {
+            $run = $publication->checkRuns()->create([
+                'requested_by' => $request->user()->id,
+                'mode' => 'supplemental',
+                'baseline_rule_version' => $publication->rule_version,
+                'target_rule_version' => config('audit.target_rule_version', 'bps-2026.10.18-v2'),
+                'prompt_version' => 'page-v2',
+                'pdf_sha256' => $publication->pdf_checksum,
+                'rules_path' => 'audit-rules/pedoman-v2.md',
+                'rules_hash' => hash('sha256', 'v2'),
+                'scope' => ['volume'],
+                'status' => 'running',
+                'started_at' => now(),
+            ]);
+        }
+
+        $existingRef = $run->references()->latest('id')->first();
+        $baseMeta = $existingRef?->metadata ?? [];
+        $mergedMeta = array_merge($baseMeta, [
+            'title' => $baseMeta['title'] ?? ('Kecamatan '.$publication->region.' Dalam Angka '.$priorYear),
+            'year' => $priorYear,
+            'volume' => $priorVolume,
+            'volume_source' => 'manual_verified',
+            'notes' => $data['notes'] ?? null,
+        ]);
+
+        PublicationReference::create([
+            'check_run_id' => $run->id,
+            'series' => $publication->kind,
+            'jurisdiction' => $publication->region,
+            'year' => $priorYear,
+            'source_url' => $existingRef?->source_url,
+            'metadata' => $mergedMeta,
+            'provenance' => 'manual_verified',
+            'access_status' => 'opened',
+            'read_status' => 'readable',
+            'scope' => 'cover_only',
+            'artifact_manifest' => $existingRef?->artifact_manifest ?? [
+                [
+                    'id' => 1,
+                    'kind' => 'reference_artifact',
+                    'artifact_type' => 'manual_verification',
+                    'provenance' => 'manual_verified',
+                    'quote' => "Edisi {$priorYear} diverifikasi manual sebagai Volume {$priorVolume}",
+                ],
+            ],
+            'fetched_at' => now(),
+            'reviewed_by' => $request->user()->id,
+            'reviewed_at' => now(),
+        ]);
+
+        $volumeCheck = $run->checks()->where('check_type', 'volume')->first();
+        if (! $volumeCheck) {
+            $volumeCheck = $run->checks()->create([
+                'check_type' => 'volume',
+                'input_hash' => hash('sha256', $run->id.'|volume'),
+                'execution_status' => 'pending',
+            ]);
+        }
+
+        $coordinator->executeVolume($run, $volumeCheck);
+
+        return back()->with('success', "Volume edisi {$priorYear} (Volume {$priorVolume}) berhasil disimpan dan diverifikasi.");
+    }
+
     public function artifact(Request $request, Publication $publication, PublicationReference $reference, string $artifact): BinaryFileResponse
     {
         abort_unless($reference->checkRun && $reference->checkRun->publication_id === $publication->id, 404);
