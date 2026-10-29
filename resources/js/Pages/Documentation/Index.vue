@@ -84,6 +84,9 @@ const openFaqs = ref<Record<string, boolean>>({
     faq_3: false,
     faq_4: false,
     faq_5: false,
+    faq_6: false,
+    faq_7: false,
+    faq_8: false,
 });
 
 const toggleFaq = (key: string) => {
@@ -284,20 +287,22 @@ const matchesSearch = (text: string) => {
                         <div class="step-number">1</div>
                         <div class="step-body">
                             <div class="step-heading">
-                                <h3>Unggah File Publikasi PDF</h3>
+                                <h3>Unggah File PDF (Mendukung Drag &amp; Drop hingga 15 PDF Sekaligus)</h3>
                                 <span class="badge blue">Halaman: /publications/create</span>
                             </div>
                             <p>
-                                Masuk ke menu <strong>Pemeriksaan Baru</strong>. Pilih atau seret (*drag-and-drop*) file dokumen publikasi resmi BPS (misalnya: <em>Kecamatan Dalam Angka</em>, <em>Kabupaten Dalam Angka</em>, atau <em>Statistik Daerah</em>) dalam format PDF.
+                                Masuk ke menu <strong>Pemeriksaan Baru</strong>. Anda dapat memilih 1 file PDF tunggal atau langsung menarik (*drag-and-drop*) <strong>hingga 15 file PDF sekaligus</strong> (misalnya seluruh buku <em>Kecamatan Dalam Angka</em> atau <em>Kabupaten Dalam Angka</em> di wilayah Anda).
                             </p>
                             <ul class="bullet-list">
-                                <li><strong>Batas Ukuran File:</strong> Maksimal 150 MB.</li>
-                                <li><strong>Batas Halaman:</strong> Maksimal 500 halaman per publikasi.</li>
-                                <li><strong>Validasi Otomatis:</strong> Sistem mengekstrak metadata dokumen (judul, jumlah halaman, tahun) menggunakan utilitas server <code>pdfinfo</code> secara instan.</li>
+                                <li><strong>Multi-PDF Drag &amp; Drop:</strong> Pilih banyak file sekaligus dari file explorer atau drop langsung ke area unggah. Dokumen otomatis tersusun rapi dalam daftar antrean.</li>
+                                <li><strong>Deteksi Cerdas dari Nama File (Auto-Parsing):</strong> Sistem otomatis mengenali dan mengekstrak Judul Publikasi, Wilayah/Daerah (Kecamatan/Kabupaten/Provinsi), Tahun rilis, serta Jenis Publikasi (KcDA, KabDA, ProvDA, atau Lainnya).</li>
+                                <li><strong>Tabel Penyesuaian Batch (Langkah 2):</strong> Saat mengunggah banyak PDF, Anda dapat memeriksa atau menyunting judul &amp; daerah tiap baris secara individual, serta mengatur Tahun, Jenis Publikasi, dan Catatan secara serentak (*bulk apply*).</li>
+                                <li><strong>Unggah Berurutan Anti-Timeout (Sequential Upload):</strong> Dokumen diunggah dan divalidasi ke server satu per satu dengan indikator progres real-time, sehingga aman dari batas ukuran file server (<code>post_max_size</code>) maupun koneksi terputus.</li>
+                                <li><strong>Batas Ukuran File:</strong> Maksimal 150 MB per file PDF, hingga 500 halaman per publikasi.</li>
                             </ul>
                             <div class="tip-box">
                                 <Info :size="16" />
-                                <span><strong>Tips:</strong> Pastikan file PDF bukan file yang diproteksi password agar sistem dapat merender gambar setiap halaman.</span>
+                                <span><strong>Tips:</strong> Anda memiliki 2 pilihan tombol simpan: <em>Simpan Semua Draft</em> (hanya menyimpan dokumen tanpa langsung memeriksa), atau <em>Simpan &amp; Periksa Batch</em> (langsung memasukkan semua dokumen ke antrean kerja server).</span>
                             </div>
                         </div>
                     </div>
@@ -307,16 +312,32 @@ const matchesSearch = (text: string) => {
                         <div class="step-number">2</div>
                         <div class="step-body">
                             <div class="step-heading">
-                                <h3>Mulai Pemeriksaan & Inisiasi Antrean</h3>
-                                <span class="badge emerald">Tombol: Mulai Pemeriksaan</span>
+                                <h3>Metode Pemeriksaan &amp; Antrean Batch Server Mandiri</h3>
+                                <span class="badge emerald">Tombol: Mulai / Periksa Batch</span>
                             </div>
                             <p>
-                                Klik tombol <strong>Mulai Pemeriksaan</strong>. Sistem akan segera menjalankan proses background:
+                                Sistem menyediakan 3 pilihan metode pemeriksaan yang dapat diterapkan pada publikasi tunggal maupun batch:
                             </p>
+                            <div class="feature-pills" style="margin-bottom: 14px;">
+                                <div class="pill">
+                                    <Sparkles :size="15" />
+                                    <span><strong>Full Vision AI:</strong> Inspeksi mendalam setiap halaman menggunakan mata AI multimodal 5 agen paralel untuk memeriksa teks, perataan tabel, dan tata letak visual.</span>
+                                </div>
+                                <div class="pill">
+                                    <Zap :size="15" />
+                                    <span><strong>Mesin Kilat (0 Token):</strong> Audit berbasis aturan baku BPS dan ejaan KBBI dengan kecepatan kilat tanpa mengonsumsi kuota AI.</span>
+                                </div>
+                                <div class="pill">
+                                    <Layers :size="15" />
+                                    <span><strong>Fusion Dual-Engine:</strong> Menggabungkan audit mesin kilat + Vision AI, melakukan komparasi selisih secara otomatis, dan menyuplai memori pembelajaran.</span>
+                                </div>
+                            </div>
+                            <p><strong>Cara Kerja Antrean Batch Server (Sequential FIFO):</strong></p>
                             <ol class="step-sublist">
-                                <li><strong>Render Halaman:</strong> Server merender PDF menjadi gambar beresolusi 160 DPI (dengan fallback 240 DPI High-DPI jika teks rapat) menggunakan <code>pdftoppm</code> dalam hitungan milidetik.</li>
-                                <li><strong>Ekstraksi Text Layer:</strong> Mengambil teks digital mentah dengan <code>pdftotext</code> untuk dijadikan referensi silang ganda (*dual-layer check*).</li>
-                                <li><strong>Distribusi Antrean:</strong> 118 halaman langsung dipecah dan didistribusikan ke antrean <code>ai</code> untuk dikerjakan secara paralel oleh 5 Agen AI.</li>
+                                <li><strong>Pengerjaan Satu per Satu (1-by-1):</strong> Dokumen di dalam batch diberi status <code>Dalam antrean batch</code> (<code>batch_queued</code>). Server hanya menjalankan 1 dokumen aktif pada satu waktu, sehingga tabel worker tidak banjir dan antrean manual tidak pernah macet.</li>
+                                <li><strong>Bisa Ditinggal / Tutup Browser:</strong> Begitu dokumen #1 selesai diperiksa dan file Excel-nya selesai dibuat, server otomatis memicu dokumen #2, lalu #3, dan seterusnya di latar belakang. Anda bebas menutup browser atau mematikan laptop.</li>
+                                <li><strong>Upload Bertahap Tetap Runtut:</strong> Jika Anda mengunggah Batch 1 (12 PDF), lalu menyusul mengunggah Batch 2 (10 PDF) dan Batch 3, urutannya tetap kronologis (Batch 1 diselesaikan tuntas lebih dahulu, disusul Batch 2, lalu Batch 3).</li>
+                                <li><strong>Jalankan Dokumen Terpilih di Beranda / Daftar:</strong> Anda juga dapat mencentang dokumen (hingga 15 PDF) di halaman Beranda atau Daftar Publikasi lalu menekan <em>Periksa Batch Terpilih</em>.</li>
                             </ol>
                         </div>
                     </div>
@@ -668,16 +689,21 @@ AUDIT_TEXT_LAYER_ENABLED=true</code></pre>
                     <!-- State Machine -->
                     <div class="logic-card">
                         <h3>1. Diagram Transisi Status Publikasi</h3>
-                        <p class="text-sm text-gray-600 mb-3">Siklus hidup status buku dari upload hingga siap direview verifikator:</p>
+                        <p class="text-sm text-gray-600 mb-3">Siklus hidup status buku dari upload, antrean batch, hingga siap direview verifikator:</p>
                         <div class="state-diagram">
                             <div class="state-node">
-                                <span class="st-name">uploaded</span>
+                                <span class="st-name">draft / uploaded</span>
                                 <span class="st-desc">PDF diunggah & diverifikasi</span>
+                            </div>
+                            <div class="st-arrow">↓ (bila masuk batch)</div>
+                            <div class="state-node" style="border-color: #3b82f6; background: #eff6ff;">
+                                <span class="st-name" style="color: #1e40af;">batch_queued</span>
+                                <span class="st-desc">Antrean batch server (1 per 1 FIFO)</span>
                             </div>
                             <div class="st-arrow">↓</div>
                             <div class="state-node active">
                                 <span class="st-name">processing</span>
-                                <span class="st-desc">5 Agen AI memproses 118 halaman</span>
+                                <span class="st-desc">Pemeriksaan berjalan (Mesin / AI / Fusion)</span>
                             </div>
                             <div class="st-arrow">↓</div>
                             <div class="state-node">
@@ -692,7 +718,7 @@ AUDIT_TEXT_LAYER_ENABLED=true</code></pre>
                             <div class="st-arrow">↓</div>
                             <div class="state-node success">
                                 <span class="st-name">review_ready</span>
-                                <span class="st-desc">Siap ditelaah verifikator</span>
+                                <span class="st-desc">Siap ditelaah verifikator (Pemicu batch berikutnya)</span>
                             </div>
                         </div>
                     </div>
@@ -719,6 +745,14 @@ AUDIT_TEXT_LAYER_ENABLED=true</code></pre>
                                     <p>Halaman yang mengalami kendala sesaat (timeout atau kapasitas) otomatis dicoba ulang oleh worker di antrean tanpa mewajibkan pengguna menekan tombol "Lanjutkan".</p>
                                 </div>
                             </div>
+
+                            <div class="guard-item">
+                                <CheckCircle2 :size="18" class="text-blue-600" />
+                                <div>
+                                    <strong>Sequencer Lock Antrean Batch:</strong>
+                                    <p>Antrean batch dilindungi <em>Atomic Cache Lock</em>. Dokumen berikutnya otomatis dipicu saat pembuatan workbook Excel selesai (<code>review_ready</code>) atau ketika dokumen mencapai batas toleransi, memastikan antrean berpindah secara mulus tanpa intervensi manusia.</p>
+                                </div>
+                            </div>
                         </div>
 
                         <h3 class="mt-4">3. Mekanisme Self-Healing Bounding Box</h3>
@@ -728,6 +762,17 @@ AUDIT_TEXT_LAYER_ENABLED=true</code></pre>
 // 2. Koordinat terbalik (ymin > ymax) otomatis di-swap
 // 3. Jika bbox cacat namun quote teks valid, bbox di-null-kan 
 //    sehingga temuan tetap tercatat tanpa menggagalkan halaman!</code></pre>
+                        </div>
+
+                        <h3 class="mt-4">4. BPS WebAPI Waterfall Volume Verification</h3>
+                        <div class="guard-box mt-2">
+                            <div class="guard-item">
+                                <ShieldCheck :size="18" class="text-emerald-700" />
+                                <div>
+                                    <strong>Verifikasi Volume Beruntun Otomatis:</strong>
+                                    <p>Sistem terhubung ke WebAPI resmi BPS untuk mencocokkan nomor seri terbitan (Jilid/Volume) publikasi berjalan terhadap edisi tahun sebelumnya. Jika API mengembalikan data, cover pembanding diunduh dan dipindai secara otomatis untuk menyajikan bukti fisik yang valid.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -978,6 +1023,48 @@ AUDIT_TEXT_LAYER_ENABLED=true</code></pre>
                         <div v-show="openFaqs.faq_5" class="faq-content">
                             <p>
                                 Ini demi mematuhi batas rate limit kuota penyedia Anda yaitu <strong>25 RPM</strong>. Pada halaman-halaman yang teksnya sangat sedikit (misal halaman pemisah bab atau cover), waktu analisis bisa sangat cepat (~8–10 detik). Jika menggunakan 10 agen bersamaan, frekuensi request dapat melonjak hingga 40–50 RPM yang akan memicu pemblokiran otomatis (HTTP 429). Concurrency 5 adalah titik keseimbangan paling optimal antara kecepatan dan stabilitas operasional.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 6 -->
+                    <div class="faq-item" :class="{ open: openFaqs.faq_6 }">
+                        <button class="faq-trigger" @click="toggleFaq('faq_6')">
+                            <span>Bolehkah saya langsung upload Batch kedua dan ketiga saat Batch pertama belum selesai?</span>
+                            <ChevronDown v-if="openFaqs.faq_6" :size="18" />
+                            <ChevronRight v-else :size="18" />
+                        </button>
+                        <div v-show="openFaqs.faq_6" class="faq-content">
+                            <p>
+                                <strong>Sangat boleh dan aman 100%!</strong> Sistem antrean batch menggunakan prinsip <em>First-In, First-Out (FIFO)</em> berbasis stempel waktu mikrodetik. Dokumen-dokumen dari Batch 1 akan diselesaikan terlebih dahulu secara tuntas satu per satu. Setelah Batch 1 selesai, server secara otomatis berlanjut mengeksekusi dokumen dari Batch 2, lalu disusul Batch 3 secara teratur tanpa saling tumpang tindih.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 7 -->
+                    <div class="faq-item" :class="{ open: openFaqs.faq_7 }">
+                        <button class="faq-trigger" @click="toggleFaq('faq_7')">
+                            <span>Apakah tab web atau laptop harus tetap terbuka selama pemeriksaan batch berjalan?</span>
+                            <ChevronDown v-if="openFaqs.faq_7" :size="18" />
+                            <ChevronRight v-else :size="18" />
+                        </button>
+                        <div v-show="openFaqs.faq_7" class="faq-content">
+                            <p>
+                                <strong>Tidak perlu.</strong> Begitu proses unggah selesai dan dokumen masuk ke status <code>Dalam antrean batch</code>, seluruh alur pemeriksaan berpindah ke background worker di server. Anda bebas menutup browser, mematikan laptop, atau melakukan tugas lain. Saat Anda kembali membuka web nanti, dokumen sudah selesai diperiksa dan lembar telaah Excel resminya sudah siap diunduh.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 8 -->
+                    <div class="faq-item" :class="{ open: openFaqs.faq_8 }">
+                        <button class="faq-trigger" @click="toggleFaq('faq_8')">
+                            <span>Apakah antrean batch akan mengganggu atau memperlambat pegawai lain yang ingin memeriksa 1 dokumen mendesak?</span>
+                            <ChevronDown v-if="openFaqs.faq_8" :size="18" />
+                            <ChevronRight v-else :size="18" />
+                        </button>
+                        <div v-show="openFaqs.faq_8" class="faq-content">
+                            <p>
+                                <strong>Sama sekali tidak mengganggu.</strong> Sistem dirancang agar dokumen di dalam batch hanya memegang 1 slot aktif di worker pada satu waktu, sedangkan dokumen batch lainnya tetap tenang di status antrean tanpa membanjiri antrean kerja. Jika ada pegawai lain yang menekan tombol <em>Mulai pemeriksaan</em> secara manual pada 1 dokumen penting, dokumen tersebut langsung berjalan saat itu juga tanpa harus mengantre di belakang dokumen batch lainnya.
                             </p>
                         </div>
                     </div>
