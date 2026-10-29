@@ -129,6 +129,14 @@ const localAgents = ref<AiAgentItem[]>(
 watch(() => props.ai_agents, (newAgents) => {
     if (newAgents && newAgents.length > 0) {
         localAgents.value = JSON.parse(JSON.stringify(newAgents));
+        const ag = localAgents.value.find(a => a.slot === activeSlot.value);
+        if (ag) {
+            currentForm.value.name = ag.name;
+            currentForm.value.base_url = ag.base_url;
+            currentForm.value.model = ag.model;
+            currentForm.value.enabled = ag.enabled;
+            currentForm.value.max_concurrency = ag.max_concurrency || 1;
+        }
     }
 }, { deep: true });
 
@@ -407,13 +415,34 @@ function submitSavePreset() {
 
 function applyPreset(presetId: number, targetSlots: number[]) {
     presetBusy.value = true;
+    const preset = localPresets.value.find(p => p.id === presetId);
+    if (preset && targetSlots.includes(activeSlot.value)) {
+        currentForm.value.base_url = preset.base_url;
+        currentForm.value.model = preset.model;
+        currentForm.value.api_key = '';
+    }
+
     router.post(`/settings/ai-model-presets/${presetId}/apply`, {
         slots: targetSlots
     }, {
         preserveScroll: true,
         onSuccess: () => {
             presetBusy.value = false;
-            router.reload({ only: ['ai_agents', 'ai'] });
+            router.reload({
+                only: ['ai_agents', 'ai', 'ai_model_presets'],
+                onSuccess: (page) => {
+                    const freshAgents = (page.props.ai_agents as AiAgentItem[]) || [];
+                    const activeAgent = freshAgents.find(a => a.slot === activeSlot.value);
+                    if (activeAgent) {
+                        currentForm.value.name = activeAgent.name;
+                        currentForm.value.base_url = activeAgent.base_url;
+                        currentForm.value.model = activeAgent.model;
+                        currentForm.value.enabled = activeAgent.enabled;
+                        currentForm.value.max_concurrency = activeAgent.max_concurrency || 1;
+                        currentForm.value.api_key = '';
+                    }
+                }
+            });
         },
         onFinish: () => {
             presetBusy.value = false;
@@ -425,6 +454,12 @@ function onSelectPresetToCurrentSlot(event: Event) {
     const target = event.target as HTMLSelectElement;
     const presetId = Number(target.value);
     if (!presetId) return;
+    const preset = localPresets.value.find(p => p.id === presetId);
+    if (preset) {
+        currentForm.value.base_url = preset.base_url;
+        currentForm.value.model = preset.model;
+        currentForm.value.api_key = '';
+    }
     applyPreset(presetId, [activeSlot.value]);
     target.value = '';
 }
