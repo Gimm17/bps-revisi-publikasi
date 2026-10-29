@@ -23,13 +23,18 @@ import {
     Layers,
     Cpu,
     ArrowUpRight,
+    Bookmark,
+    BookmarkCheck,
+    Trash2,
+    X,
 } from "lucide-vue-next";
 import AppLayout from "../Layouts/AppLayout.vue";
-import type { Employee, AiAgentItem, AiTelemetryData, AiTelemetryTimelinePoint } from "../types";
+import type { Employee, AiAgentItem, AiModelPreset, AiTelemetryData, AiTelemetryTimelinePoint } from "../types";
 
 const props = defineProps<{
     users: Employee[];
     ai_agents?: AiAgentItem[];
+    ai_model_presets?: AiModelPreset[];
     ai: {
         id: number;
         base_url: string;
@@ -306,6 +311,138 @@ function copyFromSlot1() {
             copySuccess.value = true;
             setTimeout(() => (copySuccess.value = false), 2500);
             router.reload({ only: ['ai_agents'] });
+        }
+    });
+}
+
+// AI Model Presets State
+const localPresets = ref<AiModelPreset[]>(
+    props.ai_model_presets ? JSON.parse(JSON.stringify(props.ai_model_presets)) : []
+);
+watch(() => props.ai_model_presets, (newPresets) => {
+    if (newPresets) {
+        localPresets.value = JSON.parse(JSON.stringify(newPresets));
+    }
+}, { deep: true });
+
+const showSavePresetModal = ref(false);
+const showAddCustomPresetModal = ref(false);
+const presetBusy = ref(false);
+
+const presetForm = ref({
+    name: '',
+    base_url: 'https://api.9router.com/v1',
+    model: 'gemini-2.5-flash',
+    api_key: '',
+    notes: '',
+    from_slot: null as number | null,
+    saving: false,
+    errorMessage: '',
+});
+
+function openSaveCurrentSlotModal() {
+    const ag = currentAgent.value;
+    let host = 'API';
+    try {
+        host = new URL(ag.base_url).hostname || ag.base_url;
+    } catch {
+        host = ag.base_url;
+    }
+    presetForm.value = {
+        name: `${ag.model} (${host})`,
+        base_url: ag.base_url,
+        model: ag.model,
+        api_key: '',
+        notes: `Disimpan dari Slot ${activeSlot.value} (${ag.name})`,
+        from_slot: activeSlot.value,
+        saving: false,
+        errorMessage: '',
+    };
+    showSavePresetModal.value = true;
+}
+
+function openAddCustomPresetModal() {
+    presetForm.value = {
+        name: '',
+        base_url: 'https://api.9router.com/v1',
+        model: 'gemini-2.5-flash',
+        api_key: '',
+        notes: '',
+        from_slot: null,
+        saving: false,
+        errorMessage: '',
+    };
+    showAddCustomPresetModal.value = true;
+}
+
+function submitSavePreset() {
+    presetForm.value.saving = true;
+    presetForm.value.errorMessage = '';
+    const payload: Record<string, any> = {
+        name: presetForm.value.name,
+        notes: presetForm.value.notes,
+    };
+    if (presetForm.value.from_slot) {
+        payload.from_slot = presetForm.value.from_slot;
+    } else {
+        payload.base_url = presetForm.value.base_url;
+        payload.model = presetForm.value.model;
+        payload.api_key = presetForm.value.api_key;
+    }
+
+    router.post('/settings/ai-model-presets', payload, {
+        preserveScroll: true,
+        onSuccess: () => {
+            presetForm.value.saving = false;
+            showSavePresetModal.value = false;
+            showAddCustomPresetModal.value = false;
+            router.reload({ only: ['ai_model_presets'] });
+        },
+        onError: (errs) => {
+            presetForm.value.saving = false;
+            presetForm.value.errorMessage = (Object.values(errs)[0] as string) || 'Gagal menyimpan profil preset.';
+        }
+    });
+}
+
+function applyPreset(presetId: number, targetSlots: number[]) {
+    presetBusy.value = true;
+    router.post(`/settings/ai-model-presets/${presetId}/apply`, {
+        slots: targetSlots
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            presetBusy.value = false;
+            router.reload({ only: ['ai_agents', 'ai'] });
+        },
+        onFinish: () => {
+            presetBusy.value = false;
+        }
+    });
+}
+
+function onSelectPresetToCurrentSlot(event: Event) {
+    const target = event.target as HTMLSelectElement;
+    const presetId = Number(target.value);
+    if (!presetId) return;
+    applyPreset(presetId, [activeSlot.value]);
+    target.value = '';
+}
+
+function onApplyToCustomSlot(presetId: number, event: Event) {
+    const target = event.target as HTMLSelectElement;
+    const slot = Number(target.value);
+    if (!slot) return;
+    applyPreset(presetId, [slot]);
+    target.value = '';
+}
+
+function deletePreset(preset: AiModelPreset) {
+    if (!confirm(`Hapus profil model "${preset.name}"?`)) return;
+    router.delete(`/settings/ai-model-presets/${preset.id}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            router.reload({ only: ['ai_model_presets'] });
         }
     });
 }
@@ -833,6 +970,89 @@ function formatDuration(ms: number | undefined | null): string {
                     {{ currentForm.errorMessage }}
                 </p>
 
+                <!-- Preset Quick Load Bar -->
+                <div class="preset-slot-bar">
+                    <div class="preset-slot-select-wrap">
+                        <Bookmark :size="16" class="preset-bar-icon" />
+                        <select
+                            class="preset-slot-select"
+                            @change="onSelectPresetToCurrentSlot($event)"
+                            :disabled="presetBusy"
+                        >
+                            <option value="">📂 Muat dari Profil Model Tersimpan...</option>
+                            <option v-for="p in localPresets" :key="p.id" :value="p.id">
+                                {{ p.name }} ({{ p.model }})
+                            </option>
+                        </select>
+                    </div>
+                    <button
+                        type="button"
+                        class="button secondary btn-save-preset"
+                        @click="openSaveCurrentSlotModal"
+                        :disabled="!currentAgent.has_api_key && !currentForm.api_key"
+                        title="Simpan konfigurasi model & API key pada slot ini sebagai profil baru"
+                    >
+                        <BookmarkCheck :size="15" />
+                        Simpan Slot Ini sebagai Profil Baru
+                    </button>
+                </div>
+
+                <!-- Form Simpan Slot Sebagai Profil Baru (Inline) -->
+                <div v-if="showSavePresetModal" class="preset-inline-modal">
+                    <div class="preset-modal-header">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <BookmarkCheck :size="18" style="color: #305e58;" />
+                            <strong style="font-size: 14px;">Simpan Slot {{ activeSlot }} sebagai Profil Model Tersimpan</strong>
+                        </div>
+                        <button type="button" class="icon-button" @click="showSavePresetModal = false">
+                            <X :size="16" />
+                        </button>
+                    </div>
+                    <p style="font-size: 12px; color: var(--muted); margin: 6px 0 12px;">
+                        Kombinasi Base URL (<code>{{ currentForm.base_url }}</code>), Model (<code>{{ currentForm.model }}</code>), dan API Key dari slot ini akan disimpan aman.
+                    </p>
+                    <div class="form-stack">
+                        <div>
+                            <label for="save-preset-name">Nama Profil</label>
+                            <input
+                                id="save-preset-name"
+                                v-model="presetForm.name"
+                                required
+                                placeholder="Contoh: 9Router - Gemini 2.5 Flash"
+                            />
+                        </div>
+                        <div>
+                            <label for="save-preset-notes">Catatan (Opsional)</label>
+                            <input
+                                id="save-preset-notes"
+                                v-model="presetForm.notes"
+                                placeholder="Contoh: Akun pribadi kuota 100k token/hari"
+                            />
+                        </div>
+                        <p v-if="presetForm.errorMessage" class="notice warning">
+                            {{ presetForm.errorMessage }}
+                        </p>
+                        <div class="form-actions" style="margin-top: 10px;">
+                            <button
+                                type="button"
+                                class="button secondary btn-sm"
+                                @click="showSavePresetModal = false"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="button"
+                                class="button primary btn-sm"
+                                :disabled="presetForm.saving || !presetForm.name.trim()"
+                                @click="submitSavePreset"
+                            >
+                                <Save :size="15" />
+                                {{ presetForm.saving ? 'Menyimpan...' : 'Simpan Profil' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <form class="form-stack" @submit.prevent="saveActiveAgent">
                     <div class="form-grid">
                         <div>
@@ -924,6 +1144,186 @@ function formatDuration(ms: number | undefined | null): string {
                         </button>
                     </div>
                 </form>
+            </div>
+
+            <!-- KATALOG PROFIL MODEL TERSIMPAN (SAVED AI MODEL PRESETS) -->
+            <div class="presets-catalog-card">
+                <div class="presets-catalog-header">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <Bookmark :size="20" style="color: #305e58;" />
+                            <h3 style="margin: 0; font-size: 18px;">Katalog Profil Model Tersimpan (Saved Presets)</h3>
+                        </div>
+                        <p style="margin: 4px 0 0; font-size: 12.5px; color: var(--muted);">
+                            Simpan berbagai kombinasi Provider (9Router, LimitRouter, OpenRouter, dll.), Model AI, dan API Key. Tinggal 1 klik untuk memuat ke Agent 1 atau ke semua agen tanpa perlu repot mengetik ulang.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="button primary"
+                        @click="openAddCustomPresetModal"
+                    >
+                        <Plus :size="16" />
+                        Tambah Profil Baru
+                    </button>
+                </div>
+
+                <!-- Form Tambah Profil Baru Manual (Inline) -->
+                <div v-if="showAddCustomPresetModal" class="preset-inline-modal" style="margin-bottom: 18px;">
+                    <div class="preset-modal-header">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <Bookmark :size="18" style="color: #305e58;" />
+                            <strong style="font-size: 14px;">Tambah Profil Model AI Baru</strong>
+                        </div>
+                        <button type="button" class="icon-button" @click="showAddCustomPresetModal = false">
+                            <X :size="16" />
+                        </button>
+                    </div>
+                    <div class="form-stack">
+                        <div class="form-grid">
+                            <div>
+                                <label for="custom-preset-name">Nama Profil</label>
+                                <input
+                                    id="custom-preset-name"
+                                    v-model="presetForm.name"
+                                    required
+                                    placeholder="Contoh: LimitRouter - Claude 3.5 Sonnet"
+                                />
+                            </div>
+                            <div>
+                                <label for="custom-preset-model">Model Vision</label>
+                                <input
+                                    id="custom-preset-model"
+                                    v-model="presetForm.model"
+                                    required
+                                    placeholder="Contoh: gemini-2.5-flash atau claude-sonnet-4-6"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label for="custom-preset-base-url">Base URL</label>
+                            <input
+                                id="custom-preset-base-url"
+                                v-model="presetForm.base_url"
+                                required
+                                placeholder="https://api.9router.com/v1"
+                            />
+                        </div>
+                        <div>
+                            <label for="custom-preset-api-key">API Key</label>
+                            <input
+                                id="custom-preset-api-key"
+                                type="password"
+                                v-model="presetForm.api_key"
+                                required
+                                placeholder="sk-..."
+                                autocomplete="off"
+                            />
+                        </div>
+                        <div>
+                            <label for="custom-preset-notes">Catatan (Opsional)</label>
+                            <input
+                                id="custom-preset-notes"
+                                v-model="presetForm.notes"
+                                placeholder="Contoh: Akun cadangan kantor / kuota 50 RPM"
+                            />
+                        </div>
+
+                        <p v-if="presetForm.errorMessage" class="notice warning">
+                            {{ presetForm.errorMessage }}
+                        </p>
+
+                        <div class="form-actions" style="margin-top: 10px;">
+                            <button
+                                type="button"
+                                class="button secondary btn-sm"
+                                @click="showAddCustomPresetModal = false"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="button"
+                                class="button primary btn-sm"
+                                :disabled="presetForm.saving || !presetForm.name.trim() || !presetForm.api_key.trim()"
+                                @click="submitSavePreset"
+                            >
+                                <Save :size="15" />
+                                {{ presetForm.saving ? 'Menyimpan...' : 'Simpan ke Katalog' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- List of Saved Presets Grid -->
+                <div v-if="localPresets.length > 0" class="presets-grid">
+                    <div v-for="p in localPresets" :key="p.id" class="preset-card">
+                        <div class="preset-card-top">
+                            <div>
+                                <strong class="preset-name">{{ p.name }}</strong>
+                                <span class="preset-model-tag">{{ p.model }}</span>
+                            </div>
+                            <button
+                                type="button"
+                                class="icon-button btn-del-preset"
+                                @click="deletePreset(p)"
+                                title="Hapus profil ini"
+                            >
+                                <Trash2 :size="15" />
+                            </button>
+                        </div>
+
+                        <div class="preset-meta-rows">
+                            <small class="preset-url">
+                                <strong>Base URL:</strong> {{ p.base_url }}
+                            </small>
+                            <small v-if="p.notes" class="preset-notes">
+                                {{ p.notes }}
+                            </small>
+                            <span class="preset-key-status">
+                                <CheckCircle2 :size="13" /> API Key tersimpan aman (terenkripsi)
+                            </span>
+                        </div>
+
+                        <div class="preset-actions-footer">
+                            <button
+                                type="button"
+                                class="button secondary btn-sm"
+                                @click="applyPreset(p.id, [1])"
+                                :disabled="presetBusy"
+                                title="Terapkan ke Agent 1 (Utama)"
+                            >
+                                Terapkan ke Agent 1
+                            </button>
+                            <button
+                                type="button"
+                                class="button primary btn-sm"
+                                @click="applyPreset(p.id, [1, 2, 3, 4, 5])"
+                                :disabled="presetBusy"
+                                title="Terapkan serentak ke Agent 1 sampai 5"
+                            >
+                                Terapkan ke Semua (1–5)
+                            </button>
+                            <div class="preset-dropdown-apply">
+                                <select @change="onApplyToCustomSlot(p.id, $event)">
+                                    <option value="">Slot lain...</option>
+                                    <option :value="2">Ke Slot 2</option>
+                                    <option :value="3">Ke Slot 3</option>
+                                    <option :value="4">Ke Slot 4</option>
+                                    <option :value="5">Ke Slot 5</option>
+                                    <option :value="6">Ke Slot 6 (Cadangan)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-else class="empty-presets-box">
+                    <Bookmark :size="32" style="color: #94a3b8; margin-bottom: 8px;" />
+                    <strong>Belum ada profil model tersimpan.</strong>
+                    <p style="font-size: 12.5px; margin: 4px 0 12px; color: #64748b;">
+                        Anda dapat menyimpan konfigurasi Agent 1 saat ini menjadi profil tersimpan dengan mengklik tombol "Simpan Slot Ini sebagai Profil Baru" di atas, atau klik "+ Tambah Profil Baru".
+                    </p>
+                </div>
             </div>
         </section>
         <section v-if="tab === 'telemetry'" class="settings-panel telemetry-panel">

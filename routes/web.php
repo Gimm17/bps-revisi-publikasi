@@ -76,6 +76,10 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/settings/ai-telemetry', [SettingsController::class, 'aiTelemetry']);
     Route::post('/settings/ai-agents/{slot}', [SettingsController::class, 'saveAiAgent']);
     Route::post('/settings/ai-agents/{agent}/test', [SettingsController::class, 'testAiAgent'])->middleware('throttle:10,1');
+    Route::post('/settings/ai-model-presets', [SettingsController::class, 'storePreset']);
+    Route::put('/settings/ai-model-presets/{preset}', [SettingsController::class, 'updatePreset']);
+    Route::delete('/settings/ai-model-presets/{preset}', [SettingsController::class, 'destroyPreset']);
+    Route::post('/settings/ai-model-presets/{preset}/apply', [SettingsController::class, 'applyPreset']);
     Route::post('/settings/reference-provider', [SettingsController::class, 'saveReferenceProvider']);
 
     Route::get('/agent-office', [AgentOfficeController::class, 'index'])->name('agent-office.index');

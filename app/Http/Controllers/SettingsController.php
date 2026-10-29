@@ -9,6 +9,7 @@ use App\Http\Requests\AiConfigRequest;
 use App\Http\Requests\EmployeeRequest;
 use App\Jobs\TestAiAgent;
 use App\Models\AiAgent;
+use App\Models\AiModelPreset;
 use App\Models\AiProviderConfig;
 use App\Models\AiUsageRecord;
 use App\Models\AuditEvent;
@@ -80,9 +81,20 @@ class SettingsController extends Controller
             ];
         }
 
+        $presets = AiModelPreset::orderBy('name')->get()->map(fn (AiModelPreset $p) => [
+            'id' => $p->id,
+            'name' => $p->name,
+            'base_url' => $p->base_url,
+            'model' => $p->model,
+            'has_api_key' => ! empty($p->api_key),
+            'notes' => $p->notes,
+            'updated_at' => $p->updated_at?->toIso8601String(),
+        ]);
+
         return Inertia::render('Settings', [
             'users' => User::orderBy('name')->get(['id', 'name', 'email', 'role', 'is_active']),
             'ai_agents' => $agentsList,
+            'ai_model_presets' => $presets,
             'ai' => AiProviderConfig::latest('id')->first()?->only('id', 'base_url', 'model', 'tested_at', 'vision_tested_at', 'updated_at'),
             'reference_provider' => ReferenceProviderConfig::latest('id')->first()?->only('id', 'provider', 'endpoint', 'is_ready', 'tested_at', 'updated_at'),
             'events' => AuditEvent::latest()->limit(100)->get(),
@@ -348,6 +360,133 @@ class SettingsController extends Controller
         );
 
         return back()->with('success', "Konfigurasi disalin dari Agent {$data['from_slot']} ke {$targetName}.");
+    }
+
+    public function storePreset(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+
+        if ($request->filled('from_slot')) {
+            $fromSlot = (int) $request->input('from_slot');
+            $agent = AiAgent::where('slot', $fromSlot)->firstOrFail();
+            if (empty($agent->api_key)) {
+                throw ValidationException::withMessages(['name' => "Slot {$fromSlot} belum memiliki API Key tersimpan."]);
+            }
+            $name = trim((string) $request->input('name'));
+            if (empty($name)) {
+                $host = parse_url($agent->base_url, PHP_URL_HOST) ?: 'API';
+                $name = "{$agent->model} ({$host})";
+            }
+
+            AiModelPreset::create([
+                'name' => $name,
+                'base_url' => $agent->base_url,
+                'model' => $agent->model,
+                'api_key' => $agent->api_key,
+                'notes' => $request->input('notes'),
+                'created_by' => $request->user()->id,
+            ]);
+
+            AuditLogger::record('ai_preset.created', null, ['name' => $name, 'from_slot' => $fromSlot]);
+
+            return back()->with('success', "Konfigurasi Slot {$fromSlot} berhasil disimpan sebagai profil '{$name}'.");
+        }
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'base_url' => ['required', 'url', 'max:255'],
+            'model' => ['required', 'string', 'max:120'],
+            'api_key' => ['required', 'string'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        AiModelPreset::create([
+            'name' => trim($data['name']),
+            'base_url' => rtrim($data['base_url'], '/'),
+            'model' => trim($data['model']),
+            'api_key' => trim($data['api_key']),
+            'notes' => $data['notes'] ?? null,
+            'created_by' => $request->user()->id,
+        ]);
+
+        AuditLogger::record('ai_preset.created', null, ['name' => $data['name']]);
+
+        return back()->with('success', "Profil AI '{$data['name']}' berhasil disimpan.");
+    }
+
+    public function updatePreset(Request $request, AiModelPreset $preset): RedirectResponse
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'base_url' => ['required', 'url', 'max:255'],
+            'model' => ['required', 'string', 'max:120'],
+            'api_key' => ['nullable', 'string'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $payload = [
+            'name' => trim($data['name']),
+            'base_url' => rtrim($data['base_url'], '/'),
+            'model' => trim($data['model']),
+            'notes' => $data['notes'] ?? null,
+        ];
+        if (! empty($data['api_key'])) {
+            $payload['api_key'] = trim($data['api_key']);
+        }
+
+        $preset->update($payload);
+        AuditLogger::record('ai_preset.updated', null, ['name' => $preset->name]);
+
+        return back()->with('success', "Profil AI '{$preset->name}' berhasil diperbarui.");
+    }
+
+    public function destroyPreset(Request $request, AiModelPreset $preset): RedirectResponse
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+        $name = $preset->name;
+        $preset->delete();
+        AuditLogger::record('ai_preset.deleted', null, ['name' => $name]);
+
+        return back()->with('success', "Profil AI '{$name}' telah dihapus.");
+    }
+
+    public function applyPreset(Request $request, AiModelPreset $preset): RedirectResponse
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+        $targetSlots = (array) $request->input('slots', [1]);
+        $appliedCount = 0;
+
+        foreach ($targetSlots as $slot) {
+            $slotNum = (int) $slot;
+            if ($slotNum < 1 || $slotNum > 6) {
+                continue;
+            }
+
+            $targetName = ($slotNum === 6) ? 'Agent Cadangan (Standby)' : "Agent {$slotNum}";
+            $hash = AiAgent::computeConfigHash($preset->base_url, $preset->model, $preset->api_key ?? '');
+
+            AiAgent::updateOrCreate(
+                ['slot' => $slotNum],
+                [
+                    'name' => $targetName,
+                    'base_url' => $preset->base_url,
+                    'api_key' => $preset->api_key,
+                    'model' => $preset->model,
+                    'enabled' => true,
+                    'status' => 'untested',
+                    'vision_tested_at' => null,
+                    'test_message' => "Dimuat dari profil '{$preset->name}'. Jalankan uji gambar.",
+                    'config_hash' => $hash,
+                    'created_by' => $request->user()->id,
+                ]
+            );
+            $appliedCount++;
+        }
+
+        AuditLogger::record('ai_preset.applied', null, ['name' => $preset->name, 'slots' => $targetSlots]);
+
+        return back()->with('success', "Profil '{$preset->name}' berhasil diterapkan ke {$appliedCount} agen.");
     }
 
     public function aiTelemetry(Request $request, AiTelemetryService $telemetry): JsonResponse

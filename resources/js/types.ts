@@ -158,6 +158,17 @@ export interface AiAgentItem {
     is_backup?: boolean;
 }
 
+export interface AiModelPreset {
+    id: number;
+    name: string;
+    base_url: string;
+    model: string;
+    has_api_key: boolean;
+    notes?: string | null;
+    created_at?: string;
+    updated_at?: string;
+}
+
 export interface PageVerificationRecord {
     id?: number;
     publication_page_id?: number;
