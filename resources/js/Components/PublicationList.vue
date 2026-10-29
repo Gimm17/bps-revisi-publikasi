@@ -135,6 +135,27 @@ function search() {
     );
 }
 
+function formatUploadTime(dateStr?: string | null): string {
+    if (!dateStr) return "";
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return "";
+        const datePart = d.toLocaleDateString("id-ID", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+        });
+        const timePart = d.toLocaleTimeString("id-ID", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+        });
+        return `${datePart}, ${timePart.replace(".", ":")}`;
+    } catch {
+        return "";
+    }
+}
+
 let pollTimer: ReturnType<typeof setInterval> | undefined;
 onMounted(() => {
     pollTimer = setInterval(() => {
@@ -304,9 +325,16 @@ onUnmounted(() => {
                 <span class="file-icon"><FileText :size="23" /></span>
                 <div>
                     <strong>{{ pub.title }}</strong>
-                    <small>
-                        {{ pub.region }} · {{ pub.year }} ·
-                        {{ pub.page_count }} halaman
+                    <small class="pub-meta">
+                        <span>{{ pub.region }} · {{ pub.year }} · {{ pub.page_count }} halaman</span>
+                        <span
+                            v-if="pub.created_at"
+                            class="pub-upload-time"
+                            :title="`Waktu Unggah: ${formatUploadTime(pub.created_at)}`"
+                        >
+                            <Clock :size="11" class="clock-icon" />
+                            <span>{{ formatUploadTime(pub.created_at) }}</span>
+                        </span>
                     </small>
                 </div>
             </Link>
@@ -476,6 +504,31 @@ onUnmounted(() => {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s ease;
+}
+.pub-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    color: #64748b;
+    margin-top: 5px;
+}
+.pub-upload-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #f1f5f9;
+    color: #334155;
+    padding: 1.5px 7px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 10.5px;
+    border: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+.clock-icon {
+    flex-shrink: 0;
+    color: #64748b;
 }
 .batch-cancel-inline-btn:hover {
     background: #fee2e2;

@@ -31,6 +31,8 @@ export interface Publication {
     template_name: string;
     audit_mode?: 'ai' | 'machine' | 'fusion';
     fusion_summary?: { stage?: string; [key: string]: unknown } | null;
+    created_at?: string;
+    updated_at?: string;
 }
 export interface Evidence {
     kind?: 'publication_page' | 'reference_artifact';
