@@ -69,6 +69,65 @@ const searchQuery = ref("");
 const activeTab = ref<"guide" | "settings" | "workflow" | "logic" | "parallel" | "speedup" | "faq" | "learning">("guide");
 const copiedKey = ref<string | null>(null);
 
+const docSections = [
+    {
+        id: "guide" as const,
+        num: 1,
+        title: "Panduan Penggunaan Web",
+        desc: "Alur audit dari unggah hingga ekspor lembar telaah Excel",
+        icon: BookOpenCheck,
+    },
+    {
+        id: "settings" as const,
+        num: 2,
+        title: "Pengaturan & Profil AI",
+        desc: "Konfigurasi agen, API key, dan katalog model tersimpan",
+        icon: Settings,
+    },
+    {
+        id: "workflow" as const,
+        num: 3,
+        title: "Alur Kerja (Workflow)",
+        desc: "Siklus hidup dokumen dan pemrosesan halaman berurutan",
+        icon: Workflow,
+    },
+    {
+        id: "logic" as const,
+        num: 4,
+        title: "Flow Logic & Validator",
+        desc: "Self-healing validator, BPS WebAPI volume, dan state machine",
+        icon: Layers,
+    },
+    {
+        id: "parallel" as const,
+        num: 5,
+        title: "AI Paralel (5 Agen)",
+        desc: "Arsitektur multi-slot simultan dan kalkulasi kuota 25 RPM",
+        icon: Bot,
+    },
+    {
+        id: "speedup" as const,
+        num: 6,
+        title: "Optimasi Kecepatan",
+        desc: "Peningkatan audit 2.5x lebih cepat (~9-10 menit per buku)",
+        icon: TrendingUp,
+    },
+    {
+        id: "faq" as const,
+        num: 7,
+        title: "FAQ & Solusi Kendala",
+        desc: "Tanya jawab kuota, antrean batch, penanganan kendala",
+        icon: HelpCircle,
+    },
+    {
+        id: "learning" as const,
+        num: 8,
+        title: "Sistem Pembelajaran AI",
+        desc: "In-context feedback memory untuk pencegahan temuan berulang",
+        icon: Brain,
+    },
+];
+
 if (typeof window !== "undefined") {
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get("tab");
@@ -184,95 +243,37 @@ const matchesSearch = (text: string) => {
                 </div>
             </header>
 
-            <!-- Mobile Section Dropdown Selector -->
-            <div class="docs-mobile-nav md:hidden">
-                <label class="docs-mobile-label">Pilih Bagian Dokumentasi:</label>
-                <div class="docs-mobile-select-wrapper">
-                    <select
-                        v-model="activeTab"
-                        class="docs-mobile-select"
-                        aria-label="Pilih Bagian Dokumentasi"
+            <!-- Compact Modern Navigation (Zero Horizontal Scrollbar / 1-Click Access) -->
+            <div class="docs-nav-section">
+                <div class="docs-nav-heading-row">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="docs-nav-badge">Topik Dokumentasi</span>
+                        <span class="docs-nav-hint">Pilih topik langsung (1 klik tanpa geser)</span>
+                    </div>
+                    <span class="docs-nav-active-info">
+                        Bagian Aktif: <strong>{{ docSections.find(s => s.id === activeTab)?.num }}. {{ docSections.find(s => s.id === activeTab)?.title }}</strong>
+                    </span>
+                </div>
+
+                <div class="docs-nav-grid" role="tablist" aria-label="Topik Dokumentasi">
+                    <button
+                        v-for="sec in docSections"
+                        :key="sec.id"
+                        type="button"
+                        role="tab"
+                        :aria-selected="activeTab === sec.id"
+                        :class="['docs-nav-item', { active: activeTab === sec.id }]"
+                        @click="activeTab = sec.id"
                     >
-                        <option value="guide">📖 1. Cara Penggunaan Web</option>
-                        <option value="settings">⚙️ 2. Cara Settings & Agen</option>
-                        <option value="workflow">🔄 3. Alur Kerja (Workflow)</option>
-                        <option value="logic">🧠 4. Flow Logic & Validator</option>
-                        <option value="parallel">🤖 5. AI Paralel (5 Agen)</option>
-                        <option value="speedup">⚡ 6. Optimasi Kecepatan</option>
-                        <option value="faq">❓ 7. FAQ & Solusi Kendala</option>
-                        <option value="learning">🧠 8. Sistem Pembelajaran AI</option>
-                    </select>
-                    <ChevronDown :size="18" class="docs-select-arrow" />
+                        <div class="nav-item-top">
+                            <span class="nav-item-num">{{ sec.num }}</span>
+                            <component :is="sec.icon" :size="17" class="nav-item-icon" />
+                        </div>
+                        <strong class="nav-item-title">{{ sec.title }}</strong>
+                        <small class="nav-item-desc">{{ sec.desc }}</small>
+                    </button>
                 </div>
             </div>
-
-            <!-- Desktop Navigation Tabs -->
-            <nav class="docs-nav-tabs hidden md:flex" aria-label="Navigasi Dokumentasi">
-                <button
-                    class="nav-tab"
-                    :class="{ active: activeTab === 'guide' }"
-                    @click="activeTab = 'guide'"
-                >
-                    <BookOpenCheck :size="16" />
-                    <span>1. Cara Penggunaan</span>
-                </button>
-                <button
-                    class="nav-tab"
-                    :class="{ active: activeTab === 'settings' }"
-                    @click="activeTab = 'settings'"
-                >
-                    <Settings :size="16" />
-                    <span>2. Cara Settings</span>
-                </button>
-                <button
-                    class="nav-tab"
-                    :class="{ active: activeTab === 'workflow' }"
-                    @click="activeTab = 'workflow'"
-                >
-                    <Workflow :size="16" />
-                    <span>3. Alur Kerja (Workflow)</span>
-                </button>
-                <button
-                    class="nav-tab"
-                    :class="{ active: activeTab === 'logic' }"
-                    @click="activeTab = 'logic'"
-                >
-                    <Layers :size="16" />
-                    <span>4. Flow Logic & Validator</span>
-                </button>
-                <button
-                    class="nav-tab"
-                    :class="{ active: activeTab === 'parallel' }"
-                    @click="activeTab = 'parallel'"
-                >
-                    <Bot :size="16" />
-                    <span>5. AI Paralel (5 Agen)</span>
-                </button>
-                <button
-                    class="nav-tab"
-                    :class="{ active: activeTab === 'speedup' }"
-                    @click="activeTab = 'speedup'"
-                >
-                    <TrendingUp :size="16" />
-                    <span>6. Optimasi Kecepatan</span>
-                </button>
-                <button
-                    class="nav-tab"
-                    :class="{ active: activeTab === 'faq' }"
-                    @click="activeTab = 'faq'"
-                >
-                    <HelpCircle :size="16" />
-                    <span>7. FAQ & Solusi</span>
-                </button>
-                <button
-                    class="nav-tab"
-                    :class="{ active: activeTab === 'learning' }"
-                    @click="activeTab = 'learning'"
-                >
-                    <Brain :size="16" />
-                    <span>8. Pembelajaran AI</span>
-                </button>
-            </nav>
 
             <!-- TAB 1: CARA PENGGUNAAN WEB -->
             <section v-show="activeTab === 'guide'" class="tab-content" id="guide">
@@ -1489,90 +1490,157 @@ AUDIT_TEXT_LAYER_ENABLED=true</code></pre>
     color: #9ca3af;
 }
 
-/* Mobile Navigation Select */
-.docs-mobile-nav {
+/* Compact Modern Navigation Grid */
+.docs-nav-section {
+    background: #ffffff;
+    border: 1.5px solid #e2ded4;
+    border-radius: 18px;
+    padding: 16px 20px;
+    margin-bottom: 28px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+
+.docs-nav-heading-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f0ecde;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.docs-nav-badge {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #475569;
+    background: #f1f5f9;
+    padding: 3px 9px;
+    border-radius: 99px;
+}
+
+.docs-nav-hint {
+    font-size: 11.5px;
+    color: #64748b;
+}
+
+.docs-nav-active-info {
+    font-size: 12.5px;
+    color: #64748b;
+}
+
+.docs-nav-active-info strong {
+    color: #1e293b;
+}
+
+.docs-nav-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+@media (max-width: 1024px) {
+    .docs-nav-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .docs-nav-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.docs-nav-item {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    margin-bottom: 24px;
-}
-.docs-mobile-label {
-    font-size: 11.5px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    color: #6b7280;
-    text-transform: uppercase;
-}
-.docs-mobile-select-wrapper {
-    position: relative;
-    width: 100%;
-}
-.docs-mobile-select {
-    width: 100%;
-    padding: 12px 38px 12px 14px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #1f2937;
-    background: #ffffff;
-    border: 1px solid #d1d5db;
+    text-align: left;
+    padding: 12px 14px;
     border-radius: 12px;
-    appearance: none;
-    -webkit-appearance: none;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    background: #fcfbf7;
+    border: 1.5px solid #e7e2d6;
     cursor: pointer;
-    transition: all 0.2s ease;
-}
-.docs-mobile-select:focus {
-    outline: none;
-    border-color: #305e58;
-    box-shadow: 0 0 0 3px rgba(48, 94, 88, 0.15);
-}
-.docs-select-arrow {
-    position: absolute;
-    right: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    pointer-events: none;
-    color: #6b7280;
+    transition: all 0.18s ease-in-out;
+    position: relative;
+    user-select: none;
 }
 
-/* Navigation Tabs */
-.docs-nav-tabs {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 8px;
-    margin-bottom: 28px;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.nav-tab {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 18px;
-    border-radius: 10px;
+.docs-nav-item:hover {
     background: #ffffff;
-    border: 1px solid #d1d5db;
-    color: #4b5563;
-    font-size: 13.5px;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.2s;
+    border-color: #305e58;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(48, 94, 88, 0.08);
 }
 
-.nav-tab:hover {
-    background: #f9fafb;
-    border-color: #9ca3af;
-    color: #111827;
-}
-
-.nav-tab.active {
+.docs-nav-item.active {
     background: #305e58;
     border-color: #305e58;
     color: #ffffff;
-    box-shadow: 0 4px 12px rgba(48, 94, 88, 0.2);
+    box-shadow: 0 4px 14px rgba(48, 94, 88, 0.22);
+}
+
+.nav-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.nav-item-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    background: #eae5d7;
+    color: #302b2a;
+    transition: all 0.18s ease;
+}
+
+.docs-nav-item.active .nav-item-num {
+    background: #ffffff;
+    color: #305e58;
+}
+
+.nav-item-icon {
+    color: #305e58;
+    transition: all 0.18s ease;
+}
+
+.docs-nav-item.active .nav-item-icon {
+    color: #badfdb;
+}
+
+.nav-item-title {
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: #1e293b;
+    margin-bottom: 3px;
+}
+
+.docs-nav-item.active .nav-item-title {
+    color: #ffffff;
+}
+
+.nav-item-desc {
+    font-size: 11px;
+    color: #64748b;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.docs-nav-item.active .nav-item-desc {
+    color: #d1fae5;
 }
 
 /* Section Header */
@@ -2327,8 +2395,10 @@ AUDIT_TEXT_LAYER_ENABLED=true</code></pre>
 }
 
 @media (max-width: 768px) {
-    .docs-nav-tabs {
-        display: none !important;
+    .docs-nav-section {
+        padding: 12px 14px;
+        border-radius: 14px;
+        margin-bottom: 20px;
     }
     .docs-container {
         padding: 20px 16px 60px;
