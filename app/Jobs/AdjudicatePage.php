@@ -123,14 +123,19 @@ class AdjudicatePage implements ShouldQueue
         try {
             $started = microtime(true);
             $response = $client->request($endpoint, $messages);
-            $content = (string) ($response['result']['choices'][0]['message']['content'] ?? '');
-            
-            // Clean markdown wrap if any
-            if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $content, $m)) {
-                $content = $m[1];
+            $rawResult = $response['result'] ?? [];
+            if (is_array($rawResult) && isset($rawResult['choices'][0]['message']['content'])) {
+                $content = (string) $rawResult['choices'][0]['message']['content'];
+                if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $content, $m)) {
+                    $content = $m[1];
+                }
+                $parsed = json_decode(trim($content), true) ?: [];
+            } elseif (is_array($rawResult)) {
+                $parsed = $rawResult;
+            } else {
+                $parsed = [];
             }
-            $parsed = json_decode(trim($content), true) ?: [];
-            $verdicts = $parsed['verdicts'] ?? [];
+            $verdicts = $parsed['verdicts'] ?? (array_is_list($parsed) ? $parsed : []);
 
             AiUsageRecord::create([
                 'publication_id' => $publication->id,
@@ -144,16 +149,21 @@ class AdjudicatePage implements ShouldQueue
                 'purpose' => 'adjudication',
             ]);
 
+            $handledIds = [];
             foreach ($verdicts as $v) {
-                $candidate = $unresolved->firstWhere('id', $v['candidate_id']);
+                if (! is_array($v) || ! isset($v['candidate_id'])) {
+                    continue;
+                }
+                $candidate = $unresolved->firstWhere('id', (int) $v['candidate_id']);
                 if (! $candidate) {
                     continue;
                 }
+                $handledIds[] = $candidate->id;
 
-                $verdict = in_array($v['verdict'], ['confirm', 'reject'], true) ? $v['verdict'] : 'confirm';
+                $verdict = in_array($v['verdict'] ?? '', ['confirm', 'reject'], true) ? $v['verdict'] : 'confirm';
                 $candidate->update([
                     'verdict' => $verdict,
-                    'verdict_reason' => $v['reason'] ?? '',
+                    'verdict_reason' => (string) ($v['reason'] ?? ''),
                 ]);
 
                 if ($verdict === 'confirm') {
@@ -175,12 +185,40 @@ class AdjudicatePage implements ShouldQueue
                 // Injeksi ke Auto-Learning Loop
                 $learningService->ingestAdjudication($candidate, $verdict, (string) ($v['reason'] ?? ''));
             }
-        } catch (\Throwable $e) {
-            // Fallback graceful: jika AI adjudikasi gagal/timeout, masukkan ke findings dengan severity verifikasi
+
+            // Pastikan kandidat yang terlewat dari respons adjudikasi tetap disimpan (tidak hilang secara diam-diam)
             foreach ($unresolved as $item) {
+                if (in_array($item->id, $handledIds, true)) {
+                    continue;
+                }
+                $item->update([
+                    'verdict' => 'confirm',
+                    'verdict_reason' => 'Auto-confirmed (fallback kelengkapan kandidat)',
+                ]);
                 $writer->store($publication, [
                     'rule_code' => $item->rule_code,
-                    'severity' => 'verifikasi',
+                    'severity' => $item->severity,
+                    'source' => 'fusion',
+                    'detected_by' => $item->engine,
+                    'fusion_status' => $item->engine.'_confirmed',
+                    'confidence' => 0.88,
+                    'observed' => $item->observed,
+                    'expected' => $item->expected,
+                    'recommendation' => $item->recommendation,
+                    'section' => $page->page_type,
+                    'evidences' => $item->evidences ?? [['page' => $page->physical_page, 'quote' => $item->observed, 'bbox' => null]],
+                ]);
+            }
+        } catch (\Throwable $e) {
+            // Fallback graceful: jika AI adjudikasi gagal/timeout, masukkan ke findings dengan severity asli
+            foreach ($unresolved as $item) {
+                $item->update([
+                    'verdict' => 'confirm',
+                    'verdict_reason' => 'Fallback timeout adjudikasi',
+                ]);
+                $writer->store($publication, [
+                    'rule_code' => $item->rule_code,
+                    'severity' => $item->severity ?: 'verifikasi',
                     'source' => 'fusion',
                     'detected_by' => $item->engine,
                     'fusion_status' => 'adjudication_timeout_verification',
@@ -201,8 +239,32 @@ class AdjudicatePage implements ShouldQueue
     {
         $page = PublicationPage::find($this->pageId);
         if ($page && $page->fusion_status !== 'done') {
+            $publication = $page->publication;
+            $writer = app(FindingWriter::class);
+            $unresolved = FusionCandidate::where('publication_page_id', $page->id)
+                ->whereNull('verdict')
+                ->whereIn('category', ['machine_only', 'ai_only', 'conflict'])
+                ->get();
+            foreach ($unresolved as $item) {
+                $item->update([
+                    'verdict' => 'confirm',
+                    'verdict_reason' => 'Fallback job failed',
+                ]);
+                $writer->store($publication, [
+                    'rule_code' => $item->rule_code,
+                    'severity' => $item->severity ?: 'verifikasi',
+                    'source' => 'fusion',
+                    'detected_by' => $item->engine,
+                    'fusion_status' => 'adjudication_timeout_verification',
+                    'observed' => $item->observed,
+                    'expected' => $item->expected,
+                    'recommendation' => $item->recommendation,
+                    'section' => $page->page_type,
+                    'evidences' => $item->evidences ?? [['page' => $page->physical_page, 'quote' => $item->observed, 'bbox' => null]],
+                ]);
+            }
             $page->update(['fusion_status' => 'done']);
-            app(\App\Audit\AuditCoordinator::class)->afterPage($page->publication);
+            app(\App\Audit\AuditCoordinator::class)->afterPage($publication);
         }
     }
 }

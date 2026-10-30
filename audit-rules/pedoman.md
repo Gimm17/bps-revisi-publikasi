@@ -87,7 +87,7 @@ Publikasi rujukan tidak boleh disalin secara buta karena masih mengandung bebera
 3. Kata sambung, kata depan, dan partikel tidak harus diawali huruf kapital.
 4. Kata ulang sempurna mengikuti kapitalisasi judul.
 5. Instrumen melarang jenis huruf dekoratif.
-6. Publikasi dwibahasa harus memiliki judul Indonesia dan Inggris yang jelas dan tidak menyatu.
+6. Publikasi dwibahasa harus memiliki judul Indonesia dan Inggris yang jelas, tidak menyatu, dan judul bahasa Inggris wajib dicetak miring (*italic*) pada kover depan, halaman judul utama, halaman katalog, maupun halaman tim penyusun.
 7. Judul harus identik pada semua bagian publikasi.
 
 ### 2.5 Tahun judul

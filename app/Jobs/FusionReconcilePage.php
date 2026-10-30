@@ -48,14 +48,17 @@ class FusionReconcilePage implements ShouldQueue
 
         // 1. Tulis temuan yang sepakat (Agreed) langsung ke tabel final findings
         foreach ($agreed as $pair) {
-            $candidate = $pair['machine'];
+            $candidate = $pair['ai'] ?? $pair['machine'];
+            $pair['machine']->update(['verdict' => 'confirm', 'verdict_reason' => 'Agreed by Machine and Vision AI']);
+            $pair['ai']->update(['verdict' => 'confirm', 'verdict_reason' => 'Agreed by Machine and Vision AI']);
+
             $writer->store($publication, [
                 'rule_code' => $candidate->rule_code,
                 'severity' => $candidate->severity,
                 'source' => 'fusion',
                 'detected_by' => 'both',
                 'fusion_status' => 'agreed',
-                'confidence' => 0.95,
+                'confidence' => 0.96,
                 'observed' => $candidate->observed,
                 'expected' => $candidate->expected,
                 'recommendation' => $candidate->recommendation,
@@ -64,14 +67,43 @@ class FusionReconcilePage implements ShouldQueue
             ]);
         }
 
-        // 2. Jika ada selisih (machine_only atau ai_only), kirim ke Adjudikasi AI
-        $hasDiscrepancies = (! empty($machineOnly)) || (! empty($aiOnly));
-        if ($hasDiscrepancies) {
-            $page->update(['fusion_status' => 'adjudicating']);
-            AdjudicatePage::dispatch($page->id)->onQueue('ai');
-        } else {
-            $page->update(['fusion_status' => 'done']);
-            app(\App\Audit\AuditCoordinator::class)->afterPage($publication);
+        // 2. Tulis temuan deterministik Mesin (machine_only) langsung ke tabel final findings
+        foreach ($machineOnly as $mCandidate) {
+            $mCandidate->update(['verdict' => 'confirm', 'verdict_reason' => 'Deterministic BPS Rule Evaluator']);
+            $writer->store($publication, [
+                'rule_code' => $mCandidate->rule_code,
+                'severity' => $mCandidate->severity,
+                'source' => 'fusion',
+                'detected_by' => 'machine',
+                'fusion_status' => 'machine_confirmed',
+                'confidence' => 0.95,
+                'observed' => $mCandidate->observed,
+                'expected' => $mCandidate->expected,
+                'recommendation' => $mCandidate->recommendation,
+                'section' => $page->page_type,
+                'evidences' => $mCandidate->evidences ?? [['page' => $page->physical_page, 'quote' => $mCandidate->observed, 'bbox' => null]],
+            ]);
         }
+
+        // 3. Tulis temuan visual/multimodal Vision AI (ai_only) langsung ke tabel final findings
+        foreach ($aiOnly as $aCandidate) {
+            $aCandidate->update(['verdict' => 'confirm', 'verdict_reason' => 'Vision AI Multimodal Analysis']);
+            $writer->store($publication, [
+                'rule_code' => $aCandidate->rule_code,
+                'severity' => $aCandidate->severity,
+                'source' => 'fusion',
+                'detected_by' => 'ai',
+                'fusion_status' => 'ai_confirmed',
+                'confidence' => 0.90,
+                'observed' => $aCandidate->observed,
+                'expected' => $aCandidate->expected,
+                'recommendation' => $aCandidate->recommendation,
+                'section' => $page->page_type,
+                'evidences' => $aCandidate->evidences ?? [['page' => $page->physical_page, 'quote' => $aCandidate->observed, 'bbox' => null]],
+            ]);
+        }
+
+        $page->update(['fusion_status' => 'done']);
+        app(\App\Audit\AuditCoordinator::class)->afterPage($publication);
     }
 }

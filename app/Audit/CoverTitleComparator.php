@@ -65,13 +65,18 @@ class CoverTitleComparator
 
         $promptText = <<<PROMPT
 Anda adalah auditor kendali mutu publikasi resmi BPS (Badan Pusat Statistik).
-Tugas Anda: Bandingkan Gambar 1 (Kover Depan hlm. {$coverPage}) dengan Gambar 2 (Halaman Judul hlm. {$titlePage}) berdasarkan Pedoman Tata Letak Publikasi BPS.
+Tugas Anda: Bandingkan dan periksa secara menyeluruh Gambar 1 (Kover Depan hlm. {$coverPage}) dengan Gambar 2 (Halaman Judul hlm. {$titlePage}) berdasarkan Pedoman Tata Letak Publikasi BPS 2023.
 
 Pemeriksaan wajib:
-1. title_alignment (Kesesuaian Judul): Periksa apakah teks judul bahasa Indonesia dan bahasa Inggris persis sama antara kover depan dan halaman judul.
-2. white_background (Latar Belakang Putih): Periksa apakah halaman judul berlatar belakang putih polos bersih (pedoman BPS melarang foto kover atau grafis warna pada halaman judul).
-3. logo (Logo BPS): Periksa apakah logo resmi BPS tercantum dengan jelas dan proporsional pada kover dan halaman judul. CATATAN PENTING: Sesuai Pedoman BPS 2.1 butir 8, kesatuan logo dan nama BPS boleh ditempatkan di kiri, tengah, atau kanan bagian bawah kover. DILARANG menganggap penempatan logo di sudut kanan bawah sebagai kesalahan.
-4. layout_harmony (Keselarasan Layout & Metadata): Periksa apakah nomor volume, tahun publikasi, nomor katalog, dan nama satker BPS konsisten antara kover depan dan halaman judul.
+1. title_alignment (Kesesuaian Judul & Tipografi): Periksa apakah teks judul bahasa Indonesia dan bahasa Inggris persis sama antara kover depan dan halaman judul. Pastikan kover tidak menggunakan jenis huruf dekoratif/script/cursive, dan pastikan tahun judul tidak menggunakan garis miring (misal '2025/2026' harus '2026').
+2. english_italic_and_catalogue (Kewajiban Cetak Miring Bahasa Inggris & Format Katalog/ISSN):
+   - Periksa secara visual apakah JUDUL BAHASA INGGRIS (misal '... DISTRICT IN FIGURES 2026' atau '... SUBDISTRICT IN FIGURES 2026') pada Kover Depan DAN Halaman Judul sudah DICETAK MIRING (ITALIC). Jika tercetak tegak (regular/upright) atau belum ada judul bahasa Inggris, WAJIB dicatat sebagai temuan "LANGUAGE.BILINGUAL" (severity: "wajib")!
+   - Periksa apakah NAMA INSTANSI BAHASA INGGRIS ('BPS-STATISTICS ... REGENCY/MUNICIPALITY') pada Kover Depan dan Halaman Judul sudah DICETAK MIRING (Arial Bold Italic) dan TANPA kata 'OF' (bukan 'BPS-STATISTICS OF ...'). Jika tidak italic atau memakai kata 'OF', WAJIB dicatat sebagai temuan!
+   - Periksa apakah NOMOR KATALOG di kanan atas Kover Depan dan Halaman Judul ditulis dengan format 'Katalog/Catalogue: 1102001.xxxxxxx' (tanpa spasi sebelum titik dua, tanpa spasi di sekitar '/', dan kata 'Catalogue' dicetak miring/italic).
+   - Periksa apakah ISSN pada Kover Depan dan Halaman Judul ditulis TANPA titik dua ('ISSN XXXX-XXXX').
+3. white_background (Latar Belakang Putih): Periksa apakah halaman judul berlatar belakang putih polos bersih (pedoman BPS melarang foto kover atau elemen grafis latar kover pada halaman judul).
+4. logo (Logo BPS): Periksa apakah logo resmi BPS tercantum jelas tanpa efek digital (tanpa drop shadow, stroke, atau emboss). CATATAN PENTING: Sesuai Pedoman BPS 2.1 butir 8, kesatuan logo dan nama BPS boleh ditempatkan di kiri, tengah, atau kanan bagian bawah kover. DILARANG menganggap penempatan logo di sudut kanan bawah sebagai kesalahan.
+5. layout_harmony (Keselarasan Layout, Volume & Metadata): Periksa apakah nomor volume ('Volume XX, 2026'), tahun publikasi, nomor katalog, dan nama satker BPS lengkap serta konsisten antara kover depan dan halaman judul (tidak salah ketik seperti 'VOLUM', dan komposisi tata letak halaman judul selaras dengan kover depan).
 
 Format output WAJIB JSON murni tanpa markdown/penjelasan pembuka/penutup dengan struktur berikut:
 {
@@ -79,7 +84,7 @@ Format output WAJIB JSON murni tanpa markdown/penjelasan pembuka/penutup dengan 
   "components": {
     "title_alignment": {
       "decision": "conform",
-      "observed_title": "Deskripsi pengamatan judul kover vs judul halaman dalam"
+      "observed_title": "Deskripsi pengamatan judul, cetak miring (italic) judul Inggris, dan jenis huruf kover vs halaman judul"
     },
     "white_background": {
       "decision": "conform",
@@ -87,16 +92,16 @@ Format output WAJIB JSON murni tanpa markdown/penjelasan pembuka/penutup dengan 
     },
     "logo": {
       "decision": "conform",
-      "observed_title": "Logo BPS pada kover dan judul"
+      "observed_title": "Logo BPS dan cetak miring (italic) nama instansi Inggris tanpa kata OF"
     },
     "layout_harmony": {
       "decision": "conform",
-      "observed_title": "Nomor volume, tahun, dan satker"
+      "observed_title": "Nomor katalog (Katalog/Catalogue:), ISSN tanpa titik dua, nomor volume, dan tahun"
     }
   },
   "findings": []
 }
-Catatan: Jika ada ketidaksesuaian (misal nomor volume berbeda, judul tidak cocok, halaman judul bukan berlatar putih polos, dsb), ubah decision komponen terkait menjadi "nonconform" dan buat butir temuan di "findings" dengan severity "wajib", rule_code "TITLE.COVER_LAYOUT" atau "TITLE.COVER_MATCH", observed, expected, recommendation, cover_quote, title_quote. JANGAN membuat temuan terkait posisi sudut logo di kanan bawah.
+Catatan: Setiap pelanggaran pada Kover Depan maupun Halaman Judul (seperti judul Inggris tidak italic/miring, kata 'Catalogue' tidak italic, ada spasi sebelum titik dua pada 'Katalog :', ISSN memakai titik dua di kover, nama instansi Inggris memakai kata 'OF' atau tidak italic, font dekoratif pada kover, nomor volume berbeda/tidak ada/salah ketik 'VOLUM', atau halaman judul tidak berlatar putih/komposisi berbeda dari kover) WAJIB dimasukkan sebagai butir tersendiri di dalam array "findings" dengan severity "wajib", rule_code yang sesuai ("LANGUAGE.BILINGUAL", "CATALOGUE.LABELS", "ISSN.COLON", "BPS.FULL_NAME", "COVER.COMPONENTS", "TITLE.COVER_LAYOUT", atau "TITLE.COVER_MATCH"), observed, expected, recommendation, cover_quote, title_quote. JANGAN membuat temuan terkait posisi sudut logo di kanan bawah.
 PROMPT;
 
         $examinerLearnings = app(ExaminerLearningService::class)->activeLearningsForPrompt();

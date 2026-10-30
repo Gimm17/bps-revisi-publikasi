@@ -197,12 +197,27 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
                 }
 
                 if ($isFusion) {
+                    $existingMachineRules = \App\Models\FusionCandidate::where('publication_page_id', $page->id)
+                        ->where('engine', 'machine')
+                        ->pluck('rule_code')
+                        ->all();
+
                     foreach ($allAiCandidates as $candidate) {
+                        $isDeterministic = ($candidate['source'] ?? '') === 'deterministic';
+                        $engine = $isDeterministic ? 'machine' : 'ai';
+
+                        if ($engine === 'machine' && in_array($candidate['rule_code'], $existingMachineRules, true)) {
+                            continue;
+                        }
+                        if ($engine === 'machine') {
+                            $existingMachineRules[] = $candidate['rule_code'];
+                        }
+
                         \App\Models\FusionCandidate::create([
                             'publication_id' => $publication->id,
                             'publication_page_id' => $page->id,
                             'physical_page' => $page->physical_page,
-                            'engine' => 'ai',
+                            'engine' => $engine,
                             'rule_code' => $candidate['rule_code'],
                             'severity' => $candidate['severity'] ?? 'wajib',
                             'observed' => (string) ($candidate['observed'] ?? ''),

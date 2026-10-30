@@ -17,19 +17,21 @@ class RuleEvaluator
         $pageType = (string) ($page['page_type'] ?? '');
 
         // 1. ISSN.COLON & CATALOGUE.ISSN_COLON_RULE
-        preg_match_all('/ISSN\s*(:?)\s*(\d{4}-[\dX]{4})/i', $text, $matches, PREG_SET_ORDER);
+        preg_match_all('/ISSN\s*(:?)\s*(\d{4}[-\.]\s*[\dX]{4})/i', $text, $matches, PREG_SET_ORDER);
         foreach ($matches as $match) {
             $hasColon = ($match[1] === ':');
-            if ($pageType === 'catalogue' && ! $hasColon) {
-                $expected = 'ISSN: '.$match[2];
-                $findings[] = $this->finding('CATALOGUE.ISSN_COLON_RULE', $page, $match[0], $expected, 'Pada Halaman Katalog, penulisan ISSN wajib menggunakan tanda titik dua rapat: '.$expected.'.');
-            } elseif ($pageType !== 'catalogue' && $hasColon) {
-                $expected = 'ISSN '.$match[2];
-                $findings[] = $this->finding('ISSN.COLON', $page, $match[0], $expected, 'Di luar halaman katalog, penulisan ISSN wajib tanpa tanda titik dua: '.$expected.'.');
+            $normalizedIssn = preg_replace('/\s+/', '', str_replace('.', '-', $match[2]));
+            $hasDotSeparator = str_contains($match[2], '.');
+            if ($pageType === 'catalogue' && (! $hasColon || $hasDotSeparator || preg_match('/ISSN\s+:/i', $match[0]))) {
+                $expected = 'ISSN: '.$normalizedIssn;
+                $findings[] = $this->finding('CATALOGUE.ISSN_COLON_RULE', $page, $match[0], $expected, 'Pada Halaman Katalog, penulisan ISSN wajib menggunakan tanda titik dua rapat dan tanda hubung standar: '.$expected.'.');
+            } elseif ($pageType !== 'catalogue' && ($hasColon || $hasDotSeparator)) {
+                $expected = 'ISSN '.$normalizedIssn;
+                $findings[] = $this->finding('ISSN.COLON', $page, $match[0], $expected, 'Di luar halaman katalog (termasuk Kover Depan, Halaman Judul, dan Tim Penyusun), penulisan ISSN wajib tanpa tanda titik dua dan menggunakan tanda hubung: '.$expected.'.');
             }
 
             // ISSN.CHECKSUM (Modulo 11 ISO 3297)
-            $digits = str_replace('-', '', strtoupper($match[2]));
+            $digits = str_replace('-', '', strtoupper($normalizedIssn));
             if (strlen($digits) === 8) {
                 $sum = 0;
                 for ($i = 0; $i < 8; $i++) {
@@ -38,6 +40,124 @@ class RuleEvaluator
                 if ($sum % 11 !== 0) {
                     $findings[] = $this->finding('ISSN.CHECKSUM', $page, $match[2], 'ISSN dengan digit kontrol yang valid', 'Verifikasi seluruh nomor ISSN terhadap metadata resmi; jangan membuat nomor pengganti.', 'verifikasi');
                 }
+            }
+        }
+
+        // 1b. COVER, TITLE & CATALOGUE: Pemeriksaan Nomor Katalog, Volume, Tahun, dan Bahasa Inggris (Italic & Tanpa 'OF')
+        if (in_array($pageType, ['front_cover', 'cover', 'title'], true) && strlen(trim($text)) > 20) {
+            if (! preg_match('/\b(?:Katalog|Catalogue)\b/iu', $text)) {
+                $findings[] = $this->finding(
+                    'COVER.COMPONENTS',
+                    $page,
+                    'Nomor Katalog tidak ditemukan pada '.($pageType === 'title' ? 'Halaman Judul Utama' : 'Kover Depan').'.',
+                    'Katalog/Catalogue: 1102001.xxxxxxx (di sudut kanan atas, kata Catalogue dicetak miring/italic)',
+                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 §2.2, cantumkan nomor katalog resmi di sudut kanan atas dengan format dwibahasa "Katalog/Catalogue: 1102001.xxxxxxx" (tanpa spasi sebelum titik dua dan kata Catalogue dicetak miring/italic).',
+                    'wajib'
+                );
+            } else {
+                if (preg_match('/\bKatalog\s*(?:\/\s*Catalogue)?\s+:\s*[0-9.]+/iu', $text, $catSpaceM)) {
+                    $cleanCat = preg_replace('/\s*\/\s*/', '/', preg_replace('/\s+:/', ':', $catSpaceM[0]));
+                    if (! str_contains(strtolower($cleanCat), 'catalogue')) {
+                        $cleanCat = preg_replace('/^Katalog:/i', 'Katalog/Catalogue:', $cleanCat);
+                    }
+                    $findings[] = $this->finding(
+                        'CATALOGUE.LABELS',
+                        $page,
+                        trim($catSpaceM[0]),
+                        $cleanCat.' (kata Catalogue wajib dicetak miring/italic)',
+                        'Sesuai Pedoman Pembuatan Publikasi BPS 2023 §2.2, hapus spasi sebelum tanda titik dua pada label nomor katalog dan pastikan kata "Catalogue" dicetak miring (italic).',
+                        'wajib'
+                    );
+                } elseif (preg_match('/\b(Katalog\s+\/\s*Catalogue|Katalog\s*\/\s+Catalogue)\s*:\s*[0-9.]+/iu', $text, $catSlashM)) {
+                    $cleanCat = preg_replace('/\s*\/\s*/', '/', $catSlashM[0]);
+                    $findings[] = $this->finding(
+                        'CATALOGUE.LABELS',
+                        $page,
+                        trim($catSlashM[0]),
+                        $cleanCat.' (kata Catalogue wajib dicetak miring/italic)',
+                        'Sesuai Pedoman Pembuatan Publikasi BPS 2023 §2.2, hapus spasi di sekitar tanda garis miring pada label "Katalog/Catalogue:" dan pastikan kata "Catalogue" dicetak miring (italic).',
+                        'wajib'
+                    );
+                } elseif (preg_match('/\bKatalog\s*:\s*([0-9.]+)/iu', $text, $catMonoM) && ! preg_match('/\bCatalogue\b/iu', $text)) {
+                    $findings[] = $this->finding(
+                        'CATALOGUE.LABELS',
+                        $page,
+                        trim($catMonoM[0]),
+                        'Katalog/Catalogue: '.$catMonoM[1].' (kata Catalogue dicetak miring/italic)',
+                        'Pada publikasi dwibahasa, label nomor katalog wajib menggunakan format dwibahasa "Katalog/Catalogue: '.$catMonoM[1].'" dengan kata "Catalogue" dicetak miring (italic).',
+                        'wajib'
+                    );
+                }
+            }
+
+            if (! preg_match('/\bVolume?\s+\d+/iu', $text)) {
+                $findings[] = $this->finding(
+                    'COVER.COMPONENTS',
+                    $page,
+                    'Keterangan nomor volume penerbitan belum dicantumkan pada '.($pageType === 'title' ? 'Halaman Judul Utama' : 'Kover Depan').'.',
+                    'Volume XX, 2026',
+                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 §2.6, publikasi rutin ber-ISSN wajib mencantumkan nomor volume dan tahun terbitan (contoh: "Volume 17, 2026").',
+                    'wajib'
+                );
+            }
+
+            if (preg_match('/\b(202\d\s*\/\s*202\d)\b/', $text, $slashYearM)) {
+                $findings[] = $this->finding(
+                    'COVER.COMPONENTS',
+                    $page,
+                    'Tahun publikasi pada judul ditulis menggunakan garis miring: "'.$slashYearM[1].'".',
+                    '2026',
+                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 §2.5, judul publikasi tahunan hanya mencantumkan satu angka tahun rilis/data terbaru (2026) tanpa garis miring.',
+                    'wajib'
+                );
+            }
+
+            if (! preg_match('/\b(?:in\s+Figures|Figures)\b/iu', $text)) {
+                $findings[] = $this->finding(
+                    'LANGUAGE.BILINGUAL',
+                    $page,
+                    'Judul publikasi pada '.($pageType === 'title' ? 'Halaman Judul Utama' : 'Kover Depan').' belum memuat terjemahan bahasa Inggris.',
+                    'Memuat judul bahasa Inggris yang dicetak miring (italic), contoh: "... Subdistrict/District in Figures 2026"',
+                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 §2.4, publikasi dwibahasa wajib mencantumkan judul bahasa Inggris yang dicetak miring (italic) di bawah judul bahasa Indonesia.',
+                    'wajib'
+                );
+            }
+
+            if (preg_match('/\bBadan\s+Pusat\s+Statistik\b/iu', $text) && ! preg_match('/\bBPS\s*-\s*Statistics\b/iu', $text)) {
+                $findings[] = $this->finding(
+                    'LANGUAGE.BILINGUAL',
+                    $page,
+                    'Nama penerbit pada '.($pageType === 'title' ? 'Halaman Judul Utama' : 'Kover Depan').' hanya tertulis dalam bahasa Indonesia tanpa padanan bahasa Inggris.',
+                    'Memuat nama penerbit bahasa Inggris dengan huruf Arial Bold Italic (contoh: "BPS-Statistics ... Regency/Municipality")',
+                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 §2.7, di bawah nama Badan Pusat Statistik wajib dicantumkan nama resmi bahasa Inggris yang dicetak miring (italic).',
+                    'wajib'
+                );
+            }
+        }
+
+        if (in_array($pageType, ['front_cover', 'cover', 'title', 'catalogue', 'team'], true)) {
+            if (preg_match('/\b(VOLUM\s+\d+(?:\s*,\s*20\d\d)?)\b/iu', $text, $volTypoM)) {
+                $fixedVol = preg_replace('/^VOLUM\b/iu', 'Volume', $volTypoM[1]);
+                $findings[] = $this->finding(
+                    'LANGUAGE.EJAAN',
+                    $page,
+                    $volTypoM[1],
+                    $fixedVol,
+                    'Terdapat salah ketik pada penulisan kata "VOLUM" (kurang huruf E). Perbaiki menjadi "'.$fixedVol.'".',
+                    'wajib'
+                );
+            }
+
+            if (preg_match('/\b(BPS\s*-\s*Statistics\s+of\s+[A-Za-z\s\-]+?(?:Regency|Municipality|Province))\b/iu', $text, $bpsOfM)) {
+                $cleanBpsEn = preg_replace('/\b(BPS\s*-\s*Statistics)\s+of\s+/iu', '$1 ', $bpsOfM[1]);
+                $findings[] = $this->finding(
+                    'BPS.FULL_NAME',
+                    $page,
+                    $bpsOfM[1],
+                    $cleanBpsEn.' (dicetak miring/italic tanpa kata "of")',
+                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 §2.7 & §5.7, nomenklatur bahasa Inggris resmi BPS daerah tidak menggunakan preposisi "of" dan wajib dicetak miring (italic): "'.$cleanBpsEn.'".',
+                    'wajib'
+                );
             }
         }
 
@@ -68,15 +188,17 @@ class RuleEvaluator
 
         // 4. CATALOGUE.NO_INDIVIDUAL_NAMES (Halaman Katalog bebas nama orang)
         if ($pageType === 'catalogue') {
-            if (preg_match('/(?:Penyusun Naskah|Penyunting|Pembuat Kover|Cover Designer|Editor)\s*[:\/]\s*([^\n\r]+)/iu', $text, $catMatch)) {
-                $lineContent = $catMatch[1];
-                if (preg_match('/\b(S\.Si|S\.Tr\.Stat|S\.Stat|M\.Si|S\.E|S\.Kom|M\.M|A\.Md|Drs\.|Ir\.|Dr\.)\b/i', $lineContent) ||
-                    (! str_contains(strtolower($lineContent), 'badan pusat statistik') && ! str_contains(strtolower($lineContent), 'bps'))) {
+            if (preg_match('/(?:Penyusun\s+Naskah(?:\s*\/\s*Manuscript\s+Drafter)?|Penyunting(?:\s*\/\s*Editor)?|Pembuat\s+Kover(?:\s*\/\s*Cover\s+Designer)?)\s*:\s*([^\n\r]+|\r?\n\s*[^\n\r]+)/iu', $text, $catMatch)) {
+                $lineContent = trim($catMatch[1]);
+                if ($lineContent !== '' && (
+                    preg_match('/\b(S\.Si|S\.Tr\.Stat|S\.Stat|M\.Si|S\.E|S\.Kom|M\.M|A\.Md|Drs\.|Ir\.|Dr\.)\b/i', $lineContent) ||
+                    (! str_contains(strtolower($lineContent), 'badan pusat statistik') && ! str_contains(strtolower($lineContent), 'bps') && ! str_contains(strtolower($lineContent), 'statistics'))
+                )) {
                     $findings[] = $this->finding(
                         'CATALOGUE.NO_INDIVIDUAL_NAMES',
                         $page,
                         trim($catMatch[0]),
-                        'Diisi nama instansi BPS (contoh: Badan Pusat Statistik Kabupaten/Kota)',
+                        'Diisi nama instansi BPS lengkap (contoh: Badan Pusat Statistik Kabupaten/Kota)',
                         'Sesuai Pedoman Pembuatan Publikasi BPS 2023 Bab 4 hal. 78, baris Penyusun, Penyunting, dan Pembuat Kover pada Halaman Katalog wajib diisi nama unit kerja institusi BPS, dilarang mencantumkan nama individu.',
                         'wajib'
                     );
@@ -269,29 +391,30 @@ class RuleEvaluator
 
         // 9. BPS.FULL_NAME (Kaidah penulisan lengkap Badan Pusat Statistik)
         if (in_array($pageType, ['front_cover', 'cover', 'title', 'catalogue', 'preface', 'back_cover'], true)) {
-            if (preg_match('/\b(?:Diterbitkan\s+oleh|Penerbit|Publisher|Penyusun|Disusun\s+oleh|Editor)\s*[:\/]?\s*(BPS\s+(?:Kabupaten|Kota|Provinsi)[^\n\r]*)/iu', $text, $bpsM)) {
-                $expected = str_ireplace('BPS', 'Badan Pusat Statistik', $bpsM[1]);
+            if (preg_match('/\b(?:Diterbitkan\s+oleh|Penerbit|Publisher|Penyusun(?:\s+Naskah)?|Manuscript\s+Drafter|Penyunting|Disusun\s+oleh|Editor|Pembuat\s+Kover|Cover\s+Designer|Dicetak\s+oleh|Printed\s+by|Sumber\s+Ilustrasi|Illustration\s+Source)\s*[:\/]?\s*(?:\r?\n\s*)?(BPS\s+(?:Kabupaten|Kota|Provinsi)\s+[^\n\r\/]+)/iu', $text, $bpsM)) {
+                $shortBps = trim($bpsM[1]);
+                $expected = preg_replace('/^BPS\b/iu', 'Badan Pusat Statistik', $shortBps);
                 $findings[] = $this->finding(
                     'BPS.FULL_NAME',
                     $page,
-                    $bpsM[0],
+                    $shortBps,
                     $expected,
-                    'Sesuai Pedoman Publikasi BPS §2.1, nama institusi pada penerbit/penyusun wajib ditulis lengkap "Badan Pusat Statistik", tidak disingkat BPS.',
+                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 §2.7 & §5.7, dalam bahasa Indonesia nama institusi tidak boleh disingkat menjadi "BPS", wajib ditulis lengkap "'.$expected.'".',
                     'wajib'
                 );
             }
         }
 
-        // 10. CATALOGUE.COMPONENTS & CATALOGUE.LABELS & CATALOGUE.COPYRIGHT (Halaman Katalog)
+        // 10. CATALOGUE.COMPONENTS & CATALOGUE.LABELS & CATALOGUE.PAGE_COUNT & CATALOGUE.COPYRIGHT (Halaman Katalog)
         if ($pageType === 'catalogue') {
             $missingComponents = [];
-            if (! preg_match('/\b(?:No\.?\s*Publikasi|Publication\s*Number)\b/iu', $text)) {
+            if (! preg_match('/\b(?:No(?:mor)?\.?\s*Publikasi|Publication\s*Number)\b/iu', $text)) {
                 $missingComponents[] = 'Nomor Publikasi';
             }
-            if (! preg_match('/\b(?:No\.?\s*Katalog|Katalog\s*BPS|Catalog\s*Number)\b/iu', $text)) {
+            if (! preg_match('/\b(?:No(?:mor)?\.?\s*Katalog|Katalog\s*(?:\/\s*Catalogue)?\s*:|Katalog\s*BPS|Catalog(?:ue)?\s*Number)\b/iu', $text)) {
                 $missingComponents[] = 'Nomor Katalog';
             }
-            if (! preg_match('/\b\d{1,2}(?:[.,]\d+)?\s*[xX×]\s*\d{1,2}(?:[.,]\d+)?\s*cm\b/iu', $text)) {
+            if (! preg_match('/\b\d{1,2}(?:[.,]\d+)?\s*(?:cm\s*)?[xX×]\s*\d{1,2}(?:[.,]\d+)?\s*cm\b/iu', $text)) {
                 $missingComponents[] = 'Ukuran Buku (cm)';
             }
             if (! empty($missingComponents)) {
@@ -299,31 +422,98 @@ class RuleEvaluator
                     'CATALOGUE.COMPONENTS',
                     $page,
                     'Komponen KDT belum lengkap: hilang ' . implode(', ', $missingComponents),
-                    'Halaman Katalog memuat blok KDT lengkap (No. Publikasi, No. Katalog, dan Ukuran Buku)',
-                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 Bab 4 hal. 78, blok Katalog Dalam Terbitan wajib memuat Nomor Publikasi, Nomor Katalog, dan dimensi ukuran buku.',
+                    'Halaman Katalog memuat blok KDT lengkap (Nomor Katalog, Nomor Publikasi, dan Ukuran Buku)',
+                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 Bab 4 hal. 78, halaman katalog wajib memuat Nomor Katalog, Nomor Publikasi, dan dimensi ukuran buku.',
                     'wajib'
                 );
             }
 
-            if (preg_match('/\bPenerbit\s*:/iu', $text) && ! preg_match('/\bPublished\s*by\b/iu', $text)) {
+            if (preg_match('/\b(Katalog\s+\/\s*Catalogue|Katalog\s*\/\s+Catalogue|Nomor\s+Publikasi\s+\/\s*Publication\s+Number|Ukuran\s+Buku\s+\/\s*Book\s+Size|Jumlah\s+Halaman\s+\/\s*Number\s+of\s+Pages)\s*:/iu', $text, $catSlashLabelM)) {
+                $cleanLabel = preg_replace('/\s*\/\s*/', '/', $catSlashLabelM[0]);
                 $findings[] = $this->finding(
                     'CATALOGUE.LABELS',
                     $page,
-                    'Label katalog "Penerbit:" tidak memiliki padanan dwibahasa Inggris "Published by:"',
-                    'Penerbit/Published by:',
-                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 Bab 4 hal. 78, label halaman katalog publikasi dwibahasa wajib disajikan dalam dua bahasa (Indonesia dan Inggris).',
+                    trim($catSlashLabelM[0]),
+                    $cleanLabel.' (padanan bahasa Inggris dicetak miring/italic)',
+                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 §5.2, hapus spasi di sekitar garis miring pada label katalog dwibahasa ("'.$cleanLabel.'") dan pastikan istilah bahasa Inggris dicetak miring (italic).',
                     'wajib'
                 );
             }
 
-            $hasCopyright = preg_match('/\b(Hak\s+Cipta|Copyright)\b/iu', $text);
+            if (preg_match('/\b((?:Katalog(?:\/Catalogue)?|Nomor\s+Publikasi(?:\/Publication\s+Number)?|Ukuran\s+Buku(?:\/Book\s+Size)?|Jumlah\s+Halaman(?:\/Number\s+of\s+Pages)?)\s+:)/iu', $text, $catColonSpaceM)) {
+                $cleanColonLabel = preg_replace('/\s+:$/', ':', $catColonSpaceM[1]);
+                $findings[] = $this->finding(
+                    'CATALOGUE.LABELS',
+                    $page,
+                    trim($catColonSpaceM[1]),
+                    $cleanColonLabel,
+                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 §5.2, tanda titik dua pada label halaman katalog wajib ditulis rapat tanpa spasi di depannya ("'.$cleanColonLabel.'").',
+                    'wajib'
+                );
+            }
+
+            if (preg_match('/\bJumlah\s+Halaman(?:\s*\/\s*Number\s+of\s+Pages)?\s*:\s*([^\n\r]+)/iu', $text, $pageCountLineM)) {
+                $pcVal = trim($pageCountLineM[1]);
+                $hasPlaceholderXx = (bool) preg_match('/^xx\b/i', $pcVal);
+                $hasPlusSpace = (bool) preg_match('/\s+\+|\+\s+/', $pcVal);
+                $hasShortHal = (bool) preg_match('/\bhal(?:\b|\/)/i', $pcVal);
+                if ($hasPlaceholderXx || $hasPlusSpace || $hasShortHal) {
+                    $normalizedPc = preg_replace('/\s*\+\s*/', '+', $pcVal);
+                    $normalizedPc = preg_replace('/\bhal\b/i', 'halaman', $normalizedPc);
+                    if (! str_contains(strtolower($normalizedPc), 'pages')) {
+                        $normalizedPc .= '/pages';
+                    }
+                    $findings[] = $this->finding(
+                        'CATALOGUE.PAGE_COUNT',
+                        $page,
+                        trim($pageCountLineM[0]),
+                        'Jumlah Halaman/Number of Pages: '.$normalizedPc.' (kata Number of Pages dan pages dicetak miring/italic)',
+                        'Sesuai Pedoman Pembuatan Publikasi BPS 2023 §5.5, jumlah halaman ditulis rapat tanpa spasi di kiri/kanan tanda "+", kata "halaman" dilarang disingkat menjadi "hal", angka romawi diisi jumlah halaman pendahuluan sebenarnya (bukan placeholder "xx"), dan kata "pages" dicetak miring (italic).',
+                        'wajib'
+                    );
+                }
+            }
+
+            if (preg_match('/(?:^|\n)\s*(Penerbit(?:\s*\/\s*Publisher)?)\s*(?:\r?\n)/iu', $text, $pubNoColonM) && ! str_contains($pubNoColonM[1], ':')) {
+                $findings[] = $this->finding(
+                    'CATALOGUE.LABELS',
+                    $page,
+                    trim($pubNoColonM[1]),
+                    'Penerbit/Publisher: (diakhiri tanda titik dua dan kata Publisher dicetak miring/italic)',
+                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 §5.7, label "Penerbit/Publisher:" wajib menggunakan tanda titik dua rapat dan kata "Publisher" dicetak miring (italic).',
+                    'wajib'
+                );
+            } elseif (preg_match('/\bPenerbit\s*:/iu', $text) && ! preg_match('/\b(?:Publisher|Published\s*by)\b/iu', $text)) {
+                $findings[] = $this->finding(
+                    'CATALOGUE.LABELS',
+                    $page,
+                    'Label katalog "Penerbit:" tidak memiliki padanan dwibahasa Inggris.',
+                    'Penerbit/Publisher: (kata Publisher dicetak miring/italic)',
+                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 Bab 4 hal. 78, label halaman katalog publikasi dwibahasa wajib disajikan dalam dua bahasa (Indonesia dan Inggris yang dicetak miring).',
+                    'wajib'
+                );
+            }
+
+            if (preg_match('/(?:©|)\s*(BPS\s+(?:Kabupaten|Kota|Provinsi)\s+[^\n\r\/]+)/iu', $text, $copyShortM)) {
+                $fullCopyBps = preg_replace('/^BPS\b/iu', 'Badan Pusat Statistik', trim($copyShortM[1]));
+                $findings[] = $this->finding(
+                    'CATALOGUE.COPYRIGHT',
+                    $page,
+                    trim($copyShortM[0]),
+                    '©'.$fullCopyBps,
+                    'Sesuai Pedoman Pembuatan Publikasi BPS 2023 §5.7, penulisan penerbit menggunakan simbol hak cipta rapat tanpa spasi dan nama lengkap "Badan Pusat Statistik" (tidak disingkat BPS): "©'.$fullCopyBps.'".',
+                    'wajib'
+                );
+            }
+
+            $hasCopyright = preg_match('/\b(Hak\s+Cipta|Copyright|Dilarang\s+mereproduksi|prohibited\s+to\s+reproduce)\b/iu', $text);
             $hasBps = preg_match('/\b(Badan\s+Pusat\s+Statistik|BPS)\b/iu', $text);
             if (! $hasCopyright || ! $hasBps) {
                 $findings[] = $this->finding(
                     'CATALOGUE.COPYRIGHT',
                     $page,
                     'Pernyataan hak cipta Badan Pusat Statistik tidak teridentifikasi pada halaman katalog.',
-                    'Memuat klausul Hak Cipta Badan Pusat Statistik/Copyright Statistics Indonesia',
+                    'Memuat klausul larangan reproduksi komersial / Hak Cipta Badan Pusat Statistik dalam bahasa Indonesia dan Inggris (italic)',
                     'Sesuai Pedoman Pembuatan Publikasi BPS 2023 Bab 4 hal. 78, halaman katalog wajib mencantumkan klausul perlindungan hak cipta Badan Pusat Statistik.',
                     'saran'
                 );

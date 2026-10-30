@@ -78,15 +78,39 @@ class PdfPreparer
                 $process->setTimeout(30);
                 $process->run();
 
-                if ($process->isSuccessful()) {
+                if ($process->isSuccessful() && trim($process->getOutput()) !== '') {
                     return $process->getOutput();
                 }
             } catch (\Throwable $e) {
-                // Lanjut ke fallback Smalot Parser
+                // Lanjut ke fallback Ghostscript / Smalot
             }
         }
 
-        // 2. Fallback pure-PHP Smalot PDF Parser
+        // 2. Fallback Ghostscript (txtwrite) — mendukung PDF BPS yang terproteksi permission (Secured PDF)
+        $gsBinary = is_executable('/usr/bin/gs') ? '/usr/bin/gs' : 'gs';
+        try {
+            $gsProcess = new Process([
+                $gsBinary,
+                '-q',
+                '-dNOPAUSE',
+                '-dBATCH',
+                '-sDEVICE=txtwrite',
+                '-dFirstPage='.$page,
+                '-dLastPage='.$page,
+                '-sOutputFile=-',
+                $pdfPath,
+            ]);
+            $gsProcess->setTimeout(30);
+            $gsProcess->run();
+
+            if ($gsProcess->isSuccessful() && trim($gsProcess->getOutput()) !== '') {
+                return $gsProcess->getOutput();
+            }
+        } catch (\Throwable $e) {
+            // Lanjut ke fallback Smalot Parser
+        }
+
+        // 3. Fallback pure-PHP Smalot PDF Parser
         if (class_exists(\Smalot\PdfParser\Parser::class)) {
             try {
                 $parser = new \Smalot\PdfParser\Parser();
