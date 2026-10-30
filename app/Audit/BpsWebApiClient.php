@@ -145,6 +145,36 @@ class BpsWebApiClient
 
         $cleanRegion = $this->cleanRegionName((string) ($pub->region ?: $pub->title));
 
+        if ($domainId === null) {
+            $regLower = mb_strtolower($cleanRegion);
+            $donggalaDistricts = ['dampelas', 'banawa', 'balaesang', 'sojol', 'sindue', 'sirenja', 'rio pakava', 'labuan', 'tanantovea', 'pinembani'];
+            $paluDistricts = ['mantikulore', 'ulujadi', 'tatanga', 'palu barat', 'palu timur', 'palu utara', 'palu selatan', 'tawaeli'];
+            $tounaDistricts = ['walea', 'ampana', 'una-una', 'togean', 'batudaka', 'ulubongka', 'tojo'];
+
+            foreach ($donggalaDistricts as $d) {
+                if (str_contains($regLower, $d)) {
+                    $domainId = '7205';
+                    break;
+                }
+            }
+            if ($domainId === null) {
+                foreach ($paluDistricts as $d) {
+                    if (str_contains($regLower, $d)) {
+                        $domainId = '7271';
+                        break;
+                    }
+                }
+            }
+            if ($domainId === null) {
+                foreach ($tounaDistricts as $d) {
+                    if (str_contains($regLower, $d)) {
+                        $domainId = '7209';
+                        break;
+                    }
+                }
+            }
+        }
+
         if ($domainId === null && ! empty($publisherTexts)) {
             $domainId = $this->resolveDomainFromPublisher(implode(' ', $publisherTexts));
         }
@@ -429,58 +459,62 @@ class BpsWebApiClient
      */
     public function searchSeriesInDomain(string $domainId, string $cleanRegion): array
     {
-        $apiKey = $this->getApiKey();
-        $escapedRegion = preg_quote($cleanRegion, '/');
-        $escapedRegion = str_replace('\ ', '[\s\-]+', $escapedRegion);
-        $pattern = '/(?:Kecamatan\s+|Kabupaten\s+|Kota\s+|Provinsi\s+|^)'.$escapedRegion.'\s+Dalam\s+Angka\s+(20\d{2})/iu';
+        $cacheKey = 'bps_series_search_'.md5($domainId.'_'.$cleanRegion);
 
-        $queries = [
-            "Kecamatan {$cleanRegion} Dalam Angka 2025",
-            "Kecamatan {$cleanRegion} Dalam Angka",
-            "{$cleanRegion} Dalam Angka",
-            $cleanRegion,
-        ];
+        return Cache::remember($cacheKey, 86400, function () use ($domainId, $cleanRegion) {
+            $apiKey = $this->getApiKey();
+            $escapedRegion = preg_quote($cleanRegion, '/');
+            $escapedRegion = str_replace('\ ', '[\s\-]+', $escapedRegion);
+            $pattern = '/(?:Kecamatan\s+|Kabupaten\s+|Kota\s+|Provinsi\s+|^)'.$escapedRegion.'\s+Dalam\s+Angka\s+(20\d{2})/iu';
 
-        $matchedById = [];
-        foreach ($queries as $qText) {
-            $keyword = rawurlencode($qText);
-            $url = self::BASE_URL."/list/model/publication/domain/{$domainId}/keyword/{$keyword}/key/{$apiKey}/";
+            $queries = [
+                "Kecamatan {$cleanRegion} Dalam Angka 2025",
+                "Kecamatan {$cleanRegion} Dalam Angka",
+                "{$cleanRegion} Dalam Angka",
+                $cleanRegion,
+            ];
 
-            try {
-                $resp = Http::withoutVerifying()->timeout(15)->get($url);
-                if (! $resp->successful() || $resp->json('status') !== 'OK') {
-                    continue;
-                }
+            $matchedById = [];
+            foreach ($queries as $qText) {
+                $keyword = rawurlencode($qText);
+                $url = self::BASE_URL."/list/model/publication/domain/{$domainId}/keyword/{$keyword}/key/{$apiKey}/";
 
-                $items = $resp->json('data.1') ?? [];
-                if (! is_array($items)) {
-                    continue;
-                }
-
-                foreach ($items as $item) {
-                    $title = trim((string) ($item['title'] ?? ''));
-                    $pubId = (string) ($item['pub_id'] ?? '');
-                    if ($pubId !== '' && preg_match($pattern, $title, $m)) {
-                        $item['extracted_year'] = (int) $m[1];
-                        $matchedById[$pubId] = $item;
+                try {
+                    $resp = Http::withoutVerifying()->timeout(10)->get($url);
+                    if (! $resp->successful() || $resp->json('status') !== 'OK') {
+                        continue;
                     }
-                }
 
-                if (! empty($matchedById)) {
-                    $years = array_column(array_values($matchedById), 'extracted_year');
-                    if (max($years) >= 2025) {
-                        break;
+                    $items = $resp->json('data.1') ?? [];
+                    if (! is_array($items)) {
+                        continue;
                     }
+
+                    foreach ($items as $item) {
+                        $title = trim((string) ($item['title'] ?? ''));
+                        $pubId = (string) ($item['pub_id'] ?? '');
+                        if ($pubId !== '' && preg_match($pattern, $title, $m)) {
+                            $item['extracted_year'] = (int) $m[1];
+                            $matchedById[$pubId] = $item;
+                        }
+                    }
+
+                    if (! empty($matchedById)) {
+                        $years = array_column(array_values($matchedById), 'extracted_year');
+                        if (max($years) >= 2025) {
+                            break;
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning("BpsWebApiClient: searchSeriesInDomain failed for {$domainId}/{$qText}: ".$e->getMessage());
                 }
-            } catch (\Throwable $e) {
-                Log::warning("BpsWebApiClient: searchSeriesInDomain failed for {$domainId}/{$qText}: ".$e->getMessage());
             }
-        }
 
-        $matched = array_values($matchedById);
-        usort($matched, fn ($a, $b) => ($b['extracted_year'] ?? 0) <=> ($a['extracted_year'] ?? 0));
+            $matched = array_values($matchedById);
+            usort($matched, fn ($a, $b) => ($b['extracted_year'] ?? 0) <=> ($a['extracted_year'] ?? 0));
 
-        return $matched;
+            return $matched;
+        });
     }
 
     /**
@@ -514,7 +548,12 @@ class BpsWebApiClient
             return [];
         }
 
-        $agent = AiAgent::ready()->first() ?? AiProviderConfig::latest('id')->first();
+        $readyAgents = AiAgent::ready()->get();
+        $capacity = app(AiCapacity::class);
+        $agent = $readyAgents->first(fn ($a) => ! $capacity->isBusy($a) && $capacity->remainingCooldown($a) <= 0)
+            ?? $readyAgents->first()
+            ?? AiProviderConfig::latest('id')->first();
+
         if (! $agent) {
             return [];
         }
@@ -531,7 +570,7 @@ class BpsWebApiClient
                         ['type' => 'image_url', 'image_url' => ['url' => 'data:image/jpeg;base64,'.$base64]],
                     ],
                 ],
-            ]);
+            ], null, true);
 
             $res = $resp['result'] ?? [];
             $vol = isset($res['volume']) && is_numeric($res['volume']) ? (int) $res['volume'] : null;
