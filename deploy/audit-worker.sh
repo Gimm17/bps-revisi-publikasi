@@ -16,4 +16,4 @@ cd -- "$task_app_dir"
 exec /usr/bin/flock -n "$task_app_dir/storage/framework/$task_lock" \
     "$task_php" -d memory_limit=512M "$task_app_dir/artisan" \
     queue:work database --queue="$task_queue" --sleep=1 --tries=3 \
-    --timeout=230 --memory=384 --max-time=300 --stop-when-empty
+    --timeout=230 --memory=384 --max-time=58

@@ -54,7 +54,8 @@ class AgentPoolSelector
             throw new AiRequestException('Semua agen AI sedang dalam jeda (cooldown). Mencoba lagi...', 'capacity', true, max(5, $minCooldown));
         }
 
-        // Pick the agent that has processed the fewest pages in this publication for balanced distribution
+        // Pick an IDLE agent first (not currently holding its concurrency lock or analyzing),
+        // then balance by fewest pages processed in this publication
         $usageCounts = DB::table('publication_pages')
             ->where('publication_id', $publication->id)
             ->whereNotNull('ai_agent_id')
@@ -62,6 +63,22 @@ class AgentPoolSelector
             ->groupBy('ai_agent_id')
             ->pluck('count', 'ai_agent_id');
 
-        return $available->sortBy(fn (AiAgent $agent) => $usageCounts->get($agent->id, 0))->first();
+        $busyCounts = DB::table('publication_pages')
+            ->where('status', 'analyzing')
+            ->whereNotNull('ai_agent_id')
+            ->select('ai_agent_id', DB::raw('count(*) as count'))
+            ->groupBy('ai_agent_id')
+            ->pluck('count', 'ai_agent_id');
+
+        return $available->sortBy(function (AiAgent $agent) use ($usageCounts, $busyCounts): array {
+            $isAnalyzingBusy = $busyCounts->get($agent->id, 0) >= max(1, (int) $agent->max_concurrency);
+            $isLockBusy = $isAnalyzingBusy || $this->capacity->isBusy($agent);
+
+            return [
+                $isLockBusy ? 1 : 0,
+                (int) $usageCounts->get($agent->id, 0),
+                (int) $agent->slot,
+            ];
+        })->first();
     }
 }

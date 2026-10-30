@@ -109,6 +109,21 @@ class AiCapacity
         return $this->remainingCooldown($endpoint) > 0;
     }
 
+    public function isBusy(AiAgent $agent): bool
+    {
+        $agentLimit = max(1, (int) $agent->max_concurrency);
+        for ($slot = 0; $slot < $agentLimit; $slot++) {
+            $lock = Cache::lock('audit:ai:agent:'.$agent->id.':slot:'.$slot, 5);
+            if ($lock->get()) {
+                $lock->release();
+
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public function remainingCooldown(AiEndpoint|string $endpoint): int
     {
         $key = $this->cooldownKey($endpoint);
