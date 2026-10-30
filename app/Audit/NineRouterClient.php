@@ -91,9 +91,12 @@ class NineRouterClient
         return rtrim($url, '/');
     }
 
-    public function request(AiEndpoint $config, array $messages, ?\Closure $onRequest = null): array
+    public function request(AiEndpoint $config, array $messages, ?\Closure $onRequest = null, bool $bypassCapacityLock = false): array
     {
         $url = $this->validateUrl($config->baseUrl());
+        if ($bypassCapacityLock) {
+            return $this->send($config, $messages, $url, $onRequest);
+        }
         $lock = app(AiCapacity::class)->acquire($config);
         try {
             return $this->send($config, $messages, $url, $onRequest);

@@ -36,13 +36,21 @@ class AdditionalCheckCoordinator
         return DB::transaction(function () use ($publication, $actor, $scope): PublicationCheckRun {
             $pub = Publication::whereKey($publication->id)->lockForUpdate()->firstOrFail();
 
-            // Idempotency: return active run if already running, and advance any pending checks
+            // Idempotency: return active run if already running, and advance any pending or needs_verification checks
             $activeRun = $pub->checkRuns()->whereIn('status', ['pending', 'running'])->first();
             if ($activeRun) {
-                foreach ($activeRun->checks()->whereIn('execution_status', ['pending', 'running'])->get() as $pendingCheck) {
+                foreach ($activeRun->checks()->whereIn('check_type', $scope)->get() as $pendingCheck) {
+                    $shouldRun = in_array($pendingCheck->execution_status, ['pending', 'running', 'failed'], true)
+                        || $pendingCheck->decision === 'needs_verification'
+                        || ! empty($pendingCheck->error_message);
+
+                    if (! $shouldRun) {
+                        continue;
+                    }
+
                     if ($pendingCheck->check_type === 'volume') {
                         if ($pub->kind === 'kcda') {
-                            FetchPublicationReference::dispatch($activeRun->id);
+                            FetchPublicationReference::dispatch($activeRun->id)->onQueue('references');
                         } else {
                             $this->executeVolume($activeRun, $pendingCheck);
                         }
@@ -81,7 +89,7 @@ class AdditionalCheckCoordinator
 
                 if ($type === 'volume') {
                     if ($pub->kind === 'kcda') {
-                        FetchPublicationReference::dispatch($run->id);
+                        FetchPublicationReference::dispatch($run->id)->onQueue('references');
                     } else {
                         $this->executeVolume($run, $check);
                     }
@@ -142,7 +150,7 @@ class AdditionalCheckCoordinator
 
         if ($check->check_type === 'volume') {
             if ($run->publication->kind === 'kcda') {
-                FetchPublicationReference::dispatch($run->id);
+                FetchPublicationReference::dispatch($run->id)->onQueue('references');
             } else {
                 $this->executeVolume($run, $check);
             }
@@ -192,6 +200,14 @@ class AdditionalCheckCoordinator
             ?? 3;
 
         $result = $this->coverComparator->compare($run, (int) $coverPage, (int) $titlePage);
+
+        // Remove stale unreviewed ai_visual findings before storing fresh results
+        if (! empty($result['findings']) || $result['decision'] === 'conform') {
+            $pub->findings()
+                ->where('source', 'ai_visual')
+                ->where('review_status', 'unreviewed')
+                ->delete();
+        }
 
         foreach ($result['findings'] as $candidate) {
             $candidate['check_run_id'] = $run->id;

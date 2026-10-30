@@ -29,7 +29,24 @@ class CoverTitleComparator
     public function compare(PublicationCheckRun $run, int $coverPage, int $titlePage): array
     {
         $pub = $run->publication;
-        $config = \App\Models\AiAgent::ready()->first() ?? $pub->aiConfig ?? AiProviderConfig::latest('id')->first();
+        $readyAgents = \App\Models\AiAgent::ready()->get();
+        $capacity = app(AiCapacity::class);
+
+        $sortedCandidates = $readyAgents->sort(function ($a, $b) use ($capacity) {
+            $cdA = $capacity->remainingCooldown($a) > 0 ? 1 : 0;
+            $cdB = $capacity->remainingCooldown($b) > 0 ? 1 : 0;
+            if ($cdA !== $cdB) {
+                return $cdA <=> $cdB;
+            }
+            $busyA = $capacity->isBusy($a) ? 1 : 0;
+            $busyB = $capacity->isBusy($b) ? 1 : 0;
+            if ($busyA !== $busyB) {
+                return $busyA <=> $busyB;
+            }
+            return $a->slot <=> $b->slot;
+        })->values();
+
+        $config = $sortedCandidates->first() ?? $pub->aiConfig ?? AiProviderConfig::latest('id')->first();
         $isTested = ($config instanceof \App\Models\AiAgent) ? $config->isReady() : (bool) $config?->vision_tested_at;
 
         if (! $config || ! $isTested) {
@@ -126,15 +143,41 @@ PROMPT;
             ],
         ];
 
-        try {
-            $response = $this->client->request($config, $messages);
-        } catch (\Throwable $e) {
+        $response = null;
+        $lastException = null;
+        $candidatesToTry = $sortedCandidates->isNotEmpty() ? $sortedCandidates->all() : [$config];
+
+        foreach ($candidatesToTry as $candidate) {
+            try {
+                $response = $this->client->request($candidate, $messages);
+                break;
+            } catch (AiRequestException $e) {
+                $lastException = $e;
+                if ($e->category === 'capacity') {
+                    continue;
+                }
+            } catch (\Throwable $e) {
+                $lastException = $e;
+            }
+        }
+
+        // Fallback: if all agents were busy with background queue jobs, execute directly without failing on slot lock
+        if ($response === null && $lastException instanceof AiRequestException && $lastException->category === 'capacity') {
+            try {
+                $response = $this->client->request($config, $messages, null, true);
+                $lastException = null;
+            } catch (\Throwable $e) {
+                $lastException = $e;
+            }
+        }
+
+        if ($response === null) {
             return [
                 'decision' => 'needs_verification',
                 'components' => [],
                 'findings' => [],
                 'evidences' => [],
-                'limitations' => ['Pemeriksaan perbandingan visual AI gagal: '.$e->getMessage()],
+                'limitations' => ['Pemeriksaan perbandingan visual AI gagal: '.($lastException?->getMessage() ?? 'Tidak ada agen tersedia.')],
                 'cover_page' => $coverPage,
                 'title_page' => $titlePage,
             ];
