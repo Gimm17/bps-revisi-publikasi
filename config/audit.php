@@ -22,7 +22,7 @@ return [
     'dpi' => 160,
     'high_dpi' => 240,
     'ai_timeout' => 180,
-    'ai_concurrency' => (int) env('AUDIT_AI_CONCURRENCY', 5),
+    'ai_concurrency' => (int) env('AUDIT_AI_CONCURRENCY', 15),
     'fallback_model' => env('AUDIT_FALLBACK_MODEL', 'claude-sonnet-4-6'),
     'allowed_ai_hosts' => array_filter(explode(',', env('AI_ALLOWED_HOSTS', '9router.com,api.9router.com,limitrouter.com,api.limitrouter.com,abc-tunnel.us,trycloudflare.com,ngrok-free.app,ngrok.io,loca.lt,pinggy.link,tailscale.net,ts.net'))),
     'chatgpt_plan_enabled' => false,

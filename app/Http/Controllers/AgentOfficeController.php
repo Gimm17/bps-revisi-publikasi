@@ -214,7 +214,7 @@ class AgentOfficeController extends Controller
         $totalProcessedPages = PublicationPage::where('status', 'complete')->whereNotNull('ai_agent_id')->count();
         $workingAgentsCount = $agents->whereIn('office_status', ['analyzing', 'submitting', 'testing'])->count();
         $standbyReadyCount = $agents->where('enabled', true)->whereNotIn('office_status', ['offline', 'error'])->count();
-        $backupAgent = AiAgent::where('slot', 6)->first();
+        $backupAgent = AiAgent::where('slot', AiAgent::BACKUP_SLOT)->first();
 
         return [
             'agents' => $agents,

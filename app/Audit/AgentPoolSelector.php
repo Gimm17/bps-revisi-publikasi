@@ -20,28 +20,27 @@ class AgentPoolSelector
      */
     public function selectAgent(Publication $publication, ?int $excludeAgentId = null): ?AiEndpoint
     {
-        $agents = $publication->aiAgents()
-            ->where('enabled', true)
-            ->where('status', 'ready')
-            ->whereNotNull('vision_tested_at')
-            ->where('slot', '<=', 5)
-            ->when($excludeAgentId !== null, fn ($q) => $q->where('ai_agents.id', '!=', $excludeAgentId))
+        // Prefer global live ready agents so newly enabled/updated slots (1..15) join active audits immediately
+        $agents = AiAgent::ready()
+            ->where('slot', '<=', AiAgent::MAX_PRIMARY_SLOTS)
+            ->when($excludeAgentId !== null, fn ($q) => $q->where('id', '!=', $excludeAgentId))
+            ->orderBy('slot')
             ->get();
 
         if ($agents->isEmpty()) {
-            // If no multi-agents attached, check if there are global ready agents
-            $globalReady = AiAgent::ready()
-                ->where('slot', '<=', 5)
-                ->when($excludeAgentId !== null, fn ($q) => $q->where('id', '!=', $excludeAgentId))
-                ->orderBy('slot')
+            $agents = $publication->aiAgents()
+                ->where('enabled', true)
+                ->where('status', 'ready')
+                ->whereNotNull('vision_tested_at')
+                ->where('slot', '<=', AiAgent::MAX_PRIMARY_SLOTS)
+                ->when($excludeAgentId !== null, fn ($q) => $q->where('ai_agents.id', '!=', $excludeAgentId))
                 ->get();
 
-            if ($globalReady->isNotEmpty()) {
-                $agents = $globalReady;
-            } elseif ($publication->aiConfig?->vision_tested_at && $excludeAgentId === null) {
-                // Fallback to legacy single config if applicable
-                return $publication->aiConfig;
-            } else {
+            if ($agents->isEmpty()) {
+                if ($publication->aiConfig?->vision_tested_at && $excludeAgentId === null) {
+                    return $publication->aiConfig;
+                }
+
                 return null;
             }
         }

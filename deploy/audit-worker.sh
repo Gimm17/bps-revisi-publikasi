@@ -6,10 +6,10 @@ task_php="${AUDIT_WORKER_PHP:-/opt/alt/php84/usr/bin/php}"
 task_slot="${1:-}"
 case "$task_slot" in
     general) task_queue="machine,default"; task_lock="worker.lock" ;;
-    ai-1|ai-2|ai-3|ai-4|ai-5) task_queue="machine,ai,verify,default"; task_lock="worker-${task_slot}.lock" ;;
+    ai-[1-9]|ai-1[0-5]) task_queue="machine,ai,verify,default"; task_lock="worker-${task_slot}.lock" ;;
     verify) task_queue="machine,verify,ai,default"; task_lock="worker-verify.lock" ;;
     references) task_queue="references,default"; task_lock="worker-references.lock" ;;
-    *) printf 'Usage: audit-worker.sh general|ai-1|ai-2|ai-3|ai-4|ai-5|verify|references\n' >&2; exit 2 ;;
+    *) printf 'Usage: audit-worker.sh general|ai-1..ai-15|verify|references\n' >&2; exit 2 ;;
 esac
 
 cd -- "$task_app_dir"

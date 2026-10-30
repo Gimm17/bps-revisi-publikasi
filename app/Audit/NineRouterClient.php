@@ -170,9 +170,9 @@ class NineRouterClient
             }
         }
 
-        // Step 2: Automatic fallback to Agent Cadangan (Slot 6) when current model still triggers recitation/content filter or returns empty content
+        // Step 2: Automatic fallback to Agent Cadangan (Slot 16) when current model still triggers recitation/content filter or returns empty content
         if (in_array($finishReason, ['content_filter', 'recitation', 'safety', 'block'], true) || (is_string($content) && trim($content) === '')) {
-            $backupAgent = \App\Models\AiAgent::where('slot', 6)->where('enabled', true)->first();
+            $backupAgent = \App\Models\AiAgent::where('slot', \App\Models\AiAgent::BACKUP_SLOT)->where('enabled', true)->first();
             $fallbackUrl = $backupAgent ? rtrim($this->validateUrl($backupAgent->base_url), '/') : $url;
             $fallbackKey = $backupAgent?->api_key ?? $config->apiKey();
             $fallbackModel = $backupAgent?->model ?? (string) config('audit.fallback_model', 'claude-sonnet-4-6');

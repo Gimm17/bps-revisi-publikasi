@@ -107,6 +107,8 @@ function saveUser() {
 }
 
 // Multi-Agent State
+const MAX_PRIMARY_SLOTS = 15;
+const BACKUP_SLOT = 16;
 const activeSlot = ref(1);
 const testingAll = ref(false);
 const testingSlot = ref<number | null>(null);
@@ -117,12 +119,21 @@ const localAgents = ref<AiAgentItem[]>(
     props.ai_agents && props.ai_agents.length > 0
         ? JSON.parse(JSON.stringify(props.ai_agents))
         : [
-            { slot: 1, name: 'Agent 1 (Utama)', base_url: props.ai?.base_url ?? 'https://api.9router.com/v1', model: props.ai?.model ?? 'gemini-2.5-flash', enabled: true, status: props.ai?.vision_tested_at ? 'ready' : 'untested', test_message: null, vision_tested_at: props.ai?.vision_tested_at ?? null, has_api_key: false, max_concurrency: 1, updated_at: null, id: null },
-            { slot: 2, name: 'Agent 2', base_url: 'https://api.9router.com/v1', model: 'gemini-2.5-flash', enabled: false, status: 'untested', test_message: null, vision_tested_at: null, has_api_key: false, max_concurrency: 1, updated_at: null, id: null },
-            { slot: 3, name: 'Agent 3', base_url: 'https://api.9router.com/v1', model: 'gemini-2.5-flash', enabled: false, status: 'untested', test_message: null, vision_tested_at: null, has_api_key: false, max_concurrency: 1, updated_at: null, id: null },
-            { slot: 4, name: 'Agent 4', base_url: 'https://api.9router.com/v1', model: 'gemini-2.5-flash', enabled: false, status: 'untested', test_message: null, vision_tested_at: null, has_api_key: false, max_concurrency: 1, updated_at: null, id: null },
-            { slot: 5, name: 'Agent 5', base_url: 'https://api.9router.com/v1', model: 'gemini-2.5-flash', enabled: false, status: 'untested', test_message: null, vision_tested_at: null, has_api_key: false, max_concurrency: 1, updated_at: null, id: null },
-            { slot: 6, name: 'Agent Cadangan (Standby)', base_url: props.ai?.base_url ?? 'https://api.9router.com/v1', model: 'claude-sonnet-4-6', enabled: true, status: 'untested', test_message: null, vision_tested_at: null, has_api_key: false, max_concurrency: 1, updated_at: null, id: null, is_backup: true },
+            ...Array.from({ length: MAX_PRIMARY_SLOTS }, (_, i) => ({
+                slot: i + 1,
+                name: i === 0 ? 'Agent 1 (Utama)' : `Agent ${i + 1}`,
+                base_url: i === 0 ? (props.ai?.base_url ?? 'https://api.9router.com/v1') : 'https://api.9router.com/v1',
+                model: i === 0 ? (props.ai?.model ?? 'gemini-2.5-flash') : 'gemini-2.5-flash',
+                enabled: i === 0,
+                status: (i === 0 && props.ai?.vision_tested_at ? 'ready' : 'untested') as 'ready' | 'untested' | 'testing' | 'failed',
+                test_message: null,
+                vision_tested_at: i === 0 ? (props.ai?.vision_tested_at ?? null) : null,
+                has_api_key: false,
+                max_concurrency: 1,
+                updated_at: null,
+                id: null,
+            })),
+            { slot: BACKUP_SLOT, name: 'Agent Cadangan (Standby)', base_url: props.ai?.base_url ?? 'https://api.9router.com/v1', model: 'claude-sonnet-4-6', enabled: true, status: 'untested', test_message: null, vision_tested_at: null, has_api_key: false, max_concurrency: 1, updated_at: null, id: null, is_backup: true },
         ]
 );
 
@@ -141,11 +152,11 @@ watch(() => props.ai_agents, (newAgents) => {
 }, { deep: true });
 
 const primaryAgents = computed(() => {
-    return localAgents.value.filter(a => a.slot <= 5);
+    return localAgents.value.filter(a => !a.is_backup && a.slot <= MAX_PRIMARY_SLOTS);
 });
 
 const backupAgentItem = computed(() => {
-    return localAgents.value.find(a => a.slot === 6);
+    return localAgents.value.find(a => a.is_backup || a.slot === BACKUP_SLOT);
 });
 
 const currentAgent = computed(() => {
@@ -466,9 +477,12 @@ function onSelectPresetToCurrentSlot(event: Event) {
 
 function onApplyToCustomSlot(presetId: number, event: Event) {
     const target = event.target as HTMLSelectElement;
-    const slot = Number(target.value);
-    if (!slot) return;
-    applyPreset(presetId, [slot]);
+    const raw = target.value;
+    if (!raw) return;
+    const slots = raw.split(',').map(Number).filter(n => !isNaN(n) && n > 0);
+    if (slots.length > 0) {
+        applyPreset(presetId, slots);
+    }
     target.value = '';
 }
 
@@ -880,7 +894,7 @@ function formatDuration(ms: number | undefined | null): string {
         <section v-if="tab === 'ai'" class="settings-panel ai-settings-multi" style="display: flex; flex-direction: column; gap: 20px;">
             <div class="agent-pool-header">
                 <div>
-                    <h2>Pool Agen AI Paralel (Hingga 5 Agen)</h2>
+                    <h2>Pool Agen AI Paralel (Hingga 15 Agen)</h2>
                     <p style="margin-top: 6px; color: var(--muted); font-size: 13px;">
                         Setiap agen dapat memiliki Base URL, API Key, Model, dan kapasitas konkuren masing-masing.
                         Semua agen yang aktif <strong>wajib lulus uji pembacaan gambar visual</strong> sebelum digunakan dalam pemeriksaan.
@@ -927,8 +941,8 @@ function formatDuration(ms: number | undefined | null): string {
                 <button
                     v-if="backupAgentItem"
                     type="button"
-                    :class="['agent-slot-btn', 'agent-backup-btn', { active: activeSlot === 6 }]"
-                    @click="activeSlot = 6"
+                    :class="['agent-slot-btn', 'agent-backup-btn', { active: activeSlot === BACKUP_SLOT }]"
+                    @click="activeSlot = BACKUP_SLOT"
                 >
                     <div class="agent-slot-title-group">
                         <span :class="['agent-slot-dot', backupAgentItem.status]"></span>
@@ -949,17 +963,17 @@ function formatDuration(ms: number | undefined | null): string {
                 <div class="agent-card-header">
                     <div>
                         <h3 style="margin: 0; font-size: 18px;">
-                            {{ activeSlot === 6 ? '🛡️ ' : '' }}Pengaturan {{ activeSlot === 6 ? 'Agent Cadangan (Standby)' : `Slot ${activeSlot}: ${currentAgent.name}` }}
+                            {{ activeSlot === BACKUP_SLOT ? '🛡️ ' : '' }}Pengaturan {{ activeSlot === BACKUP_SLOT ? 'Agent Cadangan (Standby)' : `Slot ${activeSlot}: ${currentAgent.name}` }}
                         </h3>
                         <small style="color: #666;">
-                            {{ activeSlot === 6 ? 'Agen darurat jika terjadi filter recitation / safety pada agen utama' : `Kapasitas: ${currentForm.max_concurrency} halaman paralel` }}
+                            {{ activeSlot === BACKUP_SLOT ? 'Agen darurat jika terjadi filter recitation / safety pada agen utama' : `Kapasitas: ${currentForm.max_concurrency} halaman paralel` }}
                         </small>
                     </div>
 
                     <div class="inline-actions">
                         <label class="toggle-switch">
                             <input type="checkbox" v-model="currentForm.enabled" />
-                            <span>{{ currentForm.enabled ? (activeSlot === 6 ? "Standby Siaga" : "Agen Aktif") : "Agen Dinonaktifkan" }}</span>
+                            <span>{{ currentForm.enabled ? (activeSlot === BACKUP_SLOT ? "Standby Siaga" : "Agen Aktif") : "Agen Dinonaktifkan" }}</span>
                         </label>
 
                         <button
@@ -975,8 +989,8 @@ function formatDuration(ms: number | undefined | null): string {
                     </div>
                 </div>
 
-                <!-- Emergency Fallback Explanatory Banner for Slot 6 -->
-                <div v-if="activeSlot === 6" class="finding-agreement-banner" style="background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; margin-bottom: 16px;">
+                <!-- Emergency Fallback Explanatory Banner for Slot 16 -->
+                <div v-if="activeSlot === BACKUP_SLOT" class="finding-agreement-banner" style="background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; margin-bottom: 16px;">
                     <ShieldCheck :size="18" style="flex-shrink: 0;" />
                     <span>
                         <strong>Peran Agen Cadangan:</strong> Agen ini dalam posisi <em>standby</em> (tidak mengambil tugas antrean rutin) dan akan <strong>otomatis aktif seketika</strong> sebagai *fallback* darurat jika salah satu agen utama terhadang filter pembatasan AI (misalnya <code>finish_reason: recitation</code> dari Google Gemini). Disarankan menggunakan model seperti <strong>claude-sonnet-4-6</strong> atau model non-Gemini lainnya.
@@ -1137,7 +1151,7 @@ function formatDuration(ms: number | undefined | null): string {
                         id="agent-model"
                         v-model="currentForm.model"
                         required
-                        :placeholder="activeSlot === 6 ? 'Contoh: claude-sonnet-4-6 atau gpt-4o' : 'Contoh: gemini-2.5-flash atau gpt-4o-mini'"
+                        :placeholder="activeSlot === BACKUP_SLOT ? 'Contoh: claude-sonnet-4-6 atau gpt-4o' : 'Contoh: gemini-2.5-flash atau gpt-4o-mini'"
                     />
 
                     <label for="agent-api-key">
@@ -1323,29 +1337,36 @@ function formatDuration(ms: number | undefined | null): string {
                             <button
                                 type="button"
                                 class="button secondary btn-sm"
-                                @click="applyPreset(p.id, [1])"
-                                :disabled="presetBusy"
-                                title="Terapkan ke Agent 1 (Utama)"
-                            >
-                                Terapkan ke Agent 1
-                            </button>
-                            <button
-                                type="button"
-                                class="button primary btn-sm"
                                 @click="applyPreset(p.id, [1, 2, 3, 4, 5])"
                                 :disabled="presetBusy"
                                 title="Terapkan serentak ke Agent 1 sampai 5"
                             >
-                                Terapkan ke Semua (1–5)
+                                Terapkan ke Slot 1–5
+                            </button>
+                            <button
+                                type="button"
+                                class="button secondary btn-sm"
+                                @click="applyPreset(p.id, [6, 7, 8, 9, 10])"
+                                :disabled="presetBusy"
+                                title="Terapkan serentak ke Agent 6 sampai 10"
+                            >
+                                Terapkan ke Slot 6–10
+                            </button>
+                            <button
+                                type="button"
+                                class="button primary btn-sm"
+                                @click="applyPreset(p.id, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])"
+                                :disabled="presetBusy"
+                                title="Terapkan serentak ke Agent 1 sampai 15"
+                            >
+                                Terapkan ke Semua (1–15)
                             </button>
                             <div class="preset-dropdown-apply">
                                 <select @change="onApplyToCustomSlot(p.id, $event)">
                                     <option value="">Slot lain...</option>
-                                    <option :value="2">Ke Slot 2</option>
-                                    <option :value="3">Ke Slot 3</option>
-                                    <option :value="4">Ke Slot 4</option>
-                                    <option :value="5">Ke Slot 5</option>
-                                    <option :value="6">Ke Slot 6 (Cadangan)</option>
+                                    <option value="11,12,13,14,15">Batch Slot 11–15</option>
+                                    <option v-for="s in 15" :key="s" :value="s">Ke Slot {{ s }}</option>
+                                    <option :value="BACKUP_SLOT">Ke Slot {{ BACKUP_SLOT }} (Cadangan)</option>
                                 </select>
                             </div>
                         </div>
@@ -1767,7 +1788,7 @@ function formatDuration(ms: number | undefined | null): string {
                     <div class="subcard-header">
                         <div>
                             <h4>Rincian Per Slot Agen AI</h4>
-                            <p>Beban kerja terdistribusi pada Slot 1 hingga Slot 6 (Cadangan).</p>
+                            <p>Beban kerja terdistribusi pada Slot 1 hingga Slot 15 dan Slot 16 (Cadangan).</p>
                         </div>
                         <Bot :size="18" class="text-muted" />
                     </div>
@@ -1788,8 +1809,8 @@ function formatDuration(ms: number | undefined | null): string {
                                 <tr v-for="ag in currentTelemetry?.agent_breakdown" :key="ag.slot">
                                     <td>
                                         <div class="agent-name-cell">
-                                            <span class="slot-badge" :class="ag.slot === 6 ? 'backup' : 'regular'">
-                                                {{ ag.slot === 6 ? 'Slot 6 (Cadangan)' : `Slot ${ag.slot}` }}
+                                            <span class="slot-badge" :class="ag.slot === BACKUP_SLOT ? 'backup' : 'regular'">
+                                                {{ ag.slot === BACKUP_SLOT ? `Slot ${BACKUP_SLOT} (Cadangan)` : `Slot ${ag.slot}` }}
                                             </span>
                                             <strong class="agent-name-text">{{ ag.name }}</strong>
                                         </div>
@@ -1849,7 +1870,7 @@ function formatDuration(ms: number | undefined | null): string {
                                 </td>
                                 <td>
                                     <div class="agent-name-cell">
-                                        <span class="slot-badge" :class="req.agent_slot === 6 ? 'backup' : 'regular'">
+                                        <span class="slot-badge" :class="req.agent_slot === BACKUP_SLOT ? 'backup' : 'regular'">
                                             Slot {{ req.agent_slot ?? '-' }}
                                         </span>
                                         <span>{{ req.agent_name }}</span>

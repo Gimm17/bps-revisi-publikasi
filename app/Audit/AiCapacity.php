@@ -21,7 +21,7 @@ class AiCapacity
             throw new AiRequestException('Penyedia AI sedang membatasi permintaan; menunggu sebelum mencoba lagi.', 'capacity', true, $remaining);
         }
 
-        $globalLimit = max(1, (int) config('audit.ai_concurrency', 5));
+        $globalLimit = max(AiAgent::MAX_PRIMARY_SLOTS, (int) config('audit.ai_concurrency', 15));
         $globalLock = null;
 
         for ($slot = 0; $slot < $globalLimit; $slot++) {

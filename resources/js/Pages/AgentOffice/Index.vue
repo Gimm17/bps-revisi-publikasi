@@ -2015,7 +2015,7 @@ onUnmounted(() => {
                             v-for="item in combinedActivities"
                             :key="item.id"
                             class="bg-[#FFFFFF] border border-[#D7D1C8] hover:border-[#302B2A] rounded-xl p-3 transition-colors cursor-pointer"
-                            @click="selectedSlot = item.agent_slot || 1"
+                            @click="selectedSlot = Math.min(5, item.agent_slot || 1)"
                         >
                             <div class="flex items-center justify-between gap-2">
                                 <div class="flex items-center gap-1.5 min-w-0">

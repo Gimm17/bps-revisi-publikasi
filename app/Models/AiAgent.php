@@ -15,6 +15,10 @@ class AiAgent extends Model implements AiEndpoint
 {
     use HasFactory;
 
+    public const MAX_PRIMARY_SLOTS = 15;
+
+    public const BACKUP_SLOT = 16;
+
     protected $fillable = [
         'slot',
         'name',

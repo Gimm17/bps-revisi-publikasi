@@ -128,8 +128,8 @@ class PublicationController extends Controller
 
         return Inertia::render('Publications/Show', [
             'publication' => $publication->only('id', 'title', 'region', 'year', 'kind', 'notes', 'status', 'page_count', 'manifest', 'pdf_name', 'template_name', 'rule_version', 'started_at', 'completed_at', 'locked_at', 'revision', 'error', 'cross_verify_mode', 'audit_mode', 'fusion_summary'),
-            'publicationAgents' => fn () => $publication->aiAgents()->get(['ai_agents.id', 'slot', 'name', 'model']),
-            'readyAgentsCount' => fn () => AiAgent::ready()->count(),
+            'publicationAgents' => fn () => AiAgent::ready()->where('slot', '<=', AiAgent::MAX_PRIMARY_SLOTS)->orderBy('slot')->get(['id', 'slot', 'name', 'model']),
+            'readyAgentsCount' => fn () => AiAgent::ready()->where('slot', '<=', AiAgent::MAX_PRIMARY_SLOTS)->count(),
             'pages' => fn () => $publication->pages()->with(['aiAgent', 'latestVerification.agent'])->get()->map(fn ($p) => [
                 ...$p->only('id', 'physical_page', 'status', 'page_type', 'printed_page', 'attempts', 'error', 'machine_status', 'fusion_status'),
                 'has_image' => (bool) $p->image_path,

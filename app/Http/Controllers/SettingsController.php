@@ -33,13 +33,14 @@ class SettingsController extends Controller
 
         $existingAgents = AiAgent::orderBy('slot')->get()->keyBy('slot');
         $agent1 = $existingAgents->get(1);
+        $backupSlot = AiAgent::BACKUP_SLOT;
 
-        // Auto-seed Slot 6 (Agent Cadangan) if Agent 1 exists and Slot 6 is not created yet
-        if (! $existingAgents->has(6) && $agent1 && ! empty($agent1->api_key)) {
+        // Auto-seed Backup Slot (Agent Cadangan) if Agent 1 exists and Backup Slot is not created yet
+        if (! $existingAgents->has($backupSlot) && $agent1 && ! empty($agent1->api_key)) {
             try {
                 $backupHash = AiAgent::computeConfigHash($agent1->base_url, 'claude-sonnet-4-6', $agent1->api_key);
                 $backup = AiAgent::create([
-                    'slot' => 6,
+                    'slot' => $backupSlot,
                     'name' => 'Agent Cadangan (Standby)',
                     'base_url' => $agent1->base_url,
                     'api_key' => $agent1->api_key,
@@ -52,31 +53,32 @@ class SettingsController extends Controller
                     'test_message' => 'Siap bertindak sebagai agen cadangan saat ada filter pembatasan.',
                     'created_by' => $agent1->created_by,
                 ]);
-                $existingAgents->put(6, $backup);
+                $existingAgents->put($backupSlot, $backup);
             } catch (\Throwable $e) {
                 \Illuminate\Support\Facades\Log::warning('Failed auto-initializing backup agent: '.$e->getMessage());
             }
         }
 
         $agentsList = [];
-        for ($slot = 1; $slot <= 6; $slot++) {
+        for ($slot = 1; $slot <= $backupSlot; $slot++) {
             $agent = $existingAgents->get($slot);
-            $defaultName = ($slot === 6) ? 'Agent Cadangan (Standby)' : 'Agent '.$slot;
-            $defaultModel = ($slot === 6) ? 'claude-sonnet-4-6' : 'gemini-2.5-flash';
-            $defaultBaseUrl = ($slot === 6) ? ($agent1?->base_url ?? 'https://api.9router.com/v1') : ($agent?->base_url ?? 'https://api.9router.com/v1');
+            $isBackup = ($slot === $backupSlot);
+            $defaultName = $isBackup ? 'Agent Cadangan (Standby)' : 'Agent '.$slot;
+            $defaultModel = $isBackup ? 'claude-sonnet-4-6' : 'gemini-2.5-flash';
+            $defaultBaseUrl = $isBackup ? ($agent1?->base_url ?? 'https://api.9router.com/v1') : ($agent?->base_url ?? 'https://api.9router.com/v1');
             $agentsList[] = [
                 'id' => $agent?->id,
                 'slot' => $slot,
                 'name' => $agent?->name ?? $defaultName,
                 'base_url' => $agent?->base_url ?? $defaultBaseUrl,
                 'model' => $agent?->model ?? $defaultModel,
-                'enabled' => $agent ? (bool) $agent->enabled : ($slot === 1 || $slot === 6),
+                'enabled' => $agent ? (bool) $agent->enabled : ($slot === 1 || $isBackup),
                 'status' => $agent?->status ?? 'untested',
                 'test_message' => $agent?->test_message,
                 'vision_tested_at' => $agent?->vision_tested_at?->toIso8601String(),
                 'has_api_key' => ! empty($agent?->api_key),
                 'max_concurrency' => $agent?->max_concurrency ?? 1,
-                'is_backup' => ($slot === 6),
+                'is_backup' => $isBackup,
                 'updated_at' => $agent?->updated_at?->toIso8601String(),
             ];
         }
@@ -190,7 +192,7 @@ class SettingsController extends Controller
     public function saveAiAgent(Request $request, int $slot, NineRouterClient $client): RedirectResponse
     {
         abort_unless($request->user()->isAdmin(), 403);
-        if ($slot < 1 || $slot > 6) {
+        if ($slot < 1 || $slot > AiAgent::BACKUP_SLOT) {
             abort(404, 'Slot agen AI tidak valid.');
         }
 
@@ -329,9 +331,10 @@ class SettingsController extends Controller
     public function copyAgent(Request $request): RedirectResponse
     {
         abort_unless($request->user()->isAdmin(), 403);
+        $maxSlot = AiAgent::BACKUP_SLOT;
         $data = $request->validate([
-            'from_slot' => ['required', 'integer', 'between:1,6'],
-            'to_slot' => ['required', 'integer', 'between:1,6', 'different:from_slot'],
+            'from_slot' => ['required', 'integer', 'between:1,'.$maxSlot],
+            'to_slot' => ['required', 'integer', 'between:1,'.$maxSlot, 'different:from_slot'],
         ]);
 
         $source = AiAgent::where('slot', $data['from_slot'])->firstOrFail();
@@ -339,8 +342,8 @@ class SettingsController extends Controller
             throw ValidationException::withMessages(['from_slot' => 'Agen sumber belum memiliki konfigurasi lengkap.']);
         }
 
-        $targetName = ($data['to_slot'] === 6) ? 'Agent Cadangan (Standby)' : "Agent {$data['to_slot']}";
-        $targetModel = ($data['to_slot'] === 6) ? 'claude-sonnet-4-6' : $source->model;
+        $targetName = ($data['to_slot'] === $maxSlot) ? 'Agent Cadangan (Standby)' : "Agent {$data['to_slot']}";
+        $targetModel = ($data['to_slot'] === $maxSlot) ? 'claude-sonnet-4-6' : $source->model;
         $hash = AiAgent::computeConfigHash($source->base_url, $targetModel, $source->api_key);
         AiAgent::updateOrCreate(
             ['slot' => $data['to_slot']],
@@ -459,11 +462,11 @@ class SettingsController extends Controller
 
         foreach ($targetSlots as $slot) {
             $slotNum = (int) $slot;
-            if ($slotNum < 1 || $slotNum > 6) {
+            if ($slotNum < 1 || $slotNum > AiAgent::BACKUP_SLOT) {
                 continue;
             }
 
-            $targetName = ($slotNum === 6) ? 'Agent Cadangan (Standby)' : "Agent {$slotNum}";
+            $targetName = ($slotNum === AiAgent::BACKUP_SLOT) ? 'Agent Cadangan (Standby)' : "Agent {$slotNum}";
             $hash = AiAgent::computeConfigHash($preset->base_url, $preset->model, $preset->api_key ?? '');
 
             AiAgent::updateOrCreate(
