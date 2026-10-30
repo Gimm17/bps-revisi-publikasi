@@ -100,24 +100,25 @@ Format output WAJIB JSON murni tanpa markdown/penjelasan pembuka/penutup dengan 
   "readability": "readable",
   "components": {
     "title_alignment": {
-      "decision": "conform",
+      "decision": "conform atau nonconform (WAJIB 'nonconform' jika judul Inggris tidak miring, teks berbeda, atau font dekoratif)",
       "observed_title": "Deskripsi pengamatan judul, cetak miring (italic) judul Inggris, dan jenis huruf kover vs halaman judul"
     },
     "white_background": {
-      "decision": "conform",
+      "decision": "conform atau nonconform (WAJIB 'nonconform' jika halaman judul ada foto/grafis kover / tidak putih polos)",
       "observed_title": "Deskripsi latar belakang halaman judul putih polos"
     },
     "logo": {
-      "decision": "conform",
+      "decision": "conform atau nonconform (WAJIB 'nonconform' jika logo tidak ada, ada efek berlebih, atau nama Inggris tidak miring/pakai OF)",
       "observed_title": "Logo BPS dan cetak miring (italic) nama instansi Inggris tanpa kata OF"
     },
     "layout_harmony": {
-      "decision": "conform",
+      "decision": "conform atau nonconform (WAJIB 'nonconform' jika nomor volume tidak ada, format katalog salah, atau ISSN pakai titik dua)",
       "observed_title": "Nomor katalog (Katalog/Catalogue:), ISSN tanpa titik dua, nomor volume, dan tahun"
     }
   },
   "findings": []
 }
+PERINGATAN SINKRONISASI: Nilai "decision" pada setiap komponen WAJIB SINKRON dengan teks pengamatan dan findings. Jika ada pelanggaran pada komponen tersebut, nilainya HARUS "nonconform". HANYA isi "conform" jika komponen tersebut 100% sesuai pedoman tanpa cela.
 Catatan: Setiap pelanggaran pada Kover Depan maupun Halaman Judul (seperti judul Inggris tidak italic/miring, kata 'Catalogue' tidak italic, ada spasi sebelum titik dua pada 'Katalog :', ISSN memakai titik dua di kover, nama instansi Inggris memakai kata 'OF' atau tidak italic, font dekoratif pada kover, nomor volume berbeda/tidak ada/salah ketik 'VOLUM', atau halaman judul tidak berlatar putih/komposisi berbeda dari kover) WAJIB dimasukkan sebagai butir tersendiri di dalam array "findings" dengan severity "wajib", rule_code yang sesuai ("LANGUAGE.BILINGUAL", "CATALOGUE.LABELS", "ISSN.COLON", "BPS.FULL_NAME", "COVER.COMPONENTS", "TITLE.COVER_LAYOUT", atau "TITLE.COVER_MATCH"), observed, expected, recommendation, cover_quote, title_quote. JANGAN membuat temuan terkait posisi sudut logo di kanan bawah.
 PROMPT;
 
@@ -298,6 +299,87 @@ PROMPT;
                     ];
                 }
             }
+        }
+
+        // Synchronize component decisions with findings & observed text to guarantee consistency
+        foreach (['title_alignment', 'white_background', 'logo', 'layout_harmony'] as $k) {
+            if (! isset($components[$k])) {
+                continue;
+            }
+            $obsText = mb_strtolower((string) ($components[$k]['observed_title'] ?? ''));
+            $isCompNonconform = false;
+
+            // 1. Direct violation phrasing in this component's observed text
+            if ($k === 'white_background') {
+                if (str_contains($obsText, 'tidak berlatar') ||
+                    str_contains($obsText, 'menduplikasi') ||
+                    str_contains($obsText, 'bukan putih polos') ||
+                    str_contains($obsText, 'monokrom') ||
+                    str_contains($obsText, 'grayscale') ||
+                    (str_contains($obsText, 'tidak') && str_contains($obsText, 'putih'))
+                ) {
+                    $isCompNonconform = true;
+                }
+            } elseif ($k === 'layout_harmony') {
+                if (str_contains($obsText, 'tidak dicantumkan') ||
+                    str_contains($obsText, 'tidak ada nomor volume') ||
+                    str_contains($obsText, 'dengan titik dua') ||
+                    str_contains($obsText, 'tidak konsisten') ||
+                    str_contains($obsText, 'salah ketik volum')
+                ) {
+                    $isCompNonconform = true;
+                }
+            } elseif ($k === 'title_alignment') {
+                if (str_contains($obsText, 'tidak dicetak miring') ||
+                    str_contains($obsText, 'belum dicetak miring') ||
+                    str_contains($obsText, 'tidak miring') ||
+                    str_contains($obsText, 'tidak italic') ||
+                    str_contains($obsText, 'judul berbeda') ||
+                    str_contains($obsText, 'tidak konsisten') ||
+                    (str_contains($obsText, 'dekoratif') && ! str_contains($obsText, 'bukan jenis'))
+                ) {
+                    $isCompNonconform = true;
+                }
+            } elseif ($k === 'logo') {
+                if (str_contains($obsText, 'memakai kata of') ||
+                    (str_contains($obsText, 'tidak miring') && str_contains($obsText, 'instansi')) ||
+                    (str_contains($obsText, 'efek digital') && ! str_contains($obsText, 'tanpa efek')) ||
+                    str_contains($obsText, 'stroke') ||
+                    str_contains($obsText, 'emboss')
+                ) {
+                    $isCompNonconform = true;
+                }
+            }
+
+            // 2. Specific rule codes in findings
+            if (! $isCompNonconform) {
+                foreach ($findings as $f) {
+                    $rc = (string) ($f['rule_code'] ?? '');
+                    if ($k === 'white_background' && (str_contains($rc, 'WHITE_BACKGROUND') || (str_contains($rc, 'COVER') && str_contains(mb_strtolower((string) ($f['observed'] ?? '')), 'putih')))) {
+                        $isCompNonconform = true;
+                        break;
+                    }
+                    if ($k === 'layout_harmony' && (str_contains($rc, 'COVER.COMPONENTS') || str_contains($rc, 'CATALOGUE.LABELS') || str_contains($rc, 'ISSN.COLON') || str_contains($rc, 'VOLUME'))) {
+                        $isCompNonconform = true;
+                        break;
+                    }
+                    if ($k === 'title_alignment' && (str_contains($rc, 'LANGUAGE.BILINGUAL') || str_contains($rc, 'TITLE.COVER_MATCH') || str_contains($rc, 'FONT.DECORATIVE'))) {
+                        $isCompNonconform = true;
+                        break;
+                    }
+                    if ($k === 'logo' && (str_contains($rc, 'BPS.FULL_NAME') || str_contains($rc, 'LOGO.EFFECT') || str_contains($rc, 'LOGO.SHADOW'))) {
+                        $isCompNonconform = true;
+                        break;
+                    }
+                }
+            }
+
+            // Keep explicit nonconform from AI if it was already set
+            if (! $isCompNonconform && ($components[$k]['decision'] ?? '') === 'nonconform') {
+                $isCompNonconform = true;
+            }
+
+            $components[$k]['decision'] = $isCompNonconform ? 'nonconform' : 'conform';
         }
 
         // If readability failed and no components were parsed
