@@ -128,9 +128,10 @@ function getCheckRecord(type: string) {
 function statusBadge(status?: string, decision?: string | null) {
     if (status === "running") return { label: "Sedang berjalan", class: "status-running", icon: Clock };
     if (status === "retry_wait") return { label: "Menunggu retry", class: "status-retry", icon: Clock };
-    if (decision === "conform") return { label: "Sesuai", class: "status-success", icon: CheckCircle2 };
+    if (status === "failed") return { label: "Gagal dijalankan", class: "status-danger", icon: XCircle };
+    if (decision === "conform") return { label: "Sesuai Pedoman", class: "status-success", icon: CheckCircle2 };
     if (decision === "needs_verification") return { label: "Perlu verifikasi", class: "status-warning", icon: AlertTriangle };
-    if (decision === "nonconform" || status === "failed") return { label: "Tidak sesuai / Gagal", class: "status-danger", icon: XCircle };
+    if (decision === "nonconform") return { label: "Ada Temuan (Tidak Sesuai)", class: "status-danger", icon: AlertTriangle };
     return { label: "Belum diperiksa", class: "status-pending", icon: Clock };
 }
 

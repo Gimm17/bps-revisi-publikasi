@@ -40,6 +40,14 @@ function statusClass(decision?: string) {
         default: return "status-neutral";
     }
 }
+function statusLabel(decision?: string) {
+    switch (decision) {
+        case "conform": return "Sesuai";
+        case "needs_verification": return "Perlu Verifikasi";
+        case "nonconform": return "Tidak Sesuai (Ada Temuan)";
+        default: return "Belum dievaluasi";
+    }
+}
 </script>
 
 <template>
@@ -102,7 +110,7 @@ function statusClass(decision?: string) {
                         <small>{{ result?.components?.[c.key]?.observed_title ?? c.desc }}</small>
                     </div>
                     <span class="decision-pill">
-                        {{ result?.components?.[c.key]?.decision ?? 'Belum dievaluasi' }}
+                        {{ statusLabel(result?.components?.[c.key]?.decision) }}
                     </span>
                 </div>
             </div>
