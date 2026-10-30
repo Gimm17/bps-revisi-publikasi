@@ -5,9 +5,10 @@ task_app_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 task_php="${AUDIT_WORKER_PHP:-/opt/alt/php84/usr/bin/php}"
 task_slot="${1:-}"
 case "$task_slot" in
-    general) task_queue="machine,default"; task_lock="worker.lock" ;;
-    ai-[1-9]|ai-1[0-5]) task_queue="machine,ai,verify,default"; task_lock="worker-${task_slot}.lock" ;;
-    verify) task_queue="machine,verify,ai,default"; task_lock="worker-verify.lock" ;;
+    general) task_queue="default,machine"; task_lock="worker.lock" ;;
+    ai-[1-9]|ai-10) task_queue="ai,machine,default,verify"; task_lock="worker-${task_slot}.lock" ;;
+    ai-1[1-5]) task_queue="default,machine,ai,verify"; task_lock="worker-${task_slot}.lock" ;;
+    verify) task_queue="verify,machine,default,ai"; task_lock="worker-verify.lock" ;;
     references) task_queue="references,default"; task_lock="worker-references.lock" ;;
     *) printf 'Usage: audit-worker.sh general|ai-1..ai-15|verify|references\n' >&2; exit 2 ;;
 esac

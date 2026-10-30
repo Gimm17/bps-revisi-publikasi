@@ -106,6 +106,11 @@ class MachineAnalyzePage implements ShouldQueue
                 ]);
             });
 
+            // Langsung kirim halaman ini ke antrean Vision AI (pipeline paralel tanpa menunggu seluruh halaman selesai render)
+            if ($page->status !== 'complete') {
+                AnalyzePage::dispatch($page->id, $page->dpi)->onQueue('ai');
+            }
+
             // Beritahu coordinator bahwa pemindaian mesin untuk halaman ini selesai
             app(\App\Audit\AuditCoordinator::class)->afterMachinePage($publication);
         }
