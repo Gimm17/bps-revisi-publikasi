@@ -124,12 +124,13 @@ class NineRouterClient
             $response = Http::withToken($config->apiKey())->acceptJson()->withOptions($options)
                 ->connectTimeout(15)->timeout(config('audit.ai_timeout'))->post($url.'/chat/completions', ['model' => $config->model(), 'messages' => $messages]);
         } catch (\Throwable $e) {
-            throw new AiRequestException('Koneksi penyedia AI gagal atau melewati batas waktu.', 'network', true);
+            app(AiCapacity::class)->coolDown($config, 30);
+            throw new AiRequestException('Koneksi penyedia AI gagal atau melewati batas waktu.', 'network', true, 10);
         }
         if (! $response->successful()) {
             $status = $response->status();
             $delay = 30;
-            if ($status === 429 || $status === 503) {
+            if ($status === 429 || $status >= 500) {
                 $header = $response->header('Retry-After');
                 $seconds = ctype_digit((string) $header) ? (int) $header : (strtotime((string) $header) ?: now()->timestamp) - now()->timestamp;
                 $delay = max(30, min(600, $seconds));

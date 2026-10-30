@@ -78,7 +78,7 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
     ): void {
         $page = PublicationPage::findOrFail($this->pageId);
         $publication = $page->publication;
-        if ($page->status === 'complete' || $page->dpi !== $this->dpi) {
+        if ($page->status === 'complete' || $page->dpi !== $this->dpi || $publication->status === 'batch_queued') {
             return;
         }
         $baseline = $this->attemptBaseline ?? max(0, $page->attempts - $this->attempts() + 1);
@@ -261,6 +261,15 @@ class AnalyzePage implements ShouldBeUnique, ShouldQueue
                     'duration_ms' => (int) ((microtime(true) - $started) * 1000),
                     'status' => 'failed_'.$category,
                 ]);
+            }
+            if ($e instanceof AiRequestException && ($e->category === 'network' || $e->category === 'http_429' || str_starts_with($e->category, 'http_5'))) {
+                if ($requestStarted && $page->attempts > 0) {
+                    $page->decrement('attempts');
+                }
+                $page->update(['status' => 'ready', 'error' => $this->failureReason($e).' Mengalihkan ke agen AI lain yang siap...']);
+                $this->release(5);
+
+                return;
             }
             $formatError = $e instanceof ValidationException || ($e instanceof AiRequestException && $e->category === 'format');
             $formatFailures = $formatError ? AiUsageRecord::where('page_id', $page->id)->where('id', '>', $this->usageBaseline ?? 0)->whereIn('status', ['failed_validation', 'failed_format'])->count() : 0;

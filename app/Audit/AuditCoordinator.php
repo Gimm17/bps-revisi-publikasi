@@ -39,8 +39,50 @@ class AuditCoordinator
         if ($publication->locked_at) {
             throw ValidationException::withMessages(['audit' => 'Hasil final sudah dikunci.']);
         }
+
+        // Strict 1-by-1 execution: if another publication is already actively running, enqueue this one into batch_queued
+        $otherActiveExists = Publication::where('id', '!=', $publication->id)
+            ->whereIn('status', [
+                'processing',
+                'processing_machine',
+                'processing_ai',
+                'reconciling',
+                'cross_checking',
+                'exporting',
+            ])
+            ->where('updated_at', '>=', now()->subMinutes(30))
+            ->exists();
+
+        if ($otherActiveExists) {
+            $ctx = $publication->context ?? [];
+            $ctx['batch_queued_at'] = $ctx['batch_queued_at'] ?? now()->toIso8601String();
+            $ctx['batch_order'] = $ctx['batch_order'] ?? (int) (microtime(true) * 1000);
+            $publication->update([
+                'ai_config_id' => $config?->id,
+                'status' => 'batch_queued',
+                'context' => $ctx,
+                'error' => null,
+            ]);
+            if ($readyAgents->isNotEmpty()) {
+                $syncData = [];
+                foreach ($readyAgents as $ag) {
+                    $syncData[$ag->id] = ['config_hash_at_start' => (string) $ag->config_hash];
+                }
+                $publication->aiAgents()->sync($syncData);
+            }
+
+            return;
+        }
+
+        $allPagesRenderedAndMachineDone = $mode === 'fusion'
+            && $publication->pages()->count() === $publication->page_count
+            && ! $publication->pages()
+                ->where(fn ($q) => $q->whereNull('image_path')->orWhereNull('machine_status')->orWhere('machine_status', '!=', 'complete'))
+                ->exists();
+
         $initialStatus = match ($mode) {
-            'fusion', 'machine' => 'processing_machine',
+            'fusion' => $allPagesRenderedAndMachineDone ? 'processing_ai' : 'processing_machine',
+            'machine' => 'processing_machine',
             default => 'processing',
         };
 
@@ -51,7 +93,7 @@ class AuditCoordinator
             'ai_config_id' => $config?->id,
             'status' => $initialStatus,
             'context' => $ctx,
-            'fusion_summary' => $mode === 'fusion' ? ['stage' => 'machine'] : null,
+            'fusion_summary' => $mode === 'fusion' ? ['stage' => $allPagesRenderedAndMachineDone ? 'ai' : 'machine'] : null,
             'started_at' => $publication->started_at ?? now(),
             'error' => null,
         ]);
@@ -62,9 +104,35 @@ class AuditCoordinator
             }
             $publication->aiAgents()->sync($syncData);
         }
-        foreach ($publication->pages()->where('status', '!=', 'complete')->get() as $page) {
-            RenderPage::dispatch($page->id);
+
+        $incompletePages = $publication->pages()->where('status', '!=', 'complete')->get();
+        if ($incompletePages->isEmpty()) {
+            $this->afterPage($publication->fresh());
+
+            return;
         }
+
+        if ($allPagesRenderedAndMachineDone) {
+            // Stage 1 (Mesin) & PDF render already complete: resume directly at Stage 2 (Vision AI)
+            $publication->pages()->where('status', '!=', 'complete')->update([
+                'status' => 'ready',
+                'error' => null,
+                'fusion_status' => null,
+            ]);
+            foreach ($incompletePages as $page) {
+                AnalyzePage::dispatch($page->id, $page->dpi)->onQueue('ai');
+            }
+        } else {
+            // Mark all incomplete pages as pending synchronously BEFORE dispatching so afterPage() never sees 0 active pages
+            $publication->pages()->where('status', '!=', 'complete')->update([
+                'status' => 'pending',
+                'error' => null,
+            ]);
+            foreach ($incompletePages as $page) {
+                RenderPage::dispatch($page->id);
+            }
+        }
+
         AuditLogger::record('audit.started', $publication, [
             'mode' => $mode,
             'model' => $readyAgents->first()?->model ?? $config?->model ?? 'Machine Heuristic',
@@ -117,7 +185,6 @@ class AuditCoordinator
         });
         $publication->refresh()->unsetRelation('aiConfig')->unsetRelation('aiAgents');
         $this->start($publication);
-        $this->afterPage($publication);
     }
 
     public function canComplete(Publication $publication): bool
@@ -410,7 +477,6 @@ class AuditCoordinator
 
                 try {
                     $this->start($next);
-                    $this->afterPage($next);
 
                     return $next->fresh();
                 } catch (\Throwable $e) {
