@@ -29,8 +29,15 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class PublicationController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
+        if ($request->has('page')) {
+            $pageVal = (int) $request->input('page');
+            if ($pageVal < 1) {
+                return redirect()->to($request->url().($request->except('page') ? '?'.http_build_query($request->except('page')) : ''));
+            }
+        }
+
         $query = Publication::visibleTo($request->user());
         if ($request->filled('q')) {
             $query->where('title', 'like', '%'.$request->string('q').'%');

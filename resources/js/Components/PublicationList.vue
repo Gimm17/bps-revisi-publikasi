@@ -162,6 +162,8 @@ onMounted(() => {
         if (hasActiveOrQueuedOnPage.value && !batchBusy.value) {
             router.reload({
                 only: ["publications", "metrics"],
+                preserveScroll: true,
+                preserveState: true,
             });
         }
     }, 5000);
@@ -170,6 +172,20 @@ onMounted(() => {
 onUnmounted(() => {
     if (pollTimer) clearInterval(pollTimer);
 });
+
+function formatPaginationLabel(label: string, index: number): string {
+    if (label.includes("Previous") || label.includes("laquo") || index === 0) {
+        return "Sebelumnya";
+    }
+    if (
+        label.includes("Next") ||
+        label.includes("raquo") ||
+        index === props.publications.links.length - 1
+    ) {
+        return "Berikutnya";
+    }
+    return label;
+}
 </script>
 
 <template>
@@ -385,23 +401,72 @@ onUnmounted(() => {
     >
         <template v-for="(link, i) in publications.links" :key="i">
             <Link
-                v-if="link.url"
+                v-if="link.url && !link.active"
                 :href="link.url"
-                :class="['button secondary', { selected: link.active }]"
+                class="button secondary page-btn"
+                preserve-scroll
+                preserve-state
             >
-                {{
-                    i === 0
-                        ? "Sebelumnya"
-                        : i === publications.links.length - 1
-                          ? "Berikutnya"
-                          : link.label
-                }}
+                {{ formatPaginationLabel(link.label, i) }}
             </Link>
+            <span
+                v-else-if="link.active"
+                class="button secondary page-btn selected"
+                aria-current="page"
+            >
+                {{ formatPaginationLabel(link.label, i) }}
+            </span>
+            <span
+                v-else
+                class="button secondary page-btn disabled"
+                aria-disabled="true"
+            >
+                {{ formatPaginationLabel(link.label, i) }}
+            </span>
         </template>
     </nav>
 </template>
 
 <style scoped>
+.pagination {
+    display: flex;
+    gap: 8px;
+    margin-top: 30px;
+    margin-bottom: 20px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.page-btn {
+    min-width: 38px;
+    height: 38px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    user-select: none;
+}
+.page-btn.selected {
+    background: #302b2a !important;
+    color: #ffffff !important;
+    border-color: #302b2a !important;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(48, 43, 42, 0.2);
+    pointer-events: none;
+}
+.page-btn.disabled {
+    opacity: 0.35;
+    pointer-events: none;
+    cursor: not-allowed;
+    border-color: #e2e8f0;
+    background: #f8fafc;
+    color: #94a3b8;
+}
 .batch-quick-select-btn {
     white-space: nowrap;
 }
