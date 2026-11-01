@@ -12,11 +12,25 @@ class PageResultValidator
 {
     public function validate(array $data, int $page): array
     {
-        // Pre-sanitize table bboxes
+        // Pre-sanitize table bboxes, titles, and structure (self-healing for malformed/orphan draft tables)
         if (isset($data['inventory']['tables']) && is_array($data['inventory']['tables'])) {
             foreach ($data['inventory']['tables'] as $k => $table) {
-                if (is_array($table) && array_key_exists('bbox', $table)) {
-                    $data['inventory']['tables'][$k]['bbox'] = $this->sanitizeBox($table['bbox']);
+                if (is_array($table)) {
+                    if (array_key_exists('bbox', $table)) {
+                        $data['inventory']['tables'][$k]['bbox'] = $this->sanitizeBox($table['bbox']);
+                    }
+                    if (empty(trim((string) ($table['title'] ?? '')))) {
+                        $data['inventory']['tables'][$k]['title'] = '[Tanpa Judul]';
+                    }
+                    if (! isset($table['headers']) || ! is_array($table['headers'])) {
+                        $data['inventory']['tables'][$k]['headers'] = [];
+                    }
+                    if (! isset($table['rows']) || ! is_array($table['rows'])) {
+                        $data['inventory']['tables'][$k]['rows'] = [];
+                    }
+                    if (! isset($table['continued'])) {
+                        $data['inventory']['tables'][$k]['continued'] = false;
+                    }
                 }
             }
         }
