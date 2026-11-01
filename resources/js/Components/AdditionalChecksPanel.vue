@@ -126,7 +126,7 @@ function getCheckRecord(type: string) {
 }
 
 function statusBadge(status?: string, decision?: string | null) {
-    if (status === "running") return { label: "Sedang berjalan", class: "status-running", icon: Clock };
+    if (status === "running" || status === "pending") return { label: "Sedang berjalan...", class: "status-running", icon: Clock };
     if (status === "retry_wait") return { label: "Menunggu retry", class: "status-retry", icon: Clock };
     if (status === "failed") return { label: "Gagal dijalankan", class: "status-danger", icon: XCircle };
     if (decision === "conform") return { label: "Sesuai Pedoman", class: "status-success", icon: CheckCircle2 };
